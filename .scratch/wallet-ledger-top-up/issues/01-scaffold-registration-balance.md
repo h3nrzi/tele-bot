@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] TypeScript project initialised with strict mode; grammY, Drizzle ORM, `decimal.js`, `dotenv`, and a test runner installed and configured.
+- [x] TypeScript project initialised with strict mode; grammY, Drizzle ORM, `decimal.js`, `dotenv`, and a test runner installed and configured.
 - [ ] Drizzle migration creates the `users` table (`id` UUID PK, `telegram_chat_id` BIGINT UNIQUE NOT NULL, `telegram_username` VARCHAR nullable, `created_at` TIMESTAMPTZ) and the `wallets` table (`id` UUID PK, `user_id` UUID FK → `users` UNIQUE NOT NULL, `available_balance` NUMERIC(18,2) NOT NULL DEFAULT 0.00, `updated_at` TIMESTAMPTZ).
 - [ ] Migration is committed to the repository and applied automatically before the test suite runs.
 - [ ] Test harness connects to a real PostgreSQL test database and truncates all tables between each test.

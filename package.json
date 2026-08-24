@@ -1,0 +1,32 @@
+{
+  "name": "tele-bot",
+  "version": "0.1.0",
+  "description": "Telegram-native marketplace bot with double-entry ledger and wallet top-ups",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "dev": "tsx watch src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.4",
+    "grammy": "^1.34.0",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/pg": "^8.11.11",
+    "drizzle-kit": "^0.30.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.4"
+  }
+}
