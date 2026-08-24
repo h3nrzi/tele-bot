@@ -11,7 +11,7 @@
 - [x] Migration is committed to the repository and applied automatically before the test suite runs.
 - [x] Test harness connects to a real PostgreSQL test database and truncates all tables between each test.
 - [x] Registration service creates a `users` row and a `wallets` row atomically in a single transaction; the wallet starts with `available_balance = 0.00`.
-- [ ] Registration service is idempotent: calling it twice with the same `telegram_chat_id` returns the existing user and wallet without error and without creating duplicate rows.
+- [x] Registration service is idempotent: calling it twice with the same `telegram_chat_id` returns the existing user and wallet without error and without creating duplicate rows.
 - [ ] `/start` handler: a new Buyer receives a welcome message; a returning Buyer receives a personalised message that includes their current Available Balance.
 - [ ] `/balance` handler: returns the Buyer's current Available Balance formatted as a USD string (e.g., `$0.00`).
 - [ ] `/start` and `/balance` are silently ignored for unrecognised senders until registration is complete (i.e., `/balance` before `/start` prompts the user to register first).
