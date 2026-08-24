@@ -10,7 +10,7 @@
 - [x] Drizzle migration creates the `users` table (`id` UUID PK, `telegram_chat_id` BIGINT UNIQUE NOT NULL, `telegram_username` VARCHAR nullable, `created_at` TIMESTAMPTZ) and the `wallets` table (`id` UUID PK, `user_id` UUID FK → `users` UNIQUE NOT NULL, `available_balance` NUMERIC(18,2) NOT NULL DEFAULT 0.00, `updated_at` TIMESTAMPTZ).
 - [x] Migration is committed to the repository and applied automatically before the test suite runs.
 - [x] Test harness connects to a real PostgreSQL test database and truncates all tables between each test.
-- [ ] Registration service creates a `users` row and a `wallets` row atomically in a single transaction; the wallet starts with `available_balance = 0.00`.
+- [x] Registration service creates a `users` row and a `wallets` row atomically in a single transaction; the wallet starts with `available_balance = 0.00`.
 - [ ] Registration service is idempotent: calling it twice with the same `telegram_chat_id` returns the existing user and wallet without error and without creating duplicate rows.
 - [ ] `/start` handler: a new Buyer receives a welcome message; a returning Buyer receives a personalised message that includes their current Available Balance.
 - [ ] `/balance` handler: returns the Buyer's current Available Balance formatted as a USD string (e.g., `$0.00`).
