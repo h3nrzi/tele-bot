@@ -18,8 +18,8 @@ export const usersRelations = relations(users, ({ one }) => ({
   }),
 }));
 
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
+export type Buyer = typeof users.$inferSelect;
+export type NewBuyer = typeof users.$inferInsert;
 
-export type Buyer = User;
-export type NewBuyer = NewUser;
+export type User = Buyer;
+export type NewUser = NewBuyer;

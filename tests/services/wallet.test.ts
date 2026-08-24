@@ -38,7 +38,7 @@ describe('Wallet Service - getBuyerWallet', () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result?.buyer.id).toBe(registered.user.id);
+    expect(result?.buyer.id).toBe(registered.buyer.id);
     expect(result?.buyer.telegramChatId).toBe(chatId);
     expect(result?.wallet.id).toBe(registered.wallet.id);
     expect(result?.wallet.availableBalance).toBe('0.00');
@@ -56,7 +56,7 @@ describe('Wallet Service - getBuyerWallet', () => {
     await db
       .update(wallets)
       .set({ availableBalance: '250.00' })
-      .where(eq(wallets.userId, registered.user.id));
+      .where(eq(wallets.userId, registered.buyer.id));
 
     const result = await getBuyerWallet(
       {

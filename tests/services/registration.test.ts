@@ -18,17 +18,17 @@ describe('Registration Service - Atomicity & Creation', () => {
     );
 
     expect(result).toBeDefined();
-    expect(result.user).toBeDefined();
+    expect(result.buyer).toBeDefined();
     expect(result.wallet).toBeDefined();
     expect(result.isNew).toBe(true);
-    expect(result.user.telegramChatId).toBe(987654321n);
-    expect(result.user.telegramUsername).toBe('newbuyer');
-    expect(result.wallet.userId).toBe(result.user.id);
+    expect(result.buyer.telegramChatId).toBe(987654321n);
+    expect(result.buyer.telegramUsername).toBe('newbuyer');
+    expect(result.wallet.userId).toBe(result.buyer.id);
     expect(result.wallet.availableBalance).toBe('0.00');
 
     // Verify in database
-    const dbUsers = await db.select().from(users).where(eq(users.id, result.user.id));
-    const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, result.user.id));
+    const dbUsers = await db.select().from(users).where(eq(users.id, result.buyer.id));
+    const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, result.buyer.id));
 
     expect(dbUsers.length).toBe(1);
     expect(dbWallets.length).toBe(1);
@@ -45,9 +45,9 @@ describe('Registration Service - Atomicity & Creation', () => {
     );
 
     expect(result.isNew).toBe(true);
-    expect(result.user.telegramChatId).toBe(1122334455n);
-    expect(result.user.telegramUsername).toBeNull();
-    expect(result.wallet.userId).toBe(result.user.id);
+    expect(result.buyer.telegramChatId).toBe(1122334455n);
+    expect(result.buyer.telegramUsername).toBeNull();
+    expect(result.wallet.userId).toBe(result.buyer.id);
     expect(result.wallet.availableBalance).toBe('0.00');
   });
 });
@@ -76,14 +76,14 @@ describe('Registration Service - Idempotency', () => {
 
     expect(firstResult.isNew).toBe(true);
     expect(secondResult.isNew).toBe(false);
-    expect(secondResult.user.id).toBe(firstResult.user.id);
-    expect(secondResult.user.telegramUsername).toBe('initial_username');
+    expect(secondResult.buyer.id).toBe(firstResult.buyer.id);
+    expect(secondResult.buyer.telegramUsername).toBe('initial_username');
     expect(secondResult.wallet.id).toBe(firstResult.wallet.id);
-    expect(secondResult.wallet.userId).toBe(firstResult.user.id);
+    expect(secondResult.wallet.userId).toBe(firstResult.buyer.id);
 
     // Verify no duplicates in database
     const dbUsers = await db.select().from(users).where(eq(users.telegramChatId, chatId));
-    const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, firstResult.user.id));
+    const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, firstResult.buyer.id));
 
     expect(dbUsers.length).toBe(1);
     expect(dbWallets.length).toBe(1);
@@ -112,7 +112,7 @@ describe('Registration Service - Idempotency', () => {
       db
     );
 
-    expect(secondResult.user.id).toBe(firstResult.user.id);
+    expect(secondResult.buyer.id).toBe(firstResult.buyer.id);
     expect(secondResult.wallet.id).toBe(firstResult.wallet.id);
     expect(secondResult.wallet.availableBalance).toBe('42.50');
   });
@@ -127,13 +127,16 @@ describe('Registration Service - Idempotency', () => {
     ]);
 
     expect(results).toHaveLength(3);
-    const firstId = results[0]?.user.id;
+    const firstId = results[0]?.buyer.id;
     const firstWalletId = results[0]?.wallet.id;
 
     for (const res of results) {
-      expect(res.user.id).toBe(firstId);
+      expect(res.buyer.id).toBe(firstId);
       expect(res.wallet.id).toBe(firstWalletId);
     }
+
+    const newCount = results.filter((res) => res.isNew).length;
+    expect(newCount).toBe(1);
 
     const dbUsers = await db.select().from(users).where(eq(users.telegramChatId, chatId));
     const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, firstId!));

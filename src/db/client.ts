@@ -25,3 +25,15 @@ export function createDatabaseConnection(connectionString?: string): DatabaseCon
 
   return { db, pool };
 }
+
+let defaultConnection: DatabaseConnection | null = null;
+
+/**
+ * Returns a shared default database client singleton for the application.
+ */
+export function getDefaultDb(): DbClient {
+  if (!defaultConnection) {
+    defaultConnection = createDatabaseConnection();
+  }
+  return defaultConnection.db;
+}

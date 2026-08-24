@@ -1,34 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
-import type { Context } from 'grammy';
+import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
+import { createMockContext } from '../helpers/mock-context';
 import { handleStart, getNewBuyerWelcomeMessage, getReturningBuyerWelcomeMessage } from '../../src/bot/handlers/start';
 import { createBot } from '../../src/bot/bot';
 import { users } from '../../src/db/schema/users';
 import { wallets } from '../../src/db/schema/wallets';
 import { eq } from 'drizzle-orm';
-
-function createMockContext(from?: {
-  id: number;
-  first_name?: string;
-  username?: string;
-}) {
-  const repliedMessages: string[] = [];
-  const ctx = {
-    from: from
-      ? {
-          id: from.id,
-          is_bot: false,
-          first_name: from.first_name ?? '',
-          username: from.username,
-        }
-      : undefined,
-    reply: vi.fn(async (text: string) => {
-      repliedMessages.push(text);
-    }),
-  } as unknown as Context;
-
-  return { ctx, repliedMessages };
-}
 
 describe('/start Handler', () => {
   const { db } = setupTestDatabase();
@@ -69,11 +46,11 @@ describe('/start Handler', () => {
     expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
 
     // Update wallet balance to simulate previous activity
-    const [user] = await db.select().from(users).where(eq(users.telegramChatId, BigInt(chatId)));
+    const [buyer] = await db.select().from(users).where(eq(users.telegramChatId, BigInt(chatId)));
     await db
       .update(wallets)
       .set({ availableBalance: '150.75' })
-      .where(eq(wallets.userId, user!.id));
+      .where(eq(wallets.userId, buyer!.id));
 
     // Second call: returning Buyer
     await handleStart(ctx, db);

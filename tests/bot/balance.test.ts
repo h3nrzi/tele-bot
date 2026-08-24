@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import type { Context } from 'grammy';
+import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
+import { createMockContext } from '../helpers/mock-context';
 import {
   handleBalance,
   getBalanceMessage,
@@ -10,29 +10,6 @@ import { createBot } from '../../src/bot/bot';
 import { registerBuyer } from '../../src/services/registration.service';
 import { wallets } from '../../src/db/schema/wallets';
 import { eq } from 'drizzle-orm';
-
-function createMockContext(from?: {
-  id: number;
-  first_name?: string;
-  username?: string;
-}) {
-  const repliedMessages: string[] = [];
-  const ctx = {
-    from: from
-      ? {
-          id: from.id,
-          is_bot: false,
-          first_name: from.first_name ?? '',
-          username: from.username,
-        }
-      : undefined,
-    reply: vi.fn(async (text: string) => {
-      repliedMessages.push(text);
-    }),
-  } as unknown as Context;
-
-  return { ctx, repliedMessages };
-}
 
 describe('/balance Handler', () => {
   const { db } = setupTestDatabase();
@@ -62,7 +39,7 @@ describe('/balance Handler', () => {
 
   it('returns non-zero Available Balance formatted as a USD string for a registered Buyer', async () => {
     const chatId = 987654321;
-    const { user } = await registerBuyer(
+    const { buyer } = await registerBuyer(
       {
         telegramChatId: chatId,
         telegramUsername: 'bob_buyer',
@@ -73,7 +50,7 @@ describe('/balance Handler', () => {
     await db
       .update(wallets)
       .set({ availableBalance: '123.45' })
-      .where(eq(wallets.userId, user.id));
+      .where(eq(wallets.userId, buyer.id));
 
     const { ctx, repliedMessages } = createMockContext({
       id: chatId,
