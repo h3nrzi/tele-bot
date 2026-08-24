@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Drizzle migration creates the `exchange_rates` table (`id` UUID PK, `irr_per_usd` BIGINT NOT NULL, `created_by_admin_telegram_id` BIGINT NOT NULL, `created_at` TIMESTAMPTZ NOT NULL DEFAULT now()). No UPDATE or DELETE is ever issued against this table.
+- [x] Drizzle migration creates the `exchange_rates` table (`id` UUID PK, `irr_per_usd` BIGINT NOT NULL, `created_by_admin_telegram_id` BIGINT NOT NULL, `created_at` TIMESTAMPTZ NOT NULL DEFAULT now()). No UPDATE or DELETE is ever issued against this table.
 - [ ] Admin middleware reads the `ADMIN_IDS` environment variable (comma-separated Telegram chat IDs) and silently drops any update from a non-Admin sender before it reaches an Admin handler. No database read is performed for this check.
 - [ ] Exchange rate service: `setRate(adminTelegramId, irrPerUsd)` appends a new row and returns it. The function never modifies existing rows.
 - [ ] Exchange rate service: `getCurrentRate()` returns the most recently created `exchange_rates` row, or `null` if no row exists.
