@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import type { DbClient } from '../db/client';
 import { createDatabaseConnection } from '../db/client';
 import { users, type User } from '../db/schema/users';
@@ -11,6 +12,7 @@ export interface RegisterBuyerInput {
 export interface RegisterBuyerResult {
   user: User;
   wallet: Wallet;
+  isNew: boolean;
 }
 
 /**
@@ -30,6 +32,25 @@ export async function registerBuyer(
   const username = input.telegramUsername ?? null;
 
   return await client.transaction(async (tx) => {
+    const [existingUser] = await tx
+      .select()
+      .from(users)
+      .where(eq(users.telegramChatId, chatId));
+
+    if (existingUser) {
+      const [wallet] = await tx
+        .select()
+        .from(wallets)
+        .where(eq(wallets.userId, existingUser.id));
+
+      if (!wallet) {
+        throw new Error('Failed to retrieve wallet for existing buyer');
+      }
+
+      return { user: existingUser, wallet, isNew: false };
+    }
+
+    // New Buyer
     // PostgreSQL ON CONFLICT DO NOTHING ... RETURNING returns an empty array when a conflict occurs.
     // We use a no-op ON CONFLICT DO UPDATE to ensure the existing Buyer row is returned via RETURNING *.
     const [user] = await tx
@@ -69,7 +90,7 @@ export async function registerBuyer(
       throw new Error('Failed to create or retrieve wallet');
     }
 
-    return { user, wallet };
+    return { user, wallet, isNew: true };
   });
 }
 

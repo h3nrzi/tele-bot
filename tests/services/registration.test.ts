@@ -20,6 +20,7 @@ describe('Registration Service - Atomicity & Creation', () => {
     expect(result).toBeDefined();
     expect(result.user).toBeDefined();
     expect(result.wallet).toBeDefined();
+    expect(result.isNew).toBe(true);
     expect(result.user.telegramChatId).toBe(987654321n);
     expect(result.user.telegramUsername).toBe('newbuyer');
     expect(result.wallet.userId).toBe(result.user.id);
@@ -43,6 +44,7 @@ describe('Registration Service - Atomicity & Creation', () => {
       db
     );
 
+    expect(result.isNew).toBe(true);
     expect(result.user.telegramChatId).toBe(1122334455n);
     expect(result.user.telegramUsername).toBeNull();
     expect(result.wallet.userId).toBe(result.user.id);
@@ -72,6 +74,8 @@ describe('Registration Service - Idempotency', () => {
       db
     );
 
+    expect(firstResult.isNew).toBe(true);
+    expect(secondResult.isNew).toBe(false);
     expect(secondResult.user.id).toBe(firstResult.user.id);
     expect(secondResult.user.telegramUsername).toBe('initial_username');
     expect(secondResult.wallet.id).toBe(firstResult.wallet.id);

@@ -12,8 +12,8 @@
 - [x] Test harness connects to a real PostgreSQL test database and truncates all tables between each test.
 - [x] Registration service creates a `users` row and a `wallets` row atomically in a single transaction; the wallet starts with `available_balance = 0.00`.
 - [x] Registration service is idempotent: calling it twice with the same `telegram_chat_id` returns the existing user and wallet without error and without creating duplicate rows.
-- [ ] `/start` handler: a new Buyer receives a welcome message; a returning Buyer receives a personalised message that includes their current Available Balance.
+- [x] `/start` handler: a new Buyer receives a welcome message; a returning Buyer receives a personalised message that includes their current Available Balance.
 - [ ] `/balance` handler: returns the Buyer's current Available Balance formatted as a USD string (e.g., `$0.00`).
 - [ ] `/start` and `/balance` are silently ignored for unrecognised senders until registration is complete (i.e., `/balance` before `/start` prompts the user to register first).
-- [ ] Registration service tests cover: new Buyer happy path, returning Buyer idempotency, and concurrent `/start` from the same Telegram ID producing exactly one `users` row and one `wallets` row.
+- [x] Registration service tests cover: new Buyer happy path, returning Buyer idempotency, and concurrent `/start` from the same Telegram ID producing exactly one `users` row and one `wallets` row.
 - [ ] Bot process starts without errors and responds to `/start` in a live Telegram environment (smoke-test only; not automated).
