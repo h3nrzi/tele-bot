@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { DbClient } from '../db/client';
 import { createDatabaseConnection } from '../db/client';
-import { users, type User } from '../db/schema/users';
+import { users, type User, type Buyer } from '../db/schema/users';
 import { wallets, type Wallet } from '../db/schema/wallets';
 import { getBuyerWallet } from './wallet.service';
 
@@ -11,6 +11,7 @@ export interface RegisterBuyerInput {
 }
 
 export interface RegisterBuyerResult {
+  buyer: Buyer;
   user: User;
   wallet: Wallet;
   isNew: boolean;
@@ -35,7 +36,7 @@ export async function registerBuyer(
   return await client.transaction(async (tx) => {
     const existing = await getBuyerWallet({ telegramChatId: chatId }, tx as unknown as DbClient);
     if (existing) {
-      return { user: existing.buyer, wallet: existing.wallet, isNew: false };
+      return { buyer: existing.buyer, user: existing.buyer, wallet: existing.wallet, isNew: false };
     }
 
     // New Buyer
@@ -78,7 +79,7 @@ export async function registerBuyer(
       throw new Error('Failed to create or retrieve wallet');
     }
 
-    return { user, wallet, isNew: true };
+    return { buyer: user, user, wallet, isNew: true };
   });
 }
 
