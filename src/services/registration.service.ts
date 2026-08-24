@@ -3,6 +3,7 @@ import type { DbClient } from '../db/client';
 import { createDatabaseConnection } from '../db/client';
 import { users, type User } from '../db/schema/users';
 import { wallets, type Wallet } from '../db/schema/wallets';
+import { getBuyerWallet } from './wallet.service';
 
 export interface RegisterBuyerInput {
   telegramChatId: bigint | number;
@@ -32,22 +33,9 @@ export async function registerBuyer(
   const username = input.telegramUsername ?? null;
 
   return await client.transaction(async (tx) => {
-    const [existingUser] = await tx
-      .select()
-      .from(users)
-      .where(eq(users.telegramChatId, chatId));
-
-    if (existingUser) {
-      const [wallet] = await tx
-        .select()
-        .from(wallets)
-        .where(eq(wallets.userId, existingUser.id));
-
-      if (!wallet) {
-        throw new Error('Failed to retrieve wallet for existing buyer');
-      }
-
-      return { user: existingUser, wallet, isNew: false };
+    const existing = await getBuyerWallet({ telegramChatId: chatId }, tx as unknown as DbClient);
+    if (existing) {
+      return { user: existing.buyer, wallet: existing.wallet, isNew: false };
     }
 
     // New Buyer

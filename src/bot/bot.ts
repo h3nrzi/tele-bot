@@ -2,6 +2,7 @@ import { Bot, type Context } from 'grammy';
 import type { UserFromGetMe } from 'grammy/types';
 import type { DbClient } from '../db/client';
 import { handleStart } from './handlers/start';
+import { handleBalance } from './handlers/balance';
 
 export interface CreateBotOptions {
   token?: string;
@@ -25,6 +26,10 @@ export function createBot(options?: CreateBotOptions): Bot<Context> {
 
   bot.command('start', async (ctx) => {
     await handleStart(ctx, options?.dbClient);
+  });
+
+  bot.command('balance', async (ctx) => {
+    await handleBalance(ctx, options?.dbClient);
   });
 
   return bot;
