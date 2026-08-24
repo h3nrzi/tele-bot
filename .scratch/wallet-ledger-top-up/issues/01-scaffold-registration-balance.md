@@ -16,4 +16,4 @@
 - [x] `/balance` handler: returns the Buyer's current Available Balance formatted as a USD string (e.g., `$0.00`).
 - [x] `/start` and `/balance` are silently ignored for unrecognised senders until registration is complete (i.e., `/balance` before `/start` prompts the user to register first).
 - [x] Registration service tests cover: new Buyer happy path, returning Buyer idempotency, and concurrent `/start` from the same Telegram ID producing exactly one `users` row and one `wallets` row.
-- [ ] Bot process starts without errors and responds to `/start` in a live Telegram environment (smoke-test only; not automated).
+- [x] Bot process starts without errors and responds to `/start` in a live Telegram environment (smoke-test only; not automated).
