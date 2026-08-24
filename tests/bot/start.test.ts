@@ -7,31 +7,47 @@ import { users } from '../../src/db/schema/users';
 import { wallets } from '../../src/db/schema/wallets';
 import { eq } from 'drizzle-orm';
 
+function createMockContext(from?: {
+  id: number;
+  first_name?: string;
+  username?: string;
+}) {
+  const repliedMessages: string[] = [];
+  const ctx = {
+    from: from
+      ? {
+          id: from.id,
+          is_bot: false,
+          first_name: from.first_name ?? '',
+          username: from.username,
+        }
+      : undefined,
+    reply: vi.fn(async (text: string) => {
+      repliedMessages.push(text);
+    }),
+  } as unknown as Context;
+
+  return { ctx, repliedMessages };
+}
+
 describe('/start Handler', () => {
   const { db } = setupTestDatabase();
 
-  it('sends welcome message for a new Buyer confirming account creation with $0.00 Available Balance', async () => {
-    const repliedMessages: string[] = [];
-    const mockCtx = {
-      from: {
-        id: 123456789,
-        is_bot: false,
-        first_name: 'Alice',
-        username: 'alice_buyer',
-      },
-      reply: vi.fn(async (text: string) => {
-        repliedMessages.push(text);
-      }),
-    } as unknown as Context;
+  it('sends welcome message for a new Buyer confirming Wallet creation with $0.00 Available Balance', async () => {
+    const { ctx, repliedMessages } = createMockContext({
+      id: 123456789,
+      first_name: 'Alice',
+      username: 'alice_buyer',
+    });
 
-    await handleStart(mockCtx, db);
+    await handleStart(ctx, db);
 
-    expect(mockCtx.reply).toHaveBeenCalledTimes(1);
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toContain('Welcome');
     expect(repliedMessages[0]).toContain('$0.00');
     expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
 
-    // Verify user and wallet in database
+    // Verify Buyer and Wallet in database
     const dbUsers = await db.select().from(users).where(eq(users.telegramChatId, 123456789n));
     expect(dbUsers).toHaveLength(1);
     const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, dbUsers[0]!.id));
@@ -41,22 +57,15 @@ describe('/start Handler', () => {
 
   it('sends personalised message with current Available Balance for a returning Buyer', async () => {
     const chatId = 987654321;
-    const repliedMessages: string[] = [];
-    const mockCtx = {
-      from: {
-        id: chatId,
-        is_bot: false,
-        first_name: 'Bob',
-        username: 'bob_buyer',
-      },
-      reply: vi.fn(async (text: string) => {
-        repliedMessages.push(text);
-      }),
-    } as unknown as Context;
+    const { ctx, repliedMessages } = createMockContext({
+      id: chatId,
+      first_name: 'Bob',
+      username: 'bob_buyer',
+    });
 
-    // First call: registers new buyer
-    await handleStart(mockCtx, db);
-    expect(mockCtx.reply).toHaveBeenCalledTimes(1);
+    // First call: registers new Buyer
+    await handleStart(ctx, db);
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
 
     // Update wallet balance to simulate previous activity
@@ -66,11 +75,10 @@ describe('/start Handler', () => {
       .set({ availableBalance: '150.75' })
       .where(eq(wallets.userId, user!.id));
 
-    // Second call: returning buyer
-    vi.clearAllMocks();
-    await handleStart(mockCtx, db);
+    // Second call: returning Buyer
+    await handleStart(ctx, db);
 
-    expect(mockCtx.reply).toHaveBeenCalledTimes(1);
+    expect(ctx.reply).toHaveBeenCalledTimes(2);
     expect(repliedMessages[1]).toContain('Bob');
     expect(repliedMessages[1]).toContain('$150.75');
     expect(repliedMessages[1]).toBe(getReturningBuyerWelcomeMessage('Bob', '150.75'));
@@ -78,41 +86,30 @@ describe('/start Handler', () => {
 
   it('falls back to @username when first_name is not provided for returning Buyer', async () => {
     const chatId = 445566778;
-    const repliedMessages: string[] = [];
-    const mockCtx = {
-      from: {
-        id: chatId,
-        is_bot: false,
-        first_name: '',
-        username: 'charlie',
-      },
-      reply: vi.fn(async (text: string) => {
-        repliedMessages.push(text);
-      }),
-    } as unknown as Context;
+    const { ctx, repliedMessages } = createMockContext({
+      id: chatId,
+      first_name: '',
+      username: 'charlie',
+    });
 
     // Initial registration
-    await handleStart(mockCtx, db);
+    await handleStart(ctx, db);
 
     // Returning call
-    vi.clearAllMocks();
-    await handleStart(mockCtx, db);
+    await handleStart(ctx, db);
 
-    expect(mockCtx.reply).toHaveBeenCalledTimes(1);
+    expect(ctx.reply).toHaveBeenCalledTimes(2);
     expect(repliedMessages[1]).toContain('@charlie');
     expect(repliedMessages[1]).toContain('$0.00');
     expect(repliedMessages[1]).toBe(getReturningBuyerWelcomeMessage('@charlie', '0.00'));
   });
 
   it('silently ignores update if ctx.from is undefined', async () => {
-    const mockCtx = {
-      from: undefined,
-      reply: vi.fn(),
-    } as unknown as Context;
+    const { ctx } = createMockContext(undefined);
 
-    await handleStart(mockCtx, db);
+    await handleStart(ctx, db);
 
-    expect(mockCtx.reply).not.toHaveBeenCalled();
+    expect(ctx.reply).not.toHaveBeenCalled();
   });
 
   it('handles /start command via createBot and bot.handleUpdate', async () => {

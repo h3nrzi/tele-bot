@@ -7,7 +7,7 @@ import { formatUsd } from '../../utils/currency';
  * Returns the welcome message for a newly registered Buyer.
  */
 export function getNewBuyerWelcomeMessage(): string {
-  return 'Welcome to Tele-Bot! Your account and USD wallet have been created. Your current Available Balance is $0.00.';
+  return 'Welcome to Tele-Bot! Your Wallet has been created. Your current Available Balance is $0.00.';
 }
 
 /**
@@ -23,8 +23,8 @@ export function getReturningBuyerWelcomeMessage(
 
 /**
  * Handles the /start command.
- * - For a new Buyer: creates user + zero-balance wallet and sends a welcome message.
- * - For a returning Buyer: retrieves user + wallet and sends a personalised greeting with Available Balance.
+ * - For a new Buyer: registers Buyer + zero-balance Wallet and sends a welcome message.
+ * - For a returning Buyer: retrieves Buyer + Wallet and sends a personalised greeting with Available Balance.
  */
 export async function handleStart(
   ctx: Context,

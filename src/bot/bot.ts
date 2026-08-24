@@ -13,7 +13,11 @@ export interface CreateBotOptions {
  * Creates and configures a grammY Bot instance with all command handlers and middleware.
  */
 export function createBot(options?: CreateBotOptions): Bot<Context> {
-  const token = options?.token ?? process.env.BOT_TOKEN ?? 'dummy_token';
+  const token = options?.token ?? process.env.BOT_TOKEN;
+  if (!token) {
+    throw new Error('BOT_TOKEN is required to initialize the bot.');
+  }
+
   const bot = new Bot<Context>(
     token,
     options?.botInfo ? { botInfo: options.botInfo } : undefined
