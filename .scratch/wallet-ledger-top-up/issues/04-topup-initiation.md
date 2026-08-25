@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Drizzle migration creates the `top_up_requests` table with columns: `id` UUID PK, `user_id` UUID FK → `users` NOT NULL, `exchange_rate_id` UUID FK → `exchange_rates` NOT NULL, `usd_amount` NUMERIC(18,2) NOT NULL, `irr_amount` BIGINT NOT NULL, `status` ENUM(`INITIATED`,`PENDING`,`APPROVED`,`REJECTED`,`EXPIRED`,`CANCELLED`) NOT NULL, `receipt_file_id` VARCHAR nullable, `receipt_caption` TEXT nullable, `rejection_reason` TEXT nullable, `expires_at` TIMESTAMPTZ NOT NULL, `processed_by_admin_telegram_id` BIGINT nullable, `processed_at` TIMESTAMPTZ nullable, `created_at` TIMESTAMPTZ NOT NULL, `updated_at` TIMESTAMPTZ NOT NULL.
+- [x] Drizzle migration creates the `top_up_requests` table with columns: `id` UUID PK, `user_id` UUID FK → `users` NOT NULL, `exchange_rate_id` UUID FK → `exchange_rates` NOT NULL, `usd_amount` NUMERIC(18,2) NOT NULL, `irr_amount` BIGINT NOT NULL, `status` ENUM(`INITIATED`,`PENDING`,`APPROVED`,`REJECTED`,`EXPIRED`,`CANCELLED`) NOT NULL, `receipt_file_id` VARCHAR nullable, `receipt_caption` TEXT nullable, `rejection_reason` TEXT nullable, `expires_at` TIMESTAMPTZ NOT NULL, `processed_by_admin_telegram_id` BIGINT nullable, `processed_at` TIMESTAMPTZ nullable, `created_at` TIMESTAMPTZ NOT NULL, `updated_at` TIMESTAMPTZ NOT NULL.
 - [ ] ⚠️ [DIFFICULT] Migration also creates a partial unique index: `top_up_requests(user_id) WHERE status IN ('INITIATED', 'PENDING')`.
 - [ ] Amount validation module reads `TOPUP_MIN_USD` and `TOPUP_MAX_USD` from environment variables and uses `decimal.js` to compare. Both variables are required; the bot fails to start if either is absent.
 - [ ] `irr_amount` is computed as `round(usd_amount × irr_per_usd)` using `decimal.js`; stored as a `BIGINT`.
