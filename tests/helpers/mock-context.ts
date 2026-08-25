@@ -7,6 +7,11 @@ export interface MockSender {
   username?: string;
 }
 
+export interface CreateMockContextOptions {
+  match?: string;
+  text?: string;
+}
+
 export interface MockContextResult {
   ctx: Context;
   repliedMessages: string[];
@@ -15,15 +20,30 @@ export interface MockContextResult {
 /**
  * Creates a mock grammY Context for testing command handlers.
  */
-export function createMockContext(from?: MockSender): MockContextResult {
+export function createMockContext(
+  from?: MockSender,
+  options?: CreateMockContextOptions
+): MockContextResult {
   const repliedMessages: string[] = [];
+  const fromUser = from
+    ? {
+        id: from.id,
+        is_bot: false,
+        first_name: from.first_name ?? '',
+        username: from.username,
+      }
+    : undefined;
+
   const ctx = {
-    from: from
+    from: fromUser,
+    match: options?.match,
+    message: options?.text
       ? {
-          id: from.id,
-          is_bot: false,
-          first_name: from.first_name ?? '',
-          username: from.username,
+          message_id: 1,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: from?.id ?? 1, type: 'private' },
+          from: fromUser,
+          text: options.text,
         }
       : undefined,
     reply: vi.fn(async (text: string) => {
@@ -33,3 +53,4 @@ export function createMockContext(from?: MockSender): MockContextResult {
 
   return { ctx, repliedMessages };
 }
+

@@ -3,11 +3,14 @@ import type { UserFromGetMe } from 'grammy/types';
 import type { DbClient } from '../db/client';
 import { handleStart } from './handlers/start';
 import { handleBalance } from './handlers/balance';
+import { handleSetRate } from './handlers/set-rate';
+import { createAdminMiddleware } from './middleware/admin';
 
 export interface CreateBotOptions {
-  token?: string;
-  dbClient?: DbClient;
-  botInfo?: UserFromGetMe;
+  token?: string | undefined;
+  dbClient?: DbClient | undefined;
+  botInfo?: UserFromGetMe | undefined;
+  adminIds?: string | Set<bigint> | undefined;
 }
 
 /**
@@ -32,5 +35,12 @@ export function createBot(options?: CreateBotOptions): Bot<Context> {
     await handleBalance(ctx, options?.dbClient);
   });
 
+  const adminAuth = createAdminMiddleware({ adminIds: options?.adminIds });
+
+  bot.command('setrate', adminAuth, async (ctx) => {
+    await handleSetRate(ctx, options?.dbClient);
+  });
+
   return bot;
 }
+
