@@ -17,4 +17,5 @@ CREATE TABLE "top_up_requests" (
 );
 --> statement-breakpoint
 ALTER TABLE "top_up_requests" ADD CONSTRAINT "top_up_requests_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "top_up_requests" ADD CONSTRAINT "top_up_requests_exchange_rate_id_exchange_rates_id_fk" FOREIGN KEY ("exchange_rate_id") REFERENCES "public"."exchange_rates"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "top_up_requests" ADD CONSTRAINT "top_up_requests_exchange_rate_id_exchange_rates_id_fk" FOREIGN KEY ("exchange_rate_id") REFERENCES "public"."exchange_rates"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "top_up_requests_user_id_active_idx" ON "top_up_requests" USING btree ("user_id") WHERE "top_up_requests"."status" IN ('INITIATED', 'PENDING');

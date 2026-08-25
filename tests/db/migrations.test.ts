@@ -214,4 +214,78 @@ describe('Database Migrations', () => {
       foreignColumn: 'id',
     });
   });
+
+  it('creates a partial unique index on top_up_requests(user_id) WHERE status IN (INITIATED, PENDING)', async () => {
+    const res = await pool.query(`
+      SELECT indexname, indexdef
+      FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND tablename = 'top_up_requests'
+        AND indexname = 'top_up_requests_user_id_active_idx';
+    `);
+
+    expect(res.rows).toHaveLength(1);
+    const indexDef = res.rows[0]?.indexdef ?? '';
+    expect(indexDef).toContain('UNIQUE INDEX top_up_requests_user_id_active_idx');
+    expect(indexDef).toContain('user_id');
+    expect(indexDef).toMatch(/WHERE.*status.*(INITIATED.*PENDING|'INITIATED'::top_up_status)/i);
+  });
+
+  it('enforces partial uniqueness: disallows multiple active (INITIATED/PENDING) requests per user but allows multiple inactive requests', async () => {
+    // 1. Create test user and exchange rate
+    const userRes = await pool.query(`
+      INSERT INTO users (telegram_chat_id, telegram_username)
+      VALUES (999000111, 'unique_test_user')
+      RETURNING id;
+    `);
+    const userId = userRes.rows[0].id;
+
+    const rateRes = await pool.query(`
+      INSERT INTO exchange_rates (irr_per_usd, created_by_admin_telegram_id)
+      VALUES (600000, 123456789)
+      RETURNING id;
+    `);
+    const rateId = rateRes.rows[0].id;
+
+    const futureExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    // 2. Insert first request with status INITIATED
+    const req1Res = await pool.query(`
+      INSERT INTO top_up_requests (user_id, exchange_rate_id, usd_amount, irr_amount, status, expires_at)
+      VALUES ('${userId}', '${rateId}', 50.00, 30000000, 'INITIATED', '${futureExpiry}')
+      RETURNING id;
+    `);
+    const req1Id = req1Res.rows[0].id;
+
+    // 3. Attempting to insert a second INITIATED request for same user must fail with 23505 (unique violation)
+    await expect(
+      pool.query(`
+        INSERT INTO top_up_requests (user_id, exchange_rate_id, usd_amount, irr_amount, status, expires_at)
+        VALUES ('${userId}', '${rateId}', 100.00, 60000000, 'INITIATED', '${futureExpiry}')
+      `)
+    ).rejects.toMatchObject({ code: '23505' });
+
+    // 4. Attempting to insert a second PENDING request for same user must also fail
+    await expect(
+      pool.query(`
+        INSERT INTO top_up_requests (user_id, exchange_rate_id, usd_amount, irr_amount, status, expires_at)
+        VALUES ('${userId}', '${rateId}', 100.00, 60000000, 'PENDING', '${futureExpiry}')
+      `)
+    ).rejects.toMatchObject({ code: '23505' });
+
+    // 5. Update first request to APPROVED (terminal status)
+    await pool.query(`
+      UPDATE top_up_requests
+      SET status = 'APPROVED'
+      WHERE id = '${req1Id}'
+    `);
+
+    // 6. Now inserting a new INITIATED request for the same user must succeed
+    const req2Res = await pool.query(`
+      INSERT INTO top_up_requests (user_id, exchange_rate_id, usd_amount, irr_amount, status, expires_at)
+      VALUES ('${userId}', '${rateId}', 75.00, 45000000, 'INITIATED', '${futureExpiry}')
+      RETURNING id;
+    `);
+    expect(req2Res.rows[0].id).toBeDefined();
+  });
 });

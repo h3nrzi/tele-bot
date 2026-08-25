@@ -9,5 +9,10 @@ export default defineConfig({
     fileParallelism: false,
     testTimeout: 10000,
     hookTimeout: 10000,
+    env: {
+      TOPUP_MIN_USD: '10.00',
+      TOPUP_MAX_USD: '1000.00',
+      TOPUP_INITIATED_EXPIRY_MINUTES: '30',
+    },
   },
 });

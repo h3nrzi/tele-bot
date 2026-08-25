@@ -11,7 +11,13 @@ import {
   SETCARD_CONVERSATION_ID,
   type BotContext,
 } from './handlers/set-card';
+import {
+  createTopUpConversation,
+  handleTopUpCommand,
+  TOPUP_CONVERSATION_ID,
+} from './handlers/topup';
 import { createAdminMiddleware } from './middleware/admin';
+import { getTopUpLimits, type TopUpLimits } from '../utils/currency';
 
 import type { ApiClientOptions } from 'grammy';
 
@@ -21,6 +27,7 @@ export interface CreateBotOptions {
   botInfo?: UserFromGetMe | undefined;
   adminIds?: string | Set<bigint> | undefined;
   client?: ApiClientOptions | undefined;
+  topUpLimits?: TopUpLimits | undefined;
 }
 
 /**
@@ -31,6 +38,8 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   if (!token) {
     throw new Error('BOT_TOKEN is required to initialize the bot.');
   }
+
+  const limits = options?.topUpLimits ?? getTopUpLimits();
 
   const botConfig: NonNullable<ConstructorParameters<typeof Bot<BotContext>>[1]> = {};
   if (options?.botInfo) {
@@ -48,6 +57,14 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
       id: SETCARD_CONVERSATION_ID,
     })
   );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createTopUpConversation(options?.dbClient, limits),
+      {
+        id: TOPUP_CONVERSATION_ID,
+      }
+    )
+  );
 
   bot.command('start', async (ctx) => {
     await handleStart(ctx, options?.dbClient);
@@ -55,6 +72,10 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
 
   bot.command('balance', async (ctx) => {
     await handleBalance(ctx, options?.dbClient);
+  });
+
+  bot.command('topup', async (ctx) => {
+    await handleTopUpCommand(ctx, options?.dbClient, { adminIds: options?.adminIds });
   });
 
   const adminAuth = createAdminMiddleware<BotContext>({ adminIds: options?.adminIds });

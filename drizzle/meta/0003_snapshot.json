@@ -303,7 +303,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "top_up_requests_user_id_active_idx": {
+          "name": "top_up_requests_user_id_active_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"top_up_requests\".\"status\" IN ('INITIATED', 'PENDING')",
+          "concurrently": false,
+          "method": "btree"
+        }
+      },
       "foreignKeys": {
         "top_up_requests_user_id_users_id_fk": {
           "name": "top_up_requests_user_id_users_id_fk",
