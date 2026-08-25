@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
 import { exchangeRates } from '../../src/db/schema/exchange-rates';
-import { setRate } from '../../src/services/exchange-rate.service';
+import { setRate, getCurrentRate } from '../../src/services/exchange-rate.service';
 import { count, eq } from 'drizzle-orm';
 
 describe('Exchange Rate Service - setRate', () => {
@@ -78,3 +78,39 @@ describe('Exchange Rate Service - setRate', () => {
     expect(Number(countResult?.value ?? 0)).toBe(0);
   });
 });
+
+describe('Exchange Rate Service - getCurrentRate', () => {
+  const { db } = setupTestDatabase();
+
+  it('returns null when no exchange rate exists', async () => {
+    const rate = await getCurrentRate(db);
+    expect(rate).toBeNull();
+  });
+
+  it('returns the exchange rate when one exists', async () => {
+    const adminId = 123456789n;
+    const inserted = await setRate(adminId, 620000n, db);
+
+    const currentRate = await getCurrentRate(db);
+    expect(currentRate).not.toBeNull();
+    expect(currentRate?.id).toBe(inserted.id);
+    expect(currentRate?.irrPerUsd).toBe(620000n);
+    expect(currentRate?.createdByAdminTelegramId).toBe(123456789n);
+  });
+
+  it('returns the most recently created exchange rate when multiple rates exist', async () => {
+    const admin1 = 111111111n;
+    const admin2 = 222222222n;
+
+    await setRate(admin1, 600000n, db);
+    // Small delay or subsequent insertion to ensure strictly ordered timestamp / sequential row
+    const second = await setRate(admin2, 650000n, db);
+
+    const currentRate = await getCurrentRate(db);
+    expect(currentRate).not.toBeNull();
+    expect(currentRate?.id).toBe(second.id);
+    expect(currentRate?.irrPerUsd).toBe(650000n);
+    expect(currentRate?.createdByAdminTelegramId).toBe(222222222n);
+  });
+});
+

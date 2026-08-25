@@ -1,3 +1,4 @@
+import { desc } from 'drizzle-orm';
 import type { DbClient } from '../db/client';
 import { getDefaultDb } from '../db/client';
 import { exchangeRates, type ExchangeRate } from '../db/schema/exchange-rates';
@@ -34,3 +35,21 @@ export async function setRate(
 
   return insertedRate;
 }
+
+/**
+ * Returns the most recently created exchange_rates row, or null if no row exists.
+ */
+export async function getCurrentRate(
+  dbClient?: DbClient
+): Promise<ExchangeRate | null> {
+  const client = dbClient ?? getDefaultDb();
+
+  const [latestRate] = await client
+    .select()
+    .from(exchangeRates)
+    .orderBy(desc(exchangeRates.createdAt))
+    .limit(1);
+
+  return latestRate ?? null;
+}
+
