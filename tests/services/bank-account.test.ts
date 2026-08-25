@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
 import { bankAccounts } from '../../src/db/schema/bank-accounts';
-import { setActiveAccount } from '../../src/services/bank-account.service';
+import {
+  setActiveAccount,
+  getActiveAccount,
+} from '../../src/services/bank-account.service';
 
 describe('Bank Account Service - setActiveAccount', () => {
   const { db } = setupTestDatabase();
@@ -161,3 +164,79 @@ describe('Bank Account Service - setActiveAccount', () => {
     ).rejects.toThrow(/bank name cannot be empty/i);
   });
 });
+
+describe('Bank Account Service - getActiveAccount', () => {
+  const { db } = setupTestDatabase();
+
+  it('returns null when the bank_accounts table is empty', async () => {
+    const account = await getActiveAccount(db);
+    expect(account).toBeNull();
+  });
+
+  it('returns the active bank account when one exists', async () => {
+    const created = await setActiveAccount(
+      {
+        cardNumber: '6037991812345678',
+        cardHolderName: 'Hossein Rezaei',
+        bankName: 'Melli',
+        additionalNotes: 'Transfer via Satna/Paya',
+      },
+      db
+    );
+
+    const activeAccount = await getActiveAccount(db);
+    expect(activeAccount).not.toBeNull();
+    expect(activeAccount?.id).toBe(created.id);
+    expect(activeAccount?.cardNumber).toBe('6037991812345678');
+    expect(activeAccount?.cardHolderName).toBe('Hossein Rezaei');
+    expect(activeAccount?.bankName).toBe('Melli');
+    expect(activeAccount?.additionalNotes).toBe('Transfer via Satna/Paya');
+    expect(activeAccount?.isActive).toBe(true);
+    expect(activeAccount?.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('returns the newly active bank account and ignores deactivated ones', async () => {
+    const first = await setActiveAccount(
+      {
+        cardNumber: '6037991811111111',
+        cardHolderName: 'First Holder',
+        bankName: 'Melli',
+      },
+      db
+    );
+
+    const second = await setActiveAccount(
+      {
+        cardNumber: '5892101222222222',
+        cardHolderName: 'Second Holder',
+        bankName: 'Sepah',
+        additionalNotes: 'Second account notes',
+      },
+      db
+    );
+
+    const activeAccount = await getActiveAccount(db);
+    expect(activeAccount).not.toBeNull();
+    expect(activeAccount?.id).toBe(second.id);
+    expect(activeAccount?.id).not.toBe(first.id);
+    expect(activeAccount?.cardNumber).toBe('5892101222222222');
+    expect(activeAccount?.cardHolderName).toBe('Second Holder');
+    expect(activeAccount?.bankName).toBe('Sepah');
+    expect(activeAccount?.additionalNotes).toBe('Second account notes');
+    expect(activeAccount?.isActive).toBe(true);
+  });
+
+  it('returns null if no row has is_active = true', async () => {
+    // Insert an inactive account directly
+    await db.insert(bankAccounts).values({
+      cardNumber: '6037991811111111',
+      cardHolderName: 'Inactive Holder',
+      bankName: 'Melli',
+      isActive: false,
+    });
+
+    const activeAccount = await getActiveAccount(db);
+    expect(activeAccount).toBeNull();
+  });
+});
+

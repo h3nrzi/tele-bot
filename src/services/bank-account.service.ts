@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import type { DbClient } from '../db/client';
 import { getDefaultDb } from '../db/client';
 import { bankAccounts, type BankAccount } from '../db/schema/bank-accounts';
@@ -61,3 +62,22 @@ export async function setActiveAccount(
     return insertedAccount;
   });
 }
+
+/**
+ * Returns the single active bank account row where is_active = true,
+ * or null if no active account exists.
+ */
+export async function getActiveAccount(
+  dbClient?: DbClient
+): Promise<BankAccount | null> {
+  const client = dbClient ?? getDefaultDb();
+
+  const [activeAccount] = await client
+    .select()
+    .from(bankAccounts)
+    .where(eq(bankAccounts.isActive, true))
+    .limit(1);
+
+  return activeAccount ?? null;
+}
+
