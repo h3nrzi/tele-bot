@@ -55,6 +55,49 @@ export function createMockContext(
 }
 
 /**
+ * Creates a mock fetch function that captures sent messages and returns valid Telegram API responses.
+ */
+export function createMockFetch(repliedMessages: string[] = []): {
+  fetch: typeof fetch;
+  repliedMessages: string[];
+} {
+  let messageId = 1;
+  const mockFetch: typeof fetch = async (url: any, init?: any) => {
+    const urlStr = url.toString();
+    const method = urlStr.split('/').pop();
+    let body: any = {};
+    if (init?.body) {
+      try {
+        body = JSON.parse(init.body);
+      } catch {}
+    }
+    if (method === 'sendMessage') {
+      if (body.text) {
+        repliedMessages.push(body.text);
+      }
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          result: {
+            message_id: messageId++,
+            date: Math.floor(Date.now() / 1000),
+            chat: { id: body.chat_id, type: 'private' },
+            text: body.text,
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    return new Response(JSON.stringify({ ok: true, result: {} }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  return { fetch: mockFetch, repliedMessages };
+}
+
+/**
  * Intercepts outbound sendMessage API calls on a grammY Bot instance and collects sent message texts into an array.
  */
 export function captureBotReplies(bot: { api: { config: { use: Function } } }): string[] {

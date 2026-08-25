@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@grammyjs/conversations": "^2.1.1",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.4",
