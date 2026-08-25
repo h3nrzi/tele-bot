@@ -18,17 +18,17 @@ describe('Database Migrations', () => {
     await pool.end();
   });
 
-  it('applies migrations before the test suite runs and creates users, wallets, and exchange_rates tables', async () => {
+  it('applies migrations before the test suite runs and creates users, wallets, exchange_rates, and bank_accounts tables', async () => {
     const res = await pool.query(`
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'
-      AND table_name IN ('users', 'wallets', 'exchange_rates')
+      AND table_name IN ('users', 'wallets', 'exchange_rates', 'bank_accounts')
       ORDER BY table_name;
     `);
 
     const tableNames = res.rows.map((row) => row.table_name);
-    expect(tableNames).toEqual(['exchange_rates', 'users', 'wallets']);
+    expect(tableNames).toEqual(['bank_accounts', 'exchange_rates', 'users', 'wallets']);
   });
 
   it('creates the users table with the required columns and types', async () => {
@@ -89,5 +89,37 @@ describe('Database Migrations', () => {
       created_by_admin_telegram_id: { type: 'bigint', nullable: 'NO' },
       created_at: { type: 'timestamp with time zone', nullable: 'NO' },
     });
+  });
+
+  it('creates the bank_accounts table with the required columns and types', async () => {
+    const res = await pool.query(`
+      SELECT column_name, data_type, is_nullable, character_maximum_length, column_default
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'bank_accounts'
+      ORDER BY column_name;
+    `);
+
+    const columns = Object.fromEntries(
+      res.rows.map((row) => [
+        row.column_name,
+        {
+          type: row.data_type,
+          nullable: row.is_nullable,
+          maxLength: row.character_maximum_length,
+          default: row.column_default,
+        },
+      ])
+    );
+
+    expect(columns).toMatchObject({
+      id: { type: 'uuid', nullable: 'NO' },
+      card_number: { type: 'character varying', nullable: 'NO', maxLength: 16 },
+      card_holder_name: { type: 'character varying', nullable: 'NO' },
+      bank_name: { type: 'character varying', nullable: 'NO' },
+      additional_notes: { type: 'text', nullable: 'YES' },
+      is_active: { type: 'boolean', nullable: 'NO' },
+      created_at: { type: 'timestamp with time zone', nullable: 'NO' },
+    });
+    expect(columns.is_active.default).toContain('false');
   });
 });

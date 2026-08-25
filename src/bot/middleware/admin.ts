@@ -56,10 +56,10 @@ export function isAdmin(
  * Creates a grammY middleware that silently drops any update from a non-Admin sender.
  * No database read is performed for this check.
  */
-export function createAdminMiddleware(
+export function createAdminMiddleware<C extends Context = Context>(
   options?: CreateAdminMiddlewareOptions
-): MiddlewareFn<Context> {
-  return async (ctx: Context, next: NextFunction): Promise<void> => {
+): MiddlewareFn<C> {
+  return async (ctx: C, next: NextFunction): Promise<void> => {
     const senderId = ctx.from?.id;
     if (senderId === undefined || senderId === null) {
       return;
@@ -78,4 +78,4 @@ export function createAdminMiddleware(
  * Default Admin middleware reading from the ADMIN_IDS environment variable.
  * Silently drops any update from a non-Admin sender before it reaches an Admin handler.
  */
-export const adminMiddleware: MiddlewareFn<Context> = createAdminMiddleware();
+export const adminMiddleware = createAdminMiddleware();
