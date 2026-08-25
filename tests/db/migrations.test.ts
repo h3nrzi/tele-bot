@@ -18,17 +18,17 @@ describe('Database Migrations', () => {
     await pool.end();
   });
 
-  it('applies migrations before the test suite runs and creates users and wallets tables', async () => {
+  it('applies migrations before the test suite runs and creates users, wallets, and exchange_rates tables', async () => {
     const res = await pool.query(`
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'
-      AND table_name IN ('users', 'wallets')
+      AND table_name IN ('users', 'wallets', 'exchange_rates')
       ORDER BY table_name;
     `);
 
     const tableNames = res.rows.map((row) => row.table_name);
-    expect(tableNames).toEqual(['users', 'wallets']);
+    expect(tableNames).toEqual(['exchange_rates', 'users', 'wallets']);
   });
 
   it('creates the users table with the required columns and types', async () => {
@@ -68,6 +68,26 @@ describe('Database Migrations', () => {
       user_id: { type: 'uuid', nullable: 'NO' },
       available_balance: { type: 'numeric', nullable: 'NO' },
       updated_at: { type: 'timestamp with time zone', nullable: 'NO' },
+    });
+  });
+
+  it('creates the exchange_rates table with the required columns and types', async () => {
+    const res = await pool.query(`
+      SELECT column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'exchange_rates'
+      ORDER BY column_name;
+    `);
+
+    const columns = Object.fromEntries(
+      res.rows.map((row) => [row.column_name, { type: row.data_type, nullable: row.is_nullable }])
+    );
+
+    expect(columns).toMatchObject({
+      id: { type: 'uuid', nullable: 'NO' },
+      irr_per_usd: { type: 'bigint', nullable: 'NO' },
+      created_by_admin_telegram_id: { type: 'bigint', nullable: 'NO' },
+      created_at: { type: 'timestamp with time zone', nullable: 'NO' },
     });
   });
 });
