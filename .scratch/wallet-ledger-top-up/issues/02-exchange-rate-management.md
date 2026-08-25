@@ -12,6 +12,6 @@
 - [x] Exchange rate service: `getCurrentRate()` returns the most recently created `exchange_rates` row, or `null` if no row exists.
 - [x] `/setrate <irr_amount>` Admin command: validates that `<irr_amount>` is a positive integer, calls `setRate`, and confirms the new active rate to the Admin.
 - [x] `/setrate` with a missing, zero, or non-numeric argument replies with a clear usage error to the Admin.
-- [ ] `/rate` Admin command: if a rate exists, shows the current `irr_per_usd` value and when it was set; if no rate exists, tells the Admin that no rate is configured.
-- [ ] Both commands are silently ignored when sent by a non-Admin.
+- [x] `/rate` Admin command: if a rate exists, shows the current `irr_per_usd` value and when it was set; if no rate exists, tells the Admin that no rate is configured.
+- [x] Both commands are silently ignored when sent by a non-Admin.
 - [x] Exchange rate service tests cover: appending a first rate, appending a subsequent rate (both rows persist), `getCurrentRate` returns the newest row, `getCurrentRate` returns `null` on an empty table.

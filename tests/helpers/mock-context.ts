@@ -54,3 +54,26 @@ export function createMockContext(
   return { ctx, repliedMessages };
 }
 
+/**
+ * Intercepts outbound sendMessage API calls on a grammY Bot instance and collects sent message texts into an array.
+ */
+export function captureBotReplies(bot: { api: { config: { use: Function } } }): string[] {
+  const repliedMessages: string[] = [];
+  bot.api.config.use(async (prev: any, method: string, payload: any, signal: any) => {
+    if (method === 'sendMessage') {
+      repliedMessages.push(payload.text);
+      return {
+        ok: true,
+        result: {
+          message_id: 1,
+          date: Date.now(),
+          chat: { id: payload.chat_id, type: 'private' },
+          text: payload.text,
+        },
+      } as any;
+    }
+    return prev(method, payload, signal);
+  });
+  return repliedMessages;
+}
+
