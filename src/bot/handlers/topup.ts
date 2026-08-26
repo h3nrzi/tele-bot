@@ -8,7 +8,11 @@ import {
   ActiveTopUpRequestExistsError,
 } from '../../services/top-up.service';
 import { getCurrentRate } from '../../services/exchange-rate.service';
-import { getActiveAccount } from '../../services/bank-account.service';
+import {
+  getActiveAccount,
+  NoActiveBankAccountError,
+  type BankAccount,
+} from '../../services/bank-account.service';
 import { registerBuyer } from '../../services/registration.service';
 import { resolveAdminIds } from '../middleware/admin';
 import {
@@ -18,7 +22,7 @@ import {
   validateTopUpAmount,
   type TopUpLimits,
 } from '../../utils/currency';
-import type { BankAccount } from '../../db/schema/bank-accounts';
+import type { UsdAmount } from '../../domain/shared/money.vo';
 import Decimal from 'decimal.js';
 
 export type BotContext = ConversationFlavor<Context>;
@@ -30,7 +34,10 @@ import { isCancelCommand } from '../../utils/telegram';
 
 export { isCancelCommand };
 
-export function getTopUpPromptMessage(minUsd: Decimal, maxUsd: Decimal): string {
+export function getTopUpPromptMessage(
+  minUsd: Decimal | string | UsdAmount,
+  maxUsd: Decimal | string | UsdAmount
+): string {
   return `لطفاً مبلغ مورد نظر برای افزایش موجودی به دلار را وارد کنید (حداقل: ${formatUsd(minUsd)}، حداکثر: ${formatUsd(maxUsd)})، یا برای انصراف /cancel را ارسال کنید:`;
 }
 
@@ -121,7 +128,7 @@ export function createTopUpConversation(
 
         const activeAcc = await getActiveAccount(dbClient);
         if (!activeAcc) {
-          throw new Error('NO_ACTIVE_BANK_ACCOUNT');
+          throw new NoActiveBankAccountError();
         }
 
         const initResult = await initiateTopUp(
@@ -134,8 +141,20 @@ export function createTopUpConversation(
         );
 
         return {
-          request: initResult.request,
-          activeAccount: activeAcc,
+          request: {
+            usdAmount: initResult.request.usdAmount,
+            irrAmount: initResult.request.irrAmount,
+            expiresAt: initResult.request.expiresAt,
+          },
+          activeAccount: {
+            cardNumber: activeAcc.cardNumber,
+            cardHolderName: activeAcc.cardHolderName,
+            bankName: activeAcc.bankName,
+            additionalNotes: activeAcc.additionalNotes,
+            isActive: activeAcc.isActive,
+            id: activeAcc.id,
+            createdAt: activeAcc.createdAt,
+          },
         };
       });
 
@@ -152,7 +171,7 @@ export function createTopUpConversation(
         await ctx.reply(getTopUpActiveExistsMessage());
         return;
       }
-      if (err instanceof NoExchangeRateError || err?.message === 'NO_ACTIVE_BANK_ACCOUNT') {
+      if (err instanceof NoExchangeRateError || err instanceof NoActiveBankAccountError) {
         await ctx.reply(getTopUpUnavailableMessage());
         return;
       }

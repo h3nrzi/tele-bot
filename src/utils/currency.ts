@@ -1,17 +1,26 @@
 import Decimal from 'decimal.js';
+import { UsdAmount, IrrAmount } from '../domain/shared/money.vo';
 
 /**
- * Formats a USD amount string or Decimal into a standard USD currency string (e.g. '$0.00').
+ * Formats a USD amount string, Decimal, or UsdAmount into a standard USD currency string (e.g. '$0.00').
  */
-export function formatUsd(amount: string | Decimal): string {
+export function formatUsd(amount: string | Decimal | UsdAmount): string {
+  if (amount instanceof UsdAmount) {
+    return amount.format();
+  }
   const dec = amount instanceof Decimal ? amount : new Decimal(amount);
   return `$${dec.toFixed(2)}`;
 }
 
 /**
- * Formats an IRR amount (bigint, number, string, or Decimal) as an integer with thousands separators (e.g. '62,000,000').
+ * Formats an IRR amount (bigint, number, string, Decimal, or IrrAmount) as an integer with thousands separators (e.g. '62,000,000').
  */
-export function formatIrr(amount: bigint | number | string | Decimal): string {
+export function formatIrr(
+  amount: bigint | number | string | Decimal | IrrAmount
+): string {
+  if (amount instanceof IrrAmount) {
+    return amount.format();
+  }
   let str: string;
   if (typeof amount === 'bigint') {
     str = amount.toString();
@@ -46,58 +55,15 @@ export function computeIrrAmount(
   return BigInt(computed.toFixed(0));
 }
 
-export interface TopUpLimits {
-  minUsd: Decimal;
-  maxUsd: Decimal;
-  expiryMinutes: number;
-}
+import { TopUpLimits } from '../domain/top-up/top-up.limits.vo';
+export { TopUpLimits };
 
 /**
  * Reads TOPUP_MIN_USD, TOPUP_MAX_USD, and TOPUP_INITIATED_EXPIRY_MINUTES from environment.
  * Throws an error if required variables are missing or invalid.
  */
 export function getTopUpLimits(env: NodeJS.ProcessEnv = process.env): TopUpLimits {
-  const rawMin = env.TOPUP_MIN_USD;
-  const rawMax = env.TOPUP_MAX_USD;
-
-  if (!rawMin || !rawMax) {
-    throw new Error(
-      'TOPUP_MIN_USD and TOPUP_MAX_USD environment variables are required'
-    );
-  }
-
-  let minUsd: Decimal;
-  let maxUsd: Decimal;
-
-  try {
-    minUsd = new Decimal(rawMin);
-    maxUsd = new Decimal(rawMax);
-  } catch {
-    throw new Error('TOPUP_MIN_USD and TOPUP_MAX_USD must be valid decimal numbers');
-  }
-
-  if (minUsd.lte(0)) {
-    throw new Error('TOPUP_MIN_USD must be greater than zero');
-  }
-
-  if (minUsd.gt(maxUsd)) {
-    throw new Error('TOPUP_MIN_USD cannot be greater than TOPUP_MAX_USD');
-  }
-
-  const rawExpiry = env.TOPUP_INITIATED_EXPIRY_MINUTES;
-  let expiryMinutes = 30;
-  if (rawExpiry) {
-    const parsed = parseInt(rawExpiry, 10);
-    if (!isNaN(parsed) && parsed > 0) {
-      expiryMinutes = parsed;
-    }
-  }
-
-  return {
-    minUsd,
-    maxUsd,
-    expiryMinutes,
-  };
+  return TopUpLimits.fromEnv(env);
 }
 
 export type ValidateTopUpAmountResult =
@@ -112,15 +78,30 @@ export type ValidateTopUpAmountResult =
  * Validates a user-supplied USD top-up amount against configured min and max limits using decimal.js.
  */
 export function validateTopUpAmount(
-  rawAmount: string | Decimal,
-  limits: { minUsd: Decimal | string; maxUsd: Decimal | string }
+  rawAmount: string | Decimal | UsdAmount,
+  limits: {
+    minUsd: Decimal | string | UsdAmount;
+    maxUsd: Decimal | string | UsdAmount;
+  }
 ): ValidateTopUpAmountResult {
-  const min = limits.minUsd instanceof Decimal ? limits.minUsd : new Decimal(limits.minUsd);
-  const max = limits.maxUsd instanceof Decimal ? limits.maxUsd : new Decimal(limits.maxUsd);
+  const min =
+    limits.minUsd instanceof UsdAmount
+      ? limits.minUsd.toDecimal()
+      : limits.minUsd instanceof Decimal
+        ? limits.minUsd
+        : new Decimal(limits.minUsd);
+  const max =
+    limits.maxUsd instanceof UsdAmount
+      ? limits.maxUsd.toDecimal()
+      : limits.maxUsd instanceof Decimal
+        ? limits.maxUsd
+        : new Decimal(limits.maxUsd);
 
   let dec: Decimal;
   try {
-    if (typeof rawAmount === 'string') {
+    if (rawAmount instanceof UsdAmount) {
+      dec = rawAmount.toDecimal();
+    } else if (typeof rawAmount === 'string') {
       const trimmed = rawAmount.trim().replace(/^\$/, '');
       if (!trimmed) {
         return {

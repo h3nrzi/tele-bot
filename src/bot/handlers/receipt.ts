@@ -28,11 +28,13 @@ export function getNoActiveTopUpRequestMessage(): string {
   return 'شما در حال حاضر هیچ درخواست افزایش موجودی فعالی ندارید. برای شروع افزایش موجودی، دستور /topup را ارسال کنید.';
 }
 
+import type { UsdAmount, IrrAmount } from '../../domain/shared/money.vo';
+
 export function formatAdminReceiptNotification(params: {
   buyerUsername?: string | null;
   buyerChatId: bigint | number;
-  usdAmount: string | Decimal;
-  irrAmount: bigint | number | string | Decimal;
+  usdAmount: string | Decimal | UsdAmount;
+  irrAmount: bigint | number | string | Decimal | IrrAmount;
   caption?: string | null;
 }): string {
   const buyerDisplay = params.buyerUsername
