@@ -20,7 +20,7 @@ describe('/start Handler', () => {
     await handleStart(ctx, db);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toContain('Welcome');
+    expect(repliedMessages[0]).toContain('Tele-Bot');
     expect(repliedMessages[0]).toContain('$0.00');
     expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
 

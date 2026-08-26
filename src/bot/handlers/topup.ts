@@ -31,23 +31,23 @@ import { isCancelCommand } from '../../utils/telegram';
 export { isCancelCommand };
 
 export function getTopUpPromptMessage(minUsd: Decimal, maxUsd: Decimal): string {
-  return `Please enter the USD amount you would like to top up (min: ${formatUsd(minUsd)}, max: ${formatUsd(maxUsd)}), or send /cancel to abort:`;
+  return `لطفاً مبلغ مورد نظر برای افزایش موجودی به دلار را وارد کنید (حداقل: ${formatUsd(minUsd)}، حداکثر: ${formatUsd(maxUsd)})، یا برای انصراف /cancel را ارسال کنید:`;
 }
 
 export function getTopUpUnavailableMessage(): string {
-  return 'Top-up is temporarily unavailable. Please try again later.';
+  return 'افزایش موجودی موقتاً در دسترس نیست. لطفاً بعداً تلاش کنید.';
 }
 
 export function getTopUpActiveExistsMessage(): string {
-  return 'You already have an active Top-Up Request. Please complete or cancel your existing request before opening a new one.';
+  return 'شما یک درخواست افزایش موجودی فعال دارید. لطفاً قبل از ثبت درخواست جدید، درخواست قبلی را تکمیل یا لغو کنید.';
 }
 
 export function getTopUpCancelledMessage(): string {
-  return 'Top-up request cancelled.';
+  return 'درخواست افزایش موجودی لغو شد.';
 }
 
 export function getAdminNoRateAlertMessage(): string {
-  return '⚠️ Urgent: A Buyer attempted to initiate a top-up, but no Exchange Rate is configured! Please use /setrate to set an exchange rate immediately.';
+  return '⚠️ فوری: کاربری قصد افزایش موجودی داشت اما هیچ نرخ ارزی تنظیم نشده است! لطفاً هرچه سریع‌تر با دستور /setrate نرخ ارز را مشخص کنید.';
 }
 
 export function getTopUpSuccessMessage(details: {
@@ -57,19 +57,19 @@ export function getTopUpSuccessMessage(details: {
   expiresAt: Date;
 }): string {
   const notesLine = details.bankAccount.additionalNotes
-    ? `Instructions: ${details.bankAccount.additionalNotes}\n`
+    ? `توضیحات: ${details.bankAccount.additionalNotes}\n`
     : '';
 
   return (
-    `Top-Up Request Initiated!\n\n` +
-    `Amount: ${formatUsd(details.usdAmount)}\n` +
-    `IRR to Transfer: ${formatIrr(details.irrAmount)} IRR\n\n` +
-    `Bank Account Details:\n` +
-    `Card Number: ${details.bankAccount.cardNumber}\n` +
-    `Card Holder: ${details.bankAccount.cardHolderName}\n` +
-    `Bank: ${details.bankAccount.bankName}\n` +
+    `درخواست افزایش موجودی ثبت شد!\n\n` +
+    `مبلغ: ${formatUsd(details.usdAmount)}\n` +
+    `مبلغ پرداختی به ریال: ${formatIrr(details.irrAmount)} ریال\n\n` +
+    `مشخصات حساب بانکی:\n` +
+    `شماره کارت: ${details.bankAccount.cardNumber}\n` +
+    `صاحب حساب: ${details.bankAccount.cardHolderName}\n` +
+    `بانک: ${details.bankAccount.bankName}\n` +
     notesLine +
-    `\nPlease transfer the exact IRR amount to the Bank Account above. After completing the transfer, send your payment receipt photo.`
+    `\nلطفاً مبلغ دقیق ریالی را به حساب بانکی فوق واریز نمایید. پس از واریز، عکس رسید پرداخت خود را ارسال کنید.`
   );
 }
 
@@ -105,7 +105,7 @@ export function createTopUpConversation(
       }
 
       await nextCtx.reply(
-        `${validation.message}\n\nPlease enter a valid USD amount (or send /cancel to abort):`
+        `${validation.message}\n\nلطفاً یک مبلغ معتبر به دلار وارد کنید (یا برای انصراف /cancel را ارسال کنید):`
       );
     }
 

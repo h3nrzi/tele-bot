@@ -116,7 +116,7 @@ describe('/setcard Admin Command & Conversation', () => {
       expect(summaryWithoutNotes).toContain('6037991234567890');
       expect(summaryWithoutNotes).toContain('Ali Reza');
       expect(summaryWithoutNotes).toContain('Mellat');
-      expect(summaryWithoutNotes).toContain('None');
+      expect(summaryWithoutNotes).toContain('ندارد');
 
       const summaryWithNotes = getSetCardSuccessMessage({
         cardNumber: '6037991234567890',

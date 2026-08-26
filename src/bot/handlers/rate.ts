@@ -9,14 +9,14 @@ export function getCurrentRateMessage(
   rate: { irrPerUsd: bigint | number; createdAt: Date }
 ): string {
   const formatted = rate.irrPerUsd.toLocaleString('en-US');
-  return `Current exchange rate: 1 USD = ${formatted} IRR.\nSet at: ${rate.createdAt.toISOString()}`;
+  return `نرخ فعلی:\n1 USD = ${formatted} IRR\n\nزمان ثبت:\n${rate.createdAt.toISOString()}`;
 }
 
 /**
  * Returns the message sent when no Exchange Rate has been configured yet.
  */
 export function getNoRateConfiguredMessage(): string {
-  return 'No exchange rate is currently configured. Use /setrate <irr_amount> to set one.';
+  return 'در حال حاضر هیچ نرخ ارزی تنظیم نشده است. از دستور /setrate <irr_amount> برای تنظیم نرخ استفاده کنید.';
 }
 
 /**

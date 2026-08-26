@@ -126,7 +126,7 @@ export function validateTopUpAmount(
         return {
           valid: false,
           error: 'INVALID_FORMAT',
-          message: 'Invalid amount format. Please enter a valid number (e.g. 50 or 50.00).',
+          message: 'فرمت مبلغ نامعتبر است. لطفاً یک عدد معتبر وارد کنید (مانند 50 یا 50.00).',
         };
       }
       dec = new Decimal(trimmed);
@@ -137,7 +137,7 @@ export function validateTopUpAmount(
     return {
       valid: false,
       error: 'INVALID_FORMAT',
-      message: 'Invalid amount format. Please enter a valid number (e.g. 50 or 50.00).',
+      message: 'فرمت مبلغ نامعتبر است. لطفاً یک عدد معتبر وارد کنید (مانند 50 یا 50.00).',
     };
   }
 
@@ -145,7 +145,7 @@ export function validateTopUpAmount(
     return {
       valid: false,
       error: 'INVALID_FORMAT',
-      message: 'Invalid amount format. Please enter a valid number (e.g. 50 or 50.00).',
+      message: 'فرمت مبلغ نامعتبر است. لطفاً یک عدد معتبر وارد کنید (مانند 50 یا 50.00).',
     };
   }
 
@@ -153,7 +153,7 @@ export function validateTopUpAmount(
     return {
       valid: false,
       error: 'BELOW_MIN',
-      message: `The minimum Top-Up amount is ${formatUsd(min)}.`,
+      message: `حداقل مبلغ افزایش موجودی ${formatUsd(min)} است.`,
     };
   }
 
@@ -161,7 +161,7 @@ export function validateTopUpAmount(
     return {
       valid: false,
       error: 'BELOW_MIN',
-      message: `The minimum Top-Up amount is ${formatUsd(min)}.`,
+      message: `حداقل مبلغ افزایش موجودی ${formatUsd(min)} است.`,
     };
   }
 
@@ -169,7 +169,7 @@ export function validateTopUpAmount(
     return {
       valid: false,
       error: 'ABOVE_MAX',
-      message: `The maximum Top-Up amount is ${formatUsd(max)}.`,
+      message: `حداکثر مبلغ افزایش موجودی ${formatUsd(max)} است.`,
     };
   }
 

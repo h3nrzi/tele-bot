@@ -7,7 +7,7 @@ import { formatUsd } from '../../utils/currency';
  * Returns the welcome message for a newly registered Buyer.
  */
 export function getNewBuyerWelcomeMessage(): string {
-  return 'Welcome to Tele-Bot! Your Wallet has been created. Your current Available Balance is $0.00.';
+  return 'به Tele-Bot خوش آمدید! کیف پول شما ایجاد شد. موجودی در دسترس شما $0.00 است.';
 }
 
 /**
@@ -17,8 +17,8 @@ export function getReturningBuyerWelcomeMessage(
   name: string | null | undefined,
   availableBalance: string
 ): string {
-  const greetingName = name && name.trim().length > 0 ? `, ${name.trim()}` : '';
-  return `Welcome back${greetingName}! Your current Available Balance is ${formatUsd(availableBalance)}.`;
+  const greetingName = name && name.trim().length > 0 ? ` ${name.trim()}` : '';
+  return `خوش آمدید${greetingName}! موجودی در دسترس شما ${formatUsd(availableBalance)} است.`;
 }
 
 /**

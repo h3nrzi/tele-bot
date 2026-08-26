@@ -134,7 +134,7 @@ describe('Currency & Amount Validation Utilities', () => {
       expect(res.valid).toBe(false);
       if (!res.valid) {
         expect(res.error).toBe('BELOW_MIN');
-        expect(res.message).toContain('minimum');
+        expect(res.message).toContain('$10.00');
       }
     });
 
@@ -143,7 +143,7 @@ describe('Currency & Amount Validation Utilities', () => {
       expect(res.valid).toBe(false);
       if (!res.valid) {
         expect(res.error).toBe('ABOVE_MAX');
-        expect(res.message).toContain('maximum');
+        expect(res.message).toContain('$1000.00');
       }
     });
 

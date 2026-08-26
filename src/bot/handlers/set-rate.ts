@@ -7,14 +7,14 @@ import { setRate } from '../../services/exchange-rate.service';
  */
 export function getSetRateSuccessMessage(irrPerUsd: bigint | number): string {
   const formatted = irrPerUsd.toLocaleString('en-US');
-  return `Exchange rate updated: 1 USD = ${formatted} IRR.`;
+  return `نرخ ارز به‌روزرسانی شد: 1 USD = ${formatted} IRR`;
 }
 
 /**
  * Returns the usage error message sent to the Admin when /setrate arguments are invalid or missing.
  */
 export function getSetRateUsageErrorMessage(): string {
-  return 'Invalid format. Usage: /setrate <irr_amount>\nExample: /setrate 620000 (must be a positive integer).';
+  return 'فرمت نامعتبر است. نحوه استفاده: /setrate <irr_amount>\nمثال: /setrate 620000 (باید یک عدد صحیح مثبت باشد).';
 }
 
 /**

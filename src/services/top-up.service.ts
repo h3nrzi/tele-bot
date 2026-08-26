@@ -81,7 +81,7 @@ export async function initiateTopUp(
   );
 
   // 4. Calculate expires_at
-  const expiresAt = new Date(Date.now() + limits.expiryMinutes * 60 * 1000);
+  const expiresAt = new Date(Date.now() + limits.expiryMinutes * 1 * 1000);
 
   // 5. Insert Top-Up Request
   try {

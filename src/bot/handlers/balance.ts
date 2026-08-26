@@ -7,14 +7,14 @@ import { formatUsd } from '../../utils/currency';
  * Returns the message showing the Buyer's current Available Balance.
  */
 export function getBalanceMessage(availableBalance: string): string {
-  return `Your current Available Balance is ${formatUsd(availableBalance)}.`;
+  return `موجودی در دسترس شما ${formatUsd(availableBalance)} است.`;
 }
 
 /**
  * Returns the prompt message when an unregistered sender attempts to check balance.
  */
 export function getUnregisteredBalanceMessage(): string {
-  return 'Please send /start first to create your Wallet.';
+  return 'لطفاً ابتدا با ارسال دستور /start کیف پول خود را ایجاد کنید.';
 }
 
 /**

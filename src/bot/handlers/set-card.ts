@@ -50,47 +50,47 @@ export function isSkipCommand(raw: string): boolean {
 }
 
 export function getCardNumberPromptMessage(): string {
-  return 'Please enter the 16-digit card number (or send /cancel to abort):';
+  return 'لطفاً شماره کارت ۱۶ رقمی را وارد کنید (یا /cancel را برای انصراف ارسال کنید):';
 }
 
 export function getCardNumberErrorMessage(): string {
-  return 'Invalid card number. Please enter a valid 16-digit card number (or send /cancel to abort):';
+  return 'شماره کارت نامعتبر است. لطفاً یک شماره کارت معتبر ۱۶ رقمی وارد کنید (یا /cancel را برای انصراف ارسال کنید):';
 }
 
 export function getCardHolderNamePromptMessage(): string {
-  return 'Please enter the card holder name (or send /cancel to abort):';
+  return 'لطفاً نام صاحب حساب را وارد کنید (یا /cancel را برای انصراف ارسال کنید):';
 }
 
 export function getCardHolderNameErrorMessage(): string {
-  return 'Card holder name cannot be empty. Please enter the card holder name (or send /cancel to abort):';
+  return 'نام صاحب حساب نمی‌تواند خالی باشد. لطفاً نام صاحب حساب را وارد کنید (یا /cancel را برای انصراف ارسال کنید):';
 }
 
 export function getBankNamePromptMessage(): string {
-  return 'Please enter the bank name (or send /cancel to abort):';
+  return 'لطفاً نام بانک را وارد کنید (یا /cancel را برای انصراف ارسال کنید):';
 }
 
 export function getBankNameErrorMessage(): string {
-  return 'Bank name cannot be empty. Please enter the bank name (or send /cancel to abort):';
+  return 'نام بانک نمی‌تواند خالی باشد. لطفاً نام بانک را وارد کنید (یا /cancel را برای انصراف ارسال کنید):';
 }
 
 export function getAdditionalNotesPromptMessage(): string {
-  return 'Please enter any additional transfer instructions/notes, or send /skip to leave empty (or send /cancel to abort):';
+  return 'لطفاً توضیحات یا نکات اضافی انتقال را وارد کنید، یا برای رد شدن /skip را ارسال کنید (یا /cancel برای انصراف):';
 }
 
 export function getSetCardCancelledMessage(): string {
-  return 'Bank account setup cancelled.';
+  return 'تنظیم اطلاعات حساب بانکی لغو شد.';
 }
 
 export type SetCardSummaryInput = SetActiveAccountInput;
 
 export function getSetCardSuccessMessage(account: SetCardSummaryInput): string {
-  const notes = account.additionalNotes?.trim() || 'None';
+  const notes = account.additionalNotes?.trim() || 'ندارد';
   return (
-    `Bank Account updated and activated successfully!\n\n` +
-    `Card Number: ${account.cardNumber}\n` +
-    `Card Holder: ${account.cardHolderName}\n` +
-    `Bank: ${account.bankName}\n` +
-    `Notes: ${notes}`
+    `اطلاعات حساب بانکی با موفقیت به‌روزرسانی و فعال شد!\n\n` +
+    `شماره کارت: ${account.cardNumber}\n` +
+    `صاحب حساب: ${account.cardHolderName}\n` +
+    `بانک: ${account.bankName}\n` +
+    `توضیحات: ${notes}`
   );
 }
 

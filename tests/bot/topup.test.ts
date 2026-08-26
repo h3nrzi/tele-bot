@@ -177,17 +177,17 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     // Invalid non-number input
     await bot.handleUpdate(makeMessageUpdate(2, buyerChatId, 'fifty'));
     expect(repliedMessages).toHaveLength(2);
-    expect(repliedMessages[1]).toContain('Invalid amount');
+    expect(repliedMessages[1]).toContain('/cancel');
 
     // Below min input
     await bot.handleUpdate(makeMessageUpdate(3, buyerChatId, '5'));
     expect(repliedMessages).toHaveLength(3);
-    expect(repliedMessages[2]).toContain('minimum');
+    expect(repliedMessages[2]).toContain('$10.00');
 
     // Above max input
     await bot.handleUpdate(makeMessageUpdate(4, buyerChatId, '1500'));
     expect(repliedMessages).toHaveLength(4);
-    expect(repliedMessages[3]).toContain('maximum');
+    expect(repliedMessages[3]).toContain('$1000.00');
 
     // Valid input
     await bot.handleUpdate(makeMessageUpdate(5, buyerChatId, '50.00'));
@@ -219,7 +219,7 @@ describe('/topup Buyer Command & Conversation Flow', () => {
 
     // Both admins receive urgent alert
     const adminAlerts = repliedMessages.filter((msg) =>
-      msg.includes('no Exchange Rate is configured') || msg.includes('Urgent')
+      msg.includes(getAdminNoRateAlertMessage()) || msg.includes('/setrate')
     );
     expect(adminAlerts).toHaveLength(2);
 

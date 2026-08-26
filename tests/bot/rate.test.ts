@@ -32,8 +32,7 @@ describe('/rate Handler', () => {
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getNoRateConfiguredMessage());
-    expect(repliedMessages[0]?.toLowerCase()).toContain('no');
-    expect(repliedMessages[0]?.toLowerCase()).toContain('rate');
+    expect(repliedMessages[0]).toContain('/setrate');
   });
 
   it('replies with current rate and when it was set if rate exists', async () => {
