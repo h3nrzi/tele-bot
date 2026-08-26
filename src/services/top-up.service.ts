@@ -33,6 +33,20 @@ export class InvalidTopUpAmountError extends Error {
   }
 }
 
+export class NoInitiatedTopUpRequestError extends Error {
+  constructor(message = 'No active initiated top-up request found.') {
+    super(message);
+    this.name = 'NoInitiatedTopUpRequestError';
+  }
+}
+
+export class TopUpRequestExpiredError extends Error {
+  constructor(message = 'The top-up request has expired.') {
+    super(message);
+    this.name = 'TopUpRequestExpiredError';
+  }
+}
+
 export interface InitiateTopUpInput {
   userId: string;
   usdAmount: string | Decimal;
@@ -81,7 +95,7 @@ export async function initiateTopUp(
   );
 
   // 4. Calculate expires_at
-  const expiresAt = new Date(Date.now() + limits.expiryMinutes * 1 * 1000);
+  const expiresAt = new Date(Date.now() + limits.expiryMinutes * 60 * 1000);
 
   // 5. Insert Top-Up Request
   try {
@@ -142,4 +156,102 @@ export async function getActiveTopUpRequest(
     .limit(1);
 
   return activeRequest ?? null;
+}
+
+export interface SubmitReceiptInput {
+  userId: string;
+  fileId: string;
+  caption?: string | null | undefined;
+}
+
+export interface SubmitReceiptOptions {
+  now?: Date | undefined;
+}
+
+export interface SubmitReceiptResult {
+  request: TopUpRequest;
+}
+
+/**
+ * Submits a receipt for a Buyer's active INITIATED Top-Up Request:
+ * 1. Fetches the Buyer's active INITIATED request. Throws NoInitiatedTopUpRequestError if none.
+ * 2. Checks if expires_at < now(). If so, updates status to 'EXPIRED' in a single UPDATE and throws TopUpRequestExpiredError.
+ * 3. Updates status to 'PENDING', sets receipt_file_id and receipt_caption, and returns the updated request.
+ * All operations execute atomically with no partial writes.
+ */
+export async function submitReceipt(
+  input: SubmitReceiptInput,
+  dbClient?: DbClient,
+  options?: SubmitReceiptOptions
+): Promise<SubmitReceiptResult> {
+  const client = dbClient ?? getDefaultDb();
+  const now = options?.now ?? new Date();
+
+  // 1. Fetch active INITIATED request
+  const [initiatedRequest] = await client
+    .select()
+    .from(topUpRequests)
+    .where(
+      and(
+        eq(topUpRequests.userId, input.userId),
+        eq(topUpRequests.status, 'INITIATED')
+      )
+    )
+    .limit(1);
+
+  if (!initiatedRequest) {
+    throw new NoInitiatedTopUpRequestError(
+      'No active initiated top-up request found.'
+    );
+  }
+
+  // 2. Check Expiry
+  if (initiatedRequest.expiresAt.getTime() < now.getTime()) {
+    await client
+      .update(topUpRequests)
+      .set({
+        status: 'EXPIRED',
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(topUpRequests.id, initiatedRequest.id),
+          eq(topUpRequests.status, 'INITIATED')
+        )
+      );
+
+    throw new TopUpRequestExpiredError('The top-up request has expired.');
+  }
+
+  // 3. Update status to PENDING with receipt details
+  const captionValue =
+    typeof input.caption === 'string' && input.caption.trim().length > 0
+      ? input.caption.trim()
+      : null;
+
+  const [updatedRequest] = await client
+    .update(topUpRequests)
+    .set({
+      status: 'PENDING',
+      receiptFileId: input.fileId,
+      receiptCaption: captionValue,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(topUpRequests.id, initiatedRequest.id),
+        eq(topUpRequests.status, 'INITIATED')
+      )
+    )
+    .returning();
+
+  if (!updatedRequest) {
+    throw new NoInitiatedTopUpRequestError(
+      'Top-up request is no longer initiated.'
+    );
+  }
+
+  return {
+    request: updatedRequest,
+  };
 }
