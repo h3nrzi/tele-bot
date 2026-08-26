@@ -8,7 +8,7 @@ import {
   NoInitiatedTopUpRequestError,
 } from '../../services/top-up.service';
 import { registerBuyer } from '../../services/registration.service';
-import { parseAdminIds } from '../middleware/admin';
+import { resolveAdminIds } from '../middleware/admin';
 import { formatUsd, formatIrr } from '../../utils/currency';
 import type Decimal from 'decimal.js';
 
@@ -40,12 +40,12 @@ export function formatAdminReceiptNotification(params: {
     : `شناسه: ${params.buyerChatId}`;
 
   const captionLine = params.caption
-    ? `\n\nتوضیحات کاربر:\n${params.caption}`
+    ? `\n\nتوضیحات خریدار:\n${params.caption}`
     : '';
 
   return (
     `📥 رسید پرداخت جدید دریافت شد\n\n` +
-    `کاربر: ${buyerDisplay}\n` +
+    `خریدار: ${buyerDisplay}\n` +
     `مبلغ درخواستی: ${formatUsd(params.usdAmount)}\n` +
     `مبلغ ریالی: ${formatIrr(params.irrAmount)} ریال` +
     captionLine
@@ -128,16 +128,7 @@ export async function handlePhotoMessage(
     await ctx.reply(getReceiptSubmittedBuyerMessage());
 
     // Send push notification with receipt photo to all configured Admins
-    const adminIds = parseAdminIds(
-      typeof options?.adminIds === 'string'
-        ? options.adminIds
-        : process.env.ADMIN_IDS
-    );
-    if (options?.adminIds instanceof Set) {
-      for (const id of options.adminIds) {
-        adminIds.add(id);
-      }
-    }
+    const adminIds = resolveAdminIds(options?.adminIds);
 
     const adminCaption = formatAdminReceiptNotification({
       buyerUsername: sender.username ?? null,

@@ -10,7 +10,7 @@ import {
 import { getCurrentRate } from '../../services/exchange-rate.service';
 import { getActiveAccount } from '../../services/bank-account.service';
 import { registerBuyer } from '../../services/registration.service';
-import { parseAdminIds } from '../middleware/admin';
+import { resolveAdminIds } from '../middleware/admin';
 import {
   formatUsd,
   formatIrr,
@@ -184,16 +184,7 @@ export async function handleTopUpCommand(
   if (!currentRate) {
     await ctx.reply(getTopUpUnavailableMessage());
 
-    const adminIds = parseAdminIds(
-      typeof options?.adminIds === 'string'
-        ? options.adminIds
-        : process.env.ADMIN_IDS
-    );
-    if (options?.adminIds instanceof Set) {
-      for (const id of options.adminIds) {
-        adminIds.add(id);
-      }
-    }
+    const adminIds = resolveAdminIds(options?.adminIds);
 
     const alertMsg = getAdminNoRateAlertMessage();
     for (const adminId of adminIds) {

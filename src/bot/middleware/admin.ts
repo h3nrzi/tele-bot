@@ -29,6 +29,16 @@ export function parseAdminIds(adminIdsStr?: string): Set<bigint> {
 }
 
 /**
+ * Resolves a Set of admin chat IDs from either an explicit option or the ADMIN_IDS environment variable.
+ */
+export function resolveAdminIds(source?: string | Set<bigint> | undefined): Set<bigint> {
+  if (source instanceof Set) {
+    return new Set(source);
+  }
+  return parseAdminIds(typeof source === 'string' ? source : process.env.ADMIN_IDS);
+}
+
+/**
  * Checks if a given Telegram chat ID belongs to an Admin.
  * Does not perform any database query.
  */
@@ -41,15 +51,7 @@ export function isAdmin(
   }
 
   const normalizedId = normalizeChatId(chatId);
-
-  if (adminIdsSource instanceof Set) {
-    return adminIdsSource.has(normalizedId);
-  }
-
-  const parsed = parseAdminIds(
-    typeof adminIdsSource === 'string' ? adminIdsSource : process.env.ADMIN_IDS
-  );
-  return parsed.has(normalizedId);
+  return resolveAdminIds(adminIdsSource).has(normalizedId);
 }
 
 /**
