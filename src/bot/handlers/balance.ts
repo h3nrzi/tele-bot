@@ -1,6 +1,6 @@
 import type { Context } from 'grammy';
 import type { DbClient } from '../../db/client';
-import { getBuyerWallet } from '../../services/wallet.service';
+import { getBuyerWallet } from '../../application/wallet/wallet.service';
 import { formatUsd } from '../../utils/currency';
 
 /**

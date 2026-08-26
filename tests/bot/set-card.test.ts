@@ -3,7 +3,7 @@ import { setupTestDatabase } from '../helpers/test-db';
 import { createMockFetch } from '../helpers/mock-context';
 import { createBot } from '../../src/bot/bot';
 import { bankAccounts } from '../../src/db/schema/bank-accounts';
-import { setActiveAccount, getActiveAccount } from '../../src/services/bank-account.service';
+import { setActiveAccount, getActiveAccount } from '../../src/application/bank-account/bank-account.service';
 import {
   isValidCardNumber,
   cleanCardNumber,

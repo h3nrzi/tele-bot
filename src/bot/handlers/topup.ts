@@ -4,16 +4,22 @@ import type { DbClient } from '../../db/client';
 import {
   initiateTopUp,
   getActiveTopUpRequest,
-  NoExchangeRateError,
+} from '../../application/top-up/top-up.service';
+import {
   ActiveTopUpRequestExistsError,
-} from '../../services/top-up.service';
-import { getCurrentRate } from '../../services/exchange-rate.service';
+} from '../../domain/top-up/top-up.errors';
+import {
+  NoExchangeRateError,
+} from '../../domain/exchange-rate/exchange-rate.errors';
+import { getCurrentRate } from '../../application/exchange-rate/exchange-rate.service';
 import {
   getActiveAccount,
+} from '../../application/bank-account/bank-account.service';
+import {
   NoActiveBankAccountError,
-  type BankAccount,
-} from '../../services/bank-account.service';
-import { registerBuyer } from '../../services/registration.service';
+} from '../../domain/bank-account/bank-account.errors';
+import type { BankAccount } from '../../domain/bank-account/bank-account.entity';
+import { registerBuyer } from '../../application/buyer/registration.service';
 import { resolveAdminIds } from '../middleware/admin';
 import {
   formatUsd,

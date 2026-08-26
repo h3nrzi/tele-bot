@@ -4,10 +4,12 @@ import type { DbClient } from '../../db/client';
 import {
   submitReceipt,
   getActiveTopUpRequest,
+} from '../../application/top-up/top-up.service';
+import {
   TopUpRequestExpiredError,
   NoInitiatedTopUpRequestError,
-} from '../../services/top-up.service';
-import { registerBuyer } from '../../services/registration.service';
+} from '../../domain/top-up/top-up.errors';
+import { registerBuyer } from '../../application/buyer/registration.service';
 import { resolveAdminIds } from '../middleware/admin';
 import { formatUsd, formatIrr } from '../../utils/currency';
 import type Decimal from 'decimal.js';

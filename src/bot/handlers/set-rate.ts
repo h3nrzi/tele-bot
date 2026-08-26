@@ -1,6 +1,6 @@
 import type { Context } from 'grammy';
 import type { DbClient } from '../../db/client';
-import { setRate } from '../../services/exchange-rate.service';
+import { setRate } from '../../application/exchange-rate/exchange-rate.service';
 
 /**
  * Returns the confirmation message sent to the Admin after successfully updating the Exchange Rate.

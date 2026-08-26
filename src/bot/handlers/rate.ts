@@ -1,6 +1,6 @@
 import type { Context } from 'grammy';
 import type { DbClient } from '../../db/client';
-import { getCurrentRate } from '../../services/exchange-rate.service';
+import { getCurrentRate } from '../../application/exchange-rate/exchange-rate.service';
 
 /**
  * Returns the message showing the current Exchange Rate and when it was set.

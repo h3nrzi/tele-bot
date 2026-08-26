@@ -7,7 +7,7 @@ import {
   getUnregisteredBalanceMessage,
 } from '../../src/bot/handlers/balance';
 import { createBot } from '../../src/bot/bot';
-import { registerBuyer } from '../../src/services/registration.service';
+import { registerBuyer } from '../../src/application/buyer/registration.service';
 import { wallets } from '../../src/db/schema/wallets';
 import { eq } from 'drizzle-orm';
 

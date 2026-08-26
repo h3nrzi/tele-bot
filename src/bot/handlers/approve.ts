@@ -1,10 +1,8 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import type { DbClient } from '../../db/client';
-import {
-  approveTopUp,
-  TopUpRequestNotPendingError,
-} from '../../services/top-up.service';
+import { approveTopUp } from '../../application/top-up/top-up.service';
+import { TopUpRequestNotPendingError } from '../../domain/top-up/top-up.errors';
 import { formatUsd } from '../../utils/currency';
 import type Decimal from 'decimal.js';
 

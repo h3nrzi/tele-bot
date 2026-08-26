@@ -6,7 +6,7 @@ import {
   getCurrentRateMessage,
   getNoRateConfiguredMessage,
 } from '../../src/bot/handlers/rate';
-import { setRate } from '../../src/services/exchange-rate.service';
+import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
 import { createBot } from '../../src/bot/bot';
 
 describe('/rate Handler', () => {

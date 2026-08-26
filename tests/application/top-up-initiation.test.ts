@@ -2,14 +2,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
 import { users } from '../../src/db/schema/users';
 import { topUpRequests } from '../../src/db/schema/top-up-requests';
-import { setRate } from '../../src/services/exchange-rate.service';
+import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
 import {
   initiateTopUp,
   getActiveTopUpRequest,
-  NoExchangeRateError,
+} from '../../src/application/top-up/top-up.service';
+import {
   ActiveTopUpRequestExistsError,
   InvalidTopUpAmountError,
-} from '../../src/services/top-up.service';
+} from '../../src/domain/top-up/top-up.errors';
+import { NoExchangeRateError } from '../../src/domain/exchange-rate/exchange-rate.errors';
 import { eq } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 

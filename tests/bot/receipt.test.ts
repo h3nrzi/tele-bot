@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
 import { createMockFetch, type MockSentPhoto } from '../helpers/mock-context';
 import { createBot } from '../../src/bot/bot';
-import { setRate } from '../../src/services/exchange-rate.service';
-import { setActiveAccount } from '../../src/services/bank-account.service';
+import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
+import { setActiveAccount } from '../../src/application/bank-account/bank-account.service';
 import { topUpRequests } from '../../src/db/schema/top-up-requests';
 import {
   getReceiptSubmittedBuyerMessage,

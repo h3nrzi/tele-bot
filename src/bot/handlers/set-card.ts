@@ -3,8 +3,10 @@ import type { Context } from 'grammy';
 import type { DbClient } from '../../db/client';
 import {
   setActiveAccount,
-  type SetActiveAccountInput,
-} from '../../services/bank-account.service';
+} from '../../application/bank-account/bank-account.service';
+import type {
+  SetActiveAccountInput,
+} from '../../application/bank-account/dtos/set-active-account.dto';
 
 export type BotContext = ConversationFlavor<Context>;
 export type SetCardConversation = Conversation<BotContext, Context>;

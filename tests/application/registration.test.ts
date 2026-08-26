@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
 import { users } from '../../src/db/schema/users';
 import { wallets } from '../../src/db/schema/wallets';
-import { registerBuyer } from '../../src/services/registration.service';
+import { registerBuyer } from '../../src/application/buyer/registration.service';
 import { eq } from 'drizzle-orm';
 
 describe('Registration Service - Atomicity & Creation', () => {

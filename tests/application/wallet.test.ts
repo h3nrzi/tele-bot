@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
 import { users } from '../../src/db/schema/users';
 import { wallets } from '../../src/db/schema/wallets';
-import { registerBuyer } from '../../src/services/registration.service';
-import { getBuyerWallet } from '../../src/services/wallet.service';
+import { registerBuyer } from '../../src/application/buyer/registration.service';
+import { getBuyerWallet } from '../../src/application/wallet/wallet.service';
 import { eq } from 'drizzle-orm';
 
 describe('Wallet Service - getBuyerWallet', () => {

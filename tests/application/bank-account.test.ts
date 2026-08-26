@@ -4,7 +4,7 @@ import { bankAccounts } from '../../src/db/schema/bank-accounts';
 import {
   setActiveAccount,
   getActiveAccount,
-} from '../../src/services/bank-account.service';
+} from '../../src/application/bank-account/bank-account.service';
 
 describe('Bank Account Service - setActiveAccount', () => {
   const { db } = setupTestDatabase();

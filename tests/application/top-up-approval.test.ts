@@ -4,15 +4,17 @@ import { users } from '../../src/db/schema/users';
 import { wallets } from '../../src/db/schema/wallets';
 import { topUpRequests } from '../../src/db/schema/top-up-requests';
 import { ledgerTransactions, ledgerEntries } from '../../src/db/schema/ledger';
-import { setRate } from '../../src/services/exchange-rate.service';
-import { registerBuyer } from '../../src/services/registration.service';
+import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
+import { registerBuyer } from '../../src/application/buyer/registration.service';
 import {
   initiateTopUp,
   submitReceipt,
   approveTopUp,
+} from '../../src/application/top-up/top-up.service';
+import {
   TopUpRequestNotFoundError,
   TopUpRequestNotPendingError,
-} from '../../src/services/top-up.service';
+} from '../../src/domain/top-up/top-up.errors';
 import { eq, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 

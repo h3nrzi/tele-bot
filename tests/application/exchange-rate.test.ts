@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '../helpers/test-db';
 import { exchangeRates } from '../../src/db/schema/exchange-rates';
-import { setRate, getCurrentRate } from '../../src/services/exchange-rate.service';
+import { setRate, getCurrentRate } from '../../src/application/exchange-rate/exchange-rate.service';
 import { count, eq } from 'drizzle-orm';
 
 describe('Exchange Rate Service - setRate', () => {
