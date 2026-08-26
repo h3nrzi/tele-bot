@@ -29,16 +29,9 @@ export function isValidCardNumber(raw: string): boolean {
   return /^\d{16}$/.test(cleaned);
 }
 
-/**
- * Checks if the message text is a cancel command (/cancel or cancel).
- */
-export function isCancelCommand(raw: string): boolean {
-  if (!raw) {
-    return false;
-  }
-  const trimmed = raw.trim();
-  return /^\/cancel(@\w+)?$/i.test(trimmed) || trimmed.toLowerCase() === 'cancel';
-}
+import { isCancelCommand } from '../../utils/telegram';
+
+export { isCancelCommand };
 
 /**
  * Checks if the message text represents skipping the optional notes (/skip, skip, -, or empty).

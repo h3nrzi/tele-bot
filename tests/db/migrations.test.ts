@@ -18,17 +18,17 @@ describe('Database Migrations', () => {
     await pool.end();
   });
 
-  it('applies migrations before the test suite runs and creates users, wallets, exchange_rates, and bank_accounts tables', async () => {
+  it('applies migrations before the test suite runs and creates users, wallets, exchange_rates, bank_accounts, and top_up_requests tables', async () => {
     const res = await pool.query(`
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'
-      AND table_name IN ('users', 'wallets', 'exchange_rates', 'bank_accounts')
+      AND table_name IN ('users', 'wallets', 'exchange_rates', 'bank_accounts', 'top_up_requests')
       ORDER BY table_name;
     `);
 
     const tableNames = res.rows.map((row) => row.table_name);
-    expect(tableNames).toEqual(['bank_accounts', 'exchange_rates', 'users', 'wallets']);
+    expect(tableNames).toEqual(['bank_accounts', 'exchange_rates', 'top_up_requests', 'users', 'wallets']);
   });
 
   it('creates the users table with the required columns and types', async () => {
@@ -121,5 +121,171 @@ describe('Database Migrations', () => {
       created_at: { type: 'timestamp with time zone', nullable: 'NO' },
     });
     expect(columns.is_active.default).toContain('false');
+  });
+
+  it('creates the top_up_status enum with the required values', async () => {
+    const res = await pool.query(`
+      SELECT enumlabel
+      FROM pg_enum
+      JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
+      WHERE pg_type.typname = 'top_up_status'
+      ORDER BY enumsortorder;
+    `);
+
+    const enumValues = res.rows.map((row) => row.enumlabel);
+    expect(enumValues).toEqual([
+      'INITIATED',
+      'PENDING',
+      'APPROVED',
+      'REJECTED',
+      'EXPIRED',
+      'CANCELLED',
+    ]);
+  });
+
+  it('creates the top_up_requests table with the required columns and types', async () => {
+    const res = await pool.query(`
+      SELECT column_name, data_type, udt_name, is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'top_up_requests'
+      ORDER BY column_name;
+    `);
+
+    const columns = Object.fromEntries(
+      res.rows.map((row) => [
+        row.column_name,
+        {
+          type: row.data_type,
+          udtName: row.udt_name,
+          nullable: row.is_nullable,
+        },
+      ])
+    );
+
+    expect(columns).toMatchObject({
+      id: { type: 'uuid', nullable: 'NO' },
+      user_id: { type: 'uuid', nullable: 'NO' },
+      exchange_rate_id: { type: 'uuid', nullable: 'NO' },
+      usd_amount: { type: 'numeric', nullable: 'NO' },
+      irr_amount: { type: 'bigint', nullable: 'NO' },
+      status: { type: 'USER-DEFINED', udtName: 'top_up_status', nullable: 'NO' },
+      receipt_file_id: { type: 'character varying', nullable: 'YES' },
+      receipt_caption: { type: 'text', nullable: 'YES' },
+      rejection_reason: { type: 'text', nullable: 'YES' },
+      expires_at: { type: 'timestamp with time zone', nullable: 'NO' },
+      processed_by_admin_telegram_id: { type: 'bigint', nullable: 'YES' },
+      processed_at: { type: 'timestamp with time zone', nullable: 'YES' },
+      created_at: { type: 'timestamp with time zone', nullable: 'NO' },
+      updated_at: { type: 'timestamp with time zone', nullable: 'NO' },
+    });
+  });
+
+  it('creates foreign key constraints for top_up_requests', async () => {
+    const res = await pool.query(`
+      SELECT
+        kcu.column_name,
+        ccu.table_name AS foreign_table_name,
+        ccu.column_name AS foreign_column_name
+      FROM information_schema.table_constraints AS tc
+      JOIN information_schema.key_column_usage AS kcu
+        ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+      JOIN information_schema.constraint_column_usage AS ccu
+        ON ccu.constraint_name = tc.constraint_name
+        AND ccu.table_schema = tc.table_schema
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+        AND tc.table_name = 'top_up_requests';
+    `);
+
+    const foreignKeys = res.rows.map((row) => ({
+      column: row.column_name,
+      foreignTable: row.foreign_table_name,
+      foreignColumn: row.foreign_column_name,
+    }));
+
+    expect(foreignKeys).toContainEqual({
+      column: 'user_id',
+      foreignTable: 'users',
+      foreignColumn: 'id',
+    });
+    expect(foreignKeys).toContainEqual({
+      column: 'exchange_rate_id',
+      foreignTable: 'exchange_rates',
+      foreignColumn: 'id',
+    });
+  });
+
+  it('creates a partial unique index on top_up_requests(user_id) WHERE status IN (INITIATED, PENDING)', async () => {
+    const res = await pool.query(`
+      SELECT indexname, indexdef
+      FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND tablename = 'top_up_requests'
+        AND indexname = 'top_up_requests_user_id_active_idx';
+    `);
+
+    expect(res.rows).toHaveLength(1);
+    const indexDef = res.rows[0]?.indexdef ?? '';
+    expect(indexDef).toContain('UNIQUE INDEX top_up_requests_user_id_active_idx');
+    expect(indexDef).toContain('user_id');
+    expect(indexDef).toMatch(/WHERE.*status.*(INITIATED.*PENDING|'INITIATED'::top_up_status)/i);
+  });
+
+  it('enforces partial uniqueness: disallows multiple active (INITIATED/PENDING) requests per user but allows multiple inactive requests', async () => {
+    // 1. Create test user and exchange rate
+    const userRes = await pool.query(`
+      INSERT INTO users (telegram_chat_id, telegram_username)
+      VALUES (999000111, 'unique_test_user')
+      RETURNING id;
+    `);
+    const userId = userRes.rows[0].id;
+
+    const rateRes = await pool.query(`
+      INSERT INTO exchange_rates (irr_per_usd, created_by_admin_telegram_id)
+      VALUES (600000, 123456789)
+      RETURNING id;
+    `);
+    const rateId = rateRes.rows[0].id;
+
+    const futureExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    // 2. Insert first request with status INITIATED
+    const req1Res = await pool.query(`
+      INSERT INTO top_up_requests (user_id, exchange_rate_id, usd_amount, irr_amount, status, expires_at)
+      VALUES ('${userId}', '${rateId}', 50.00, 30000000, 'INITIATED', '${futureExpiry}')
+      RETURNING id;
+    `);
+    const req1Id = req1Res.rows[0].id;
+
+    // 3. Attempting to insert a second INITIATED request for same user must fail with 23505 (unique violation)
+    await expect(
+      pool.query(`
+        INSERT INTO top_up_requests (user_id, exchange_rate_id, usd_amount, irr_amount, status, expires_at)
+        VALUES ('${userId}', '${rateId}', 100.00, 60000000, 'INITIATED', '${futureExpiry}')
+      `)
+    ).rejects.toMatchObject({ code: '23505' });
+
+    // 4. Attempting to insert a second PENDING request for same user must also fail
+    await expect(
+      pool.query(`
+        INSERT INTO top_up_requests (user_id, exchange_rate_id, usd_amount, irr_amount, status, expires_at)
+        VALUES ('${userId}', '${rateId}', 100.00, 60000000, 'PENDING', '${futureExpiry}')
+      `)
+    ).rejects.toMatchObject({ code: '23505' });
+
+    // 5. Update first request to APPROVED (terminal status)
+    await pool.query(`
+      UPDATE top_up_requests
+      SET status = 'APPROVED'
+      WHERE id = '${req1Id}'
+    `);
+
+    // 6. Now inserting a new INITIATED request for the same user must succeed
+    const req2Res = await pool.query(`
+      INSERT INTO top_up_requests (user_id, exchange_rate_id, usd_amount, irr_amount, status, expires_at)
+      VALUES ('${userId}', '${rateId}', 75.00, 45000000, 'INITIATED', '${futureExpiry}')
+      RETURNING id;
+    `);
+    expect(req2Res.rows[0].id).toBeDefined();
   });
 });
