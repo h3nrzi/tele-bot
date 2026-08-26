@@ -36,6 +36,27 @@ export interface ApproveHandlerOptions {
   adminIds?: string | Set<bigint> | undefined;
 }
 
+async function editAdminMessageOutcome(
+  ctx: Context,
+  outcomeText: string
+): Promise<void> {
+  const message = ctx.callbackQuery?.message;
+  try {
+    if (message && 'photo' in message) {
+      await ctx.editMessageCaption({
+        caption: outcomeText,
+        reply_markup: new InlineKeyboard(),
+      });
+    } else {
+      await ctx.editMessageText(outcomeText, {
+        reply_markup: new InlineKeyboard(),
+      });
+    }
+  } catch (editErr) {
+    console.error('Failed to edit admin notification message:', editErr);
+  }
+}
+
 /**
  * Handles inline Approve button callback queries from Admins:
  * 1. Validates callback query data pattern (approve:<requestId>).
@@ -91,7 +112,7 @@ export async function handleApproveCallback(
             availableBalance: params.newAvailableBalance,
           });
           await ctx.api.sendMessage(
-            Number(params.buyerTelegramChatId),
+            params.buyerTelegramChatId.toString(),
             messageText
           );
         },
@@ -100,20 +121,7 @@ export async function handleApproveCallback(
 
     // Edit admin notification message to show approved outcome
     const newCaption = formatAdminApprovalOutcome(originalCaption, adminDisplay);
-    try {
-      if (message && 'photo' in message) {
-        await ctx.editMessageCaption({
-          caption: newCaption,
-          reply_markup: new InlineKeyboard(),
-        });
-      } else {
-        await ctx.editMessageText(newCaption, {
-          reply_markup: new InlineKeyboard(),
-        });
-      }
-    } catch (editErr) {
-      console.error('Failed to edit admin notification message:', editErr);
-    }
+    await editAdminMessageOutcome(ctx, newCaption);
 
     // Answer callback query
     await ctx.answerCallbackQuery({
@@ -123,23 +131,7 @@ export async function handleApproveCallback(
     if (err instanceof TopUpRequestNotPendingError) {
       const alreadyProcessedCaption =
         formatAdminAlreadyProcessedOutcome(originalCaption);
-      try {
-        if (message && 'photo' in message) {
-          await ctx.editMessageCaption({
-            caption: alreadyProcessedCaption,
-            reply_markup: new InlineKeyboard(),
-          });
-        } else {
-          await ctx.editMessageText(alreadyProcessedCaption, {
-            reply_markup: new InlineKeyboard(),
-          });
-        }
-      } catch (editErr) {
-        console.error(
-          'Failed to edit admin notification message on race:',
-          editErr
-        );
-      }
+      await editAdminMessageOutcome(ctx, alreadyProcessedCaption);
 
       await ctx.answerCallbackQuery({
         text: '⚠️ این درخواست قبلاً تعیین تکلیف شده است.',
