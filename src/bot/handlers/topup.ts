@@ -26,16 +26,9 @@ export type TopUpConversation = Conversation<BotContext, Context>;
 
 export const TOPUP_CONVERSATION_ID = 'topup';
 
-/**
- * Checks if the message text is a cancel command (/cancel or cancel).
- */
-export function isCancelCommand(raw: string): boolean {
-  if (!raw) {
-    return false;
-  }
-  const trimmed = raw.trim();
-  return /^\/cancel(@\w+)?$/i.test(trimmed) || trimmed.toLowerCase() === 'cancel';
-}
+import { isCancelCommand } from '../../utils/telegram';
+
+export { isCancelCommand };
 
 export function getTopUpPromptMessage(minUsd: Decimal, maxUsd: Decimal): string {
   return `Please enter the USD amount you would like to top up (min: ${formatUsd(minUsd)}, max: ${formatUsd(maxUsd)}), or send /cancel to abort:`;
@@ -71,12 +64,12 @@ export function getTopUpSuccessMessage(details: {
     `Top-Up Request Initiated!\n\n` +
     `Amount: ${formatUsd(details.usdAmount)}\n` +
     `IRR to Transfer: ${formatIrr(details.irrAmount)} IRR\n\n` +
-    `Bank Card Details:\n` +
+    `Bank Account Details:\n` +
     `Card Number: ${details.bankAccount.cardNumber}\n` +
     `Card Holder: ${details.bankAccount.cardHolderName}\n` +
     `Bank: ${details.bankAccount.bankName}\n` +
     notesLine +
-    `\nPlease transfer the exact IRR amount to the bank card above. After completing the transfer, send your payment receipt photo.`
+    `\nPlease transfer the exact IRR amount to the Bank Account above. After completing the transfer, send your payment receipt photo.`
   );
 }
 
@@ -116,43 +109,55 @@ export function createTopUpConversation(
       );
     }
 
-    const { request, activeAccount } = await conversation.external(async () => {
-      const { buyer } = await registerBuyer(
-        {
-          telegramChatId: ctx.from!.id,
-          telegramUsername: ctx.from?.username ?? null,
-        },
-        dbClient
-      );
+    try {
+      const { request, activeAccount } = await conversation.external(async () => {
+        const { buyer } = await registerBuyer(
+          {
+            telegramChatId: ctx.from!.id,
+            telegramUsername: ctx.from?.username ?? null,
+          },
+          dbClient
+        );
 
-      const activeAcc = await getActiveAccount(dbClient);
-      if (!activeAcc) {
-        throw new Error('No active bank account available.');
+        const activeAcc = await getActiveAccount(dbClient);
+        if (!activeAcc) {
+          throw new Error('NO_ACTIVE_BANK_ACCOUNT');
+        }
+
+        const initResult = await initiateTopUp(
+          {
+            userId: buyer.id,
+            usdAmount: amountString,
+          },
+          dbClient,
+          limits
+        );
+
+        return {
+          request: initResult.request,
+          activeAccount: activeAcc,
+        };
+      });
+
+      await ctx.reply(
+        getTopUpSuccessMessage({
+          usdAmount: request.usdAmount,
+          irrAmount: request.irrAmount,
+          bankAccount: activeAccount,
+          expiresAt: request.expiresAt,
+        })
+      );
+    } catch (err: any) {
+      if (err instanceof ActiveTopUpRequestExistsError) {
+        await ctx.reply(getTopUpActiveExistsMessage());
+        return;
       }
-
-      const initResult = await initiateTopUp(
-        {
-          userId: buyer.id,
-          usdAmount: amountString,
-        },
-        dbClient,
-        limits
-      );
-
-      return {
-        request: initResult.request,
-        activeAccount: activeAcc,
-      };
-    });
-
-    await ctx.reply(
-      getTopUpSuccessMessage({
-        usdAmount: request.usdAmount,
-        irrAmount: request.irrAmount,
-        bankAccount: activeAccount,
-        expiresAt: request.expiresAt,
-      })
-    );
+      if (err instanceof NoExchangeRateError || err?.message === 'NO_ACTIVE_BANK_ACCOUNT') {
+        await ctx.reply(getTopUpUnavailableMessage());
+        return;
+      }
+      throw err;
+    }
   };
 }
 

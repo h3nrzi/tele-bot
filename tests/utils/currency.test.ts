@@ -10,13 +10,13 @@ import {
 
 describe('Currency & Amount Validation Utilities', () => {
   describe('formatUsd', () => {
-    it('formats string, number, and Decimal to USD currency string with 2 decimal places', () => {
+    it('formats string and Decimal to USD currency string with 2 decimal places', () => {
       expect(formatUsd('10')).toBe('$10.00');
       expect(formatUsd('10.5')).toBe('$10.50');
       expect(formatUsd('10.555')).toBe('$10.56');
-      expect(formatUsd(100)).toBe('$100.00');
+      expect(formatUsd('100')).toBe('$100.00');
       expect(formatUsd(new Decimal('250.75'))).toBe('$250.75');
-      expect(formatUsd(0)).toBe('$0.00');
+      expect(formatUsd('0')).toBe('$0.00');
     });
   });
 

@@ -35,7 +35,7 @@ export class InvalidTopUpAmountError extends Error {
 
 export interface InitiateTopUpInput {
   userId: string;
-  usdAmount: string | Decimal | number;
+  usdAmount: string | Decimal;
 }
 
 export interface InitiateTopUpResult {
