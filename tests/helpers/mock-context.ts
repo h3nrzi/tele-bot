@@ -54,12 +54,23 @@ export function createMockContext(
   return { ctx, repliedMessages };
 }
 
+export interface MockSentPhoto {
+  chat_id: number | string;
+  photo: string;
+  caption?: string;
+  reply_markup?: any;
+}
+
 /**
- * Creates a mock fetch function that captures sent messages and returns valid Telegram API responses.
+ * Creates a mock fetch function that captures sent messages/photos and returns valid Telegram API responses.
  */
-export function createMockFetch(repliedMessages: string[] = []): {
+export function createMockFetch(
+  repliedMessages: string[] = [],
+  sentPhotos: MockSentPhoto[] = []
+): {
   fetch: typeof fetch;
   repliedMessages: string[];
+  sentPhotos: MockSentPhoto[];
 } {
   let messageId = 1;
   const mockFetch: typeof fetch = async (url: any, init?: any) => {
@@ -88,13 +99,38 @@ export function createMockFetch(repliedMessages: string[] = []): {
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
+    if (method === 'sendPhoto') {
+      if (body.caption) {
+        repliedMessages.push(body.caption);
+      }
+      sentPhotos.push({
+        chat_id: body.chat_id,
+        photo: body.photo,
+        caption: body.caption,
+        reply_markup: body.reply_markup,
+      });
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          result: {
+            message_id: messageId++,
+            date: Math.floor(Date.now() / 1000),
+            chat: { id: body.chat_id, type: 'private' },
+            photo: [{ file_id: body.photo, width: 100, height: 100 }],
+            caption: body.caption,
+            reply_markup: body.reply_markup,
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     return new Response(JSON.stringify({ ok: true, result: {} }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   };
 
-  return { fetch: mockFetch, repliedMessages };
+  return { fetch: mockFetch, repliedMessages, sentPhotos };
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   handleTopUpCommand,
   TOPUP_CONVERSATION_ID,
 } from './handlers/topup';
+import { handlePhotoMessage } from './handlers/receipt';
 import { createAdminMiddleware } from './middleware/admin';
 import { getTopUpLimits, type TopUpLimits } from '../utils/currency';
 
@@ -90,6 +91,12 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
 
   bot.command('setcard', adminAuth, async (ctx) => {
     await ctx.conversation.enter(SETCARD_CONVERSATION_ID);
+  });
+
+  bot.on('message:photo', async (ctx) => {
+    await handlePhotoMessage(ctx, options?.dbClient, {
+      adminIds: options?.adminIds,
+    });
   });
 
   bot.catch((err) => {
