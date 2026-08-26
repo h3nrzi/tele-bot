@@ -17,6 +17,7 @@ import {
   TOPUP_CONVERSATION_ID,
 } from './handlers/topup';
 import { handlePhotoMessage } from './handlers/receipt';
+import { handleApproveCallback } from './handlers/approve';
 import { createAdminMiddleware } from './middleware/admin';
 import { getTopUpLimits, type TopUpLimits } from '../utils/currency';
 
@@ -95,6 +96,12 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
 
   bot.on('message:photo', async (ctx) => {
     await handlePhotoMessage(ctx, options?.dbClient, {
+      adminIds: options?.adminIds,
+    });
+  });
+
+  bot.callbackQuery(/^approve:(.+)$/, adminAuth, async (ctx) => {
+    await handleApproveCallback(ctx, options?.dbClient, {
       adminIds: options?.adminIds,
     });
   });

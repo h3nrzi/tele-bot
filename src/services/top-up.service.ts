@@ -1,6 +1,14 @@
 import { eq, and, inArray } from 'drizzle-orm';
 import type { DbClient } from '../db/client';
 import { getDefaultDb } from '../db/client';
+import { users } from '../db/schema/users';
+import { wallets, type Wallet } from '../db/schema/wallets';
+import {
+  ledgerTransactions,
+  ledgerEntries,
+  type LedgerTransaction,
+  type LedgerEntry,
+} from '../db/schema/ledger';
 import { topUpRequests, type TopUpRequest } from '../db/schema/top-up-requests';
 import { type ExchangeRate } from '../db/schema/exchange-rates';
 import { getCurrentRate } from './exchange-rate.service';
@@ -10,6 +18,7 @@ import {
   computeIrrAmount,
   type TopUpLimits,
 } from '../utils/currency';
+import { normalizeChatId } from '../utils/telegram';
 import Decimal from 'decimal.js';
 
 export class NoExchangeRateError extends Error {
@@ -44,6 +53,27 @@ export class TopUpRequestExpiredError extends Error {
   constructor(message = 'The top-up request has expired.') {
     super(message);
     this.name = 'TopUpRequestExpiredError';
+  }
+}
+
+export class TopUpRequestNotFoundError extends Error {
+  constructor(message = 'Top-up request not found.') {
+    super(message);
+    this.name = 'TopUpRequestNotFoundError';
+  }
+}
+
+export class TopUpRequestNotPendingError extends Error {
+  constructor(message = 'Top-up request is not pending approval or has already been processed.') {
+    super(message);
+    this.name = 'TopUpRequestNotPendingError';
+  }
+}
+
+export class WalletNotFoundError extends Error {
+  constructor(message = 'Buyer wallet not found.') {
+    super(message);
+    this.name = 'WalletNotFoundError';
   }
 }
 
@@ -255,3 +285,188 @@ export async function submitReceipt(
     request: updatedRequest,
   };
 }
+
+export interface ApproveTopUpInput {
+  topUpRequestId: string;
+  adminTelegramId: bigint | number;
+}
+
+export interface ApproveTopUpDependencies {
+  notifyBuyer?: (params: {
+    buyerTelegramChatId: bigint;
+    creditedUsdAmount: string;
+    newAvailableBalance: string;
+  }) => Promise<void>;
+}
+
+export interface ApproveTopUpResult {
+  request: TopUpRequest;
+  wallet: Wallet;
+  ledgerTransaction: LedgerTransaction;
+  ledgerEntries: [LedgerEntry, LedgerEntry];
+  buyerChatId: bigint;
+}
+
+/**
+ * Approves a pending Top-Up Request inside a single PostgreSQL transaction:
+ * 1. SELECT … FROM top_up_requests WHERE id = ? FOR UPDATE
+ * 2. Assert status = 'PENDING' — if not, abort and throw TopUpRequestNotPendingError
+ * 3. SELECT … FROM users WHERE id = request.userId
+ * 4. SELECT … FROM wallets WHERE user_id = ? FOR UPDATE
+ * 5. Compute new balance = wallet.availableBalance + request.usdAmount using decimal.js (.toFixed(2))
+ * 6. INSERT one ledger_transactions row
+ * 7. INSERT two ledger_entries rows (DEBIT SYSTEM_CASH null wallet, CREDIT BUYER_WALLET with walletId)
+ * 8. UPDATE wallets SET available_balance = newBalance, updated_at = now()
+ * 9. UPDATE top_up_requests SET status = 'APPROVED', processed_by_admin_telegram_id = ?, processed_at = now()
+ * 10. Dispatches notifyBuyer post-commit; notification failure does not roll back transaction.
+ */
+export async function approveTopUp(
+  input: ApproveTopUpInput,
+  dbClient?: DbClient,
+  dependencies?: ApproveTopUpDependencies
+): Promise<ApproveTopUpResult> {
+  const client = dbClient ?? getDefaultDb();
+  const adminId = normalizeChatId(input.adminTelegramId);
+
+  const txResult = await client.transaction(async (tx) => {
+    // 1. SELECT top_up_request FOR UPDATE
+    const [request] = await tx
+      .select()
+      .from(topUpRequests)
+      .where(eq(topUpRequests.id, input.topUpRequestId))
+      .for('update');
+
+    if (!request) {
+      throw new TopUpRequestNotFoundError('Top-up request not found.');
+    }
+
+    // 2. Assert status is PENDING
+    if (request.status !== 'PENDING') {
+      throw new TopUpRequestNotPendingError(
+        'Top-up request is not pending approval or has already been processed.'
+      );
+    }
+
+    // 3. Fetch Buyer User
+    const [buyerUser] = await tx
+      .select()
+      .from(users)
+      .where(eq(users.id, request.userId));
+
+    if (!buyerUser) {
+      throw new Error('Buyer user record not found for top-up request.');
+    }
+
+    // 4. SELECT wallet FOR UPDATE
+    const [wallet] = await tx
+      .select()
+      .from(wallets)
+      .where(eq(wallets.userId, request.userId))
+      .for('update');
+
+    if (!wallet) {
+      throw new WalletNotFoundError('Buyer wallet not found.');
+    }
+
+    // 5. Compute new balance using decimal.js
+    const currentBalance = new Decimal(wallet.availableBalance);
+    const creditAmount = new Decimal(request.usdAmount);
+    const newBalanceDecimal = currentBalance.plus(creditAmount);
+    const newBalanceStr = newBalanceDecimal.toFixed(2);
+
+    // 6. Insert ledger transaction
+    const [ledgerTx] = await tx
+      .insert(ledgerTransactions)
+      .values({
+        topUpRequestId: request.id,
+        narrative: `Top-up approval for request ${request.id}`,
+      })
+      .returning();
+
+    if (!ledgerTx) {
+      throw new Error('Failed to create ledger transaction.');
+    }
+
+    // 7. Insert two ledger entries: DEBIT SYSTEM_CASH, CREDIT BUYER_WALLET
+    const entries = await tx
+      .insert(ledgerEntries)
+      .values([
+        {
+          ledgerTransactionId: ledgerTx.id,
+          accountType: 'SYSTEM_CASH',
+          direction: 'DEBIT',
+          usdAmount: request.usdAmount,
+          walletId: null,
+        },
+        {
+          ledgerTransactionId: ledgerTx.id,
+          accountType: 'BUYER_WALLET',
+          direction: 'CREDIT',
+          usdAmount: request.usdAmount,
+          walletId: wallet.id,
+        },
+      ])
+      .returning();
+
+    if (entries.length !== 2) {
+      throw new Error('Failed to insert ledger entries.');
+    }
+
+    // 8. Update wallet available_balance
+    const [updatedWallet] = await tx
+      .update(wallets)
+      .set({
+        availableBalance: newBalanceStr,
+        updatedAt: new Date(),
+      })
+      .where(eq(wallets.id, wallet.id))
+      .returning();
+
+    if (!updatedWallet) {
+      throw new Error('Failed to update wallet balance.');
+    }
+
+    // 9. Update top_up_requests to APPROVED
+    const [updatedRequest] = await tx
+      .update(topUpRequests)
+      .set({
+        status: 'APPROVED',
+        processedByAdminTelegramId: adminId,
+        processedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(topUpRequests.id, request.id))
+      .returning();
+
+    if (!updatedRequest) {
+      throw new Error('Failed to update top-up request status.');
+    }
+
+    return {
+      request: updatedRequest,
+      wallet: updatedWallet,
+      ledgerTransaction: ledgerTx,
+      ledgerEntries: entries as [LedgerEntry, LedgerEntry],
+      buyerChatId: buyerUser.telegramChatId,
+    };
+  });
+
+  // 10. Dispatch Buyer push notification after transaction commits
+  if (dependencies?.notifyBuyer) {
+    try {
+      await dependencies.notifyBuyer({
+        buyerTelegramChatId: txResult.buyerChatId,
+        creditedUsdAmount: txResult.request.usdAmount,
+        newAvailableBalance: txResult.wallet.availableBalance,
+      });
+    } catch (notifyErr) {
+      console.error(
+        `Failed to send buyer push notification to ${txResult.buyerChatId}:`,
+        notifyErr
+      );
+    }
+  }
+
+  return txResult;
+}
+

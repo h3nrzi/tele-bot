@@ -29,6 +29,13 @@
       "when": 1787682705679,
       "tag": "0003_bumpy_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787769532526,
+      "tag": "0004_clean_bug",
+      "breakpoints": true
     }
   ]
 }
