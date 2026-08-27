@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '../helpers/test-db';
-import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
 import {
   initiateTopUp,
   submitReceipt,
@@ -8,9 +8,9 @@ import {
   rejectTopUp,
   cancelTopUp,
   getPendingRequests,
-} from '../../src/application/top-up/top-up.service';
-import { registerBuyer } from '../../src/application/buyer/registration.service';
-import { topUpRequests } from '../../src/db/schema/top-up-requests';
+} from '@/application/top-up/top-up.service';
+import { registerBuyer } from '@/application/buyer/registration.service';
+import { topUpRequests } from '@/db/schema/top-up-requests';
 import { eq } from 'drizzle-orm';
 
 describe('Admin Pending Top-Up Queue Service', () => {

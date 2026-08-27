@@ -1,13 +1,13 @@
-import type { DbClient } from '../../db/client';
-import { getDefaultDb } from '../../db/client';
-import { bankAccountRepository } from '../../infrastructure/repositories/drizzle-bank-account.repository';
-import { BankAccount } from '../../domain/bank-account/bank-account.entity';
+import type { DbClient } from '@/db/client';
+import { getDefaultDb } from '@/db/client';
+import { bankAccountRepository } from '@/infrastructure/repositories/drizzle-bank-account.repository';
+import { BankAccount } from '@/domain/bank-account/bank-account.entity';
 import {
   InvalidCardNumberError,
   InvalidCardHolderNameError,
   InvalidBankNameError,
-} from '../../domain/bank-account/bank-account.errors';
-import type { SetActiveAccountInput } from './dtos/set-active-account.dto';
+} from '@/domain/bank-account/bank-account.errors';
+import type { SetActiveAccountInput } from '@/application/bank-account/dtos/set-active-account.dto';
 
 /**
  * Sets a new active bank account within a single transaction:

@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { setupTestDatabase } from '../../helpers/test-db';
-import { createMockContext } from '../../helpers/mock-context';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { createMockContext } from '@tests/helpers/mock-context';
 import {
   handleBalance,
   getBalanceMessage,
   getUnregisteredBalanceMessage,
-} from '../../../src/bot/modules/buyer';
-import { createBot } from '../../../src/bot/bot';
-import { registerBuyer } from '../../../src/application/buyer/registration.service';
-import { wallets } from '../../../src/db/schema/wallets';
+} from '@/bot/modules/buyer';
+import { createBot } from '@/bot/bot';
+import { registerBuyer } from '@/application/buyer/registration.service';
+import { wallets } from '@/db/schema/wallets';
 import { eq } from 'drizzle-orm';
 
 describe('/balance Handler', () => {

@@ -1,6 +1,6 @@
-import type { LedgerTransaction } from './ledger-transaction.entity';
-import type { LedgerEntry, LedgerAccountType, LedgerEntryDirection } from './ledger-entry.entity';
-import type { UsdAmount } from '../shared/money.vo';
+import type { LedgerTransaction } from '@/domain/ledger/ledger-transaction.entity';
+import type { LedgerEntry, LedgerAccountType, LedgerEntryDirection } from '@/domain/ledger/ledger-entry.entity';
+import type { UsdAmount } from '@/domain/shared/money.vo';
 
 export interface CreateLedgerEntryParams {
   accountType: LedgerAccountType;

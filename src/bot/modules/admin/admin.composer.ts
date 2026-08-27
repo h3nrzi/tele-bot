@@ -1,17 +1,17 @@
 import { Composer } from 'grammy';
-import type { DbClient } from '../../../db/client';
-import type { BotContext } from '../../core/context';
-import { createAdminMiddleware } from '../../core/middleware/admin.middleware';
-import { handleSetRate } from './exchange-rate/set-rate.handler';
-import { handleRate } from './exchange-rate/rate.handler';
-import { handleSetCardCommand } from './bank-account/set-card.handler';
-import { handleApproveCallback } from './top-up-approval/approve.handler';
-import { handleRejectCallback } from './top-up-rejection/reject.handler';
+import type { DbClient } from '@/db/client';
+import type { BotContext } from '@/bot/core/context';
+import { createAdminMiddleware } from '@/bot/core/middleware/admin.middleware';
+import { handleSetRate } from '@/bot/modules/admin/exchange-rate/set-rate.handler';
+import { handleRate } from '@/bot/modules/admin/exchange-rate/rate.handler';
+import { handleSetCardCommand } from '@/bot/modules/admin/bank-account/set-card.handler';
+import { handleApproveCallback } from '@/bot/modules/admin/top-up-approval/approve.handler';
+import { handleRejectCallback } from '@/bot/modules/admin/top-up-rejection/reject.handler';
 import {
   handlePending,
   handlePendingPage,
   handleReviewCallback,
-} from './pending-queue/pending.handler';
+} from '@/bot/modules/admin/pending-queue/pending.handler';
 
 export interface AdminComposerOptions {
   dbClient?: DbClient | undefined;

@@ -1,4 +1,4 @@
-import { formatUsd } from '../../../../utils/currency';
+import { formatUsd } from '@/utils/currency';
 
 /**
  * Returns the message showing the Buyer's current Available Balance.

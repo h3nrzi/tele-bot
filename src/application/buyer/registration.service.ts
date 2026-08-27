@@ -1,12 +1,12 @@
-import type { DbClient } from '../../db/client';
-import { getDefaultDb } from '../../db/client';
-import { buyerRepository } from '../../infrastructure/repositories/drizzle-buyer.repository';
-import { walletRepository } from '../../infrastructure/repositories/drizzle-wallet.repository';
-import { normalizeChatId } from '../../utils/telegram';
+import type { DbClient } from '@/db/client';
+import { getDefaultDb } from '@/db/client';
+import { buyerRepository } from '@/infrastructure/repositories/drizzle-buyer.repository';
+import { walletRepository } from '@/infrastructure/repositories/drizzle-wallet.repository';
+import { normalizeChatId } from '@/utils/telegram';
 import type {
   RegisterBuyerInput,
   RegisterBuyerResult,
-} from './dtos/register-buyer.dto';
+} from '@/application/buyer/dtos/register-buyer.dto';
 
 /**
  * Registers a Buyer by creating or retrieving a Buyer and their associated Wallet atomically.

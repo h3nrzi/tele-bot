@@ -1,19 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '../../helpers/test-db';
-import { createMockContext } from '../../helpers/mock-context';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { createMockContext } from '@tests/helpers/mock-context';
 import {
   handleStatusCommand,
   getNoTopUpHistoryMessage,
   formatStatusMessage,
-} from '../../../src/bot/modules/buyer';
-import { createBot } from '../../../src/bot/bot';
-import { registerBuyer } from '../../../src/application/buyer/registration.service';
-import { setRate } from '../../../src/application/exchange-rate/exchange-rate.service';
+} from '@/bot/modules/buyer';
+import { createBot } from '@/bot/bot';
+import { registerBuyer } from '@/application/buyer/registration.service';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
 import {
   initiateTopUp,
   submitReceipt,
   rejectTopUp,
-} from '../../../src/application/top-up/top-up.service';
+} from '@/application/top-up/top-up.service';
 
 describe('/status Command Handler', () => {
   const { db } = setupTestDatabase();

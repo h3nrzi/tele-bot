@@ -1,10 +1,10 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import { getBuyerWallet } from '../../../../application/wallet/wallet.service';
+import type { DbClient } from '@/db/client';
+import { getBuyerWallet } from '@/application/wallet/wallet.service';
 import {
   getBalanceMessage,
   getUnregisteredBalanceMessage,
-} from './balance.messages';
+} from '@/bot/modules/buyer/balance/balance.messages';
 
 /**
  * Handles the /balance command.

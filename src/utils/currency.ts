@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { UsdAmount, IrrAmount } from '../domain/shared/money.vo';
+import { UsdAmount, IrrAmount } from '@/domain/shared/money.vo';
 
 /**
  * Formats a USD amount string, Decimal, or UsdAmount into a standard USD currency string (e.g. '$0.00').
@@ -55,7 +55,7 @@ export function computeIrrAmount(
   return BigInt(computed.toFixed(0));
 }
 
-import { TopUpLimits } from '../domain/top-up/top-up.limits.vo';
+import { TopUpLimits } from '@/domain/top-up/top-up.limits.vo';
 export { TopUpLimits };
 
 /**

@@ -1,12 +1,12 @@
 import { eq, sql } from 'drizzle-orm';
-import { users } from '../../db/schema/users';
-import { getDefaultDb } from '../../db/client';
-import type { DbExecutor } from '../db/types';
-import { Buyer } from '../../domain/buyer/buyer.entity';
+import { users } from '@/db/schema/users';
+import { getDefaultDb } from '@/db/client';
+import type { DbExecutor } from '@/infrastructure/db/types';
+import { Buyer } from '@/domain/buyer/buyer.entity';
 import type {
   IBuyerRepository,
   UpsertBuyerResult,
-} from '../../domain/buyer/buyer.repository';
+} from '@/domain/buyer/buyer.repository';
 
 export class DrizzleBuyerRepository implements IBuyerRepository<DbExecutor> {
   private getDb(executor?: DbExecutor): DbExecutor {

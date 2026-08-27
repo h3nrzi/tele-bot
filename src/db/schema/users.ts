@@ -1,6 +1,6 @@
 import { pgTable, uuid, bigint, varchar, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { wallets } from './wallets';
+import { wallets } from '@/db/schema/wallets';
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { LedgerTransaction } from '../../src/domain/ledger/ledger-transaction.entity';
-import { UsdAmount } from '../../src/domain/shared/money.vo';
+import { LedgerTransaction } from '@/domain/ledger/ledger-transaction.entity';
+import { UsdAmount } from '@/domain/shared/money.vo';
 
 describe('LedgerTransaction Aggregate Entity', () => {
   it('validates balanced double-entry entries successfully', () => {

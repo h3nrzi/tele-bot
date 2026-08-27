@@ -1,4 +1,4 @@
-import { formatUsd } from '../../../../utils/currency';
+import { formatUsd } from '@/utils/currency';
 
 /**
  * Returns the welcome message for a newly registered Buyer.

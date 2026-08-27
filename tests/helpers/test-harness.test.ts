@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { setupTestDatabase } from './test-db';
-import { users } from '../../src/db/schema/users';
-import { wallets } from '../../src/db/schema/wallets';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { users } from '@/db/schema/users';
+import { wallets } from '@/db/schema/wallets';
 import { eq } from 'drizzle-orm';
 
 describe('Test Harness & Database Isolation', () => {

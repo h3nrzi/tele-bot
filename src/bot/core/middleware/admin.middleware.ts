@@ -1,5 +1,5 @@
 import type { Context, MiddlewareFn, NextFunction } from 'grammy';
-import { normalizeChatId } from '../../../utils/telegram';
+import { normalizeChatId } from '@/utils/telegram';
 
 export interface CreateAdminMiddlewareOptions {
   adminIds?: string | Set<bigint> | undefined;

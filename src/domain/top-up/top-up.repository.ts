@@ -1,5 +1,5 @@
-import type { TopUpRequest, TopUpStatus } from './top-up-request.entity';
-import type { UsdAmount, IrrAmount } from '../shared/money.vo';
+import type { TopUpRequest, TopUpStatus } from '@/domain/top-up/top-up-request.entity';
+import type { UsdAmount, IrrAmount } from '@/domain/shared/money.vo';
 
 export interface PendingTopUpRequestItem {
   id: string;

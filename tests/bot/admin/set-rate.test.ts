@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '../../helpers/test-db';
-import { createMockContext } from '../../helpers/mock-context';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { createMockContext } from '@tests/helpers/mock-context';
 import {
   handleSetRate,
   getSetRateSuccessMessage,
   getSetRateUsageErrorMessage,
-} from '../../../src/bot/modules/admin';
-import { createBot } from '../../../src/bot/bot';
-import { exchangeRates } from '../../../src/db/schema/exchange-rates';
+} from '@/bot/modules/admin';
+import { createBot } from '@/bot/bot';
+import { exchangeRates } from '@/db/schema/exchange-rates';
 import { count } from 'drizzle-orm';
 
 describe('/setrate Handler', () => {

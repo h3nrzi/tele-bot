@@ -1,4 +1,4 @@
-import { DomainError } from '../shared/domain.error';
+import { DomainError } from '@/domain/shared/domain.error';
 
 export class ActiveTopUpRequestExistsError extends DomainError {
   constructor(message = 'You already have an active top-up request.') {

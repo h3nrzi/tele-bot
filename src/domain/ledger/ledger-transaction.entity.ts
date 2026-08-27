@@ -1,5 +1,5 @@
-import { LedgerEntry } from './ledger-entry.entity';
-import { UsdAmount } from '../shared/money.vo';
+import { LedgerEntry } from '@/domain/ledger/ledger-entry.entity';
+import { UsdAmount } from '@/domain/shared/money.vo';
 
 export interface LedgerTransactionProps {
   id: string;

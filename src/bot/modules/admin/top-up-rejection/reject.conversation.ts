@@ -1,10 +1,10 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import type { BotContext, BotConversation } from '../../../core/context';
-import { rejectTopUp } from '../../../../application/top-up/top-up.service';
-import { TopUpRequestNotPendingError } from '../../../../domain/top-up/top-up.errors';
-import { isCancelCommand } from '../../../../utils/telegram';
+import type { DbClient } from '@/db/client';
+import type { BotContext, BotConversation } from '@/bot/core/context';
+import { rejectTopUp } from '@/application/top-up/top-up.service';
+import { TopUpRequestNotPendingError } from '@/domain/top-up/top-up.errors';
+import { isCancelCommand } from '@/utils/telegram';
 import {
   formatAdminRejectionOutcome,
   formatBuyerRejectionMessage,
@@ -12,12 +12,12 @@ import {
   getCustomRejectionReasonPromptMessage,
   getRejectionCancelledMessage,
   getRejectionSuccessAdminMessage,
-} from './rejection.messages';
+} from '@/bot/modules/admin/top-up-rejection/rejection.messages';
 import {
   PRESET_REJECTION_REASONS,
   getRejectionPresetsKeyboard,
-} from './rejection.keyboards';
-import { formatAdminAlreadyProcessedOutcome } from '../top-up-approval/approval.messages';
+} from '@/bot/modules/admin/top-up-rejection/rejection.keyboards';
+import { formatAdminAlreadyProcessedOutcome } from '@/bot/modules/admin/top-up-approval/approval.messages';
 
 export type RejectConversation = BotConversation;
 export const REJECT_CONVERSATION_ID = 'reject_topup';

@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '../helpers/test-db';
-import { users } from '../../src/db/schema/users';
-import { topUpRequests } from '../../src/db/schema/top-up-requests';
-import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { users } from '@/db/schema/users';
+import { topUpRequests } from '@/db/schema/top-up-requests';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
 import {
   initiateTopUp,
   submitReceipt,
-} from '../../src/application/top-up/top-up.service';
+} from '@/application/top-up/top-up.service';
 import {
   NoInitiatedTopUpRequestError,
   TopUpRequestExpiredError,
-} from '../../src/domain/top-up/top-up.errors';
+} from '@/domain/top-up/top-up.errors';
 import { eq } from 'drizzle-orm';
 
 describe('Receipt Submission Service', () => {

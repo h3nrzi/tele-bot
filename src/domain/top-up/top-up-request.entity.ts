@@ -1,9 +1,9 @@
-import { UsdAmount, IrrAmount } from '../shared/money.vo';
+import { UsdAmount, IrrAmount } from '@/domain/shared/money.vo';
 import {
   TopUpRequestExpiredError,
   TopUpRequestNotPendingError,
   CannotCancelPendingTopUpError,
-} from './top-up.errors';
+} from '@/domain/top-up/top-up.errors';
 
 export type TopUpStatus =
   | 'INITIATED'

@@ -1,6 +1,6 @@
 import { InlineKeyboard } from 'grammy';
-import { formatUsd } from '../../../../utils/currency';
-import type { PendingTopUpRequestItem } from '../../../../application/top-up/dtos/top-up.dto';
+import { formatUsd } from '@/utils/currency';
+import type { PendingTopUpRequestItem } from '@/application/top-up/dtos/top-up.dto';
 
 export interface PendingQueueKeyboardOptions {
   items: PendingTopUpRequestItem[];

@@ -1,16 +1,16 @@
-import type { DbClient } from '../../../../db/client';
-import type { BotContext } from '../../../core/context';
-import { resolveAdminIds } from '../../../core/middleware/admin.middleware';
-import { getCurrentRate } from '../../../../application/exchange-rate/exchange-rate.service';
-import { getActiveAccount } from '../../../../application/bank-account/bank-account.service';
-import { registerBuyer } from '../../../../application/buyer/registration.service';
-import { getActiveTopUpRequest } from '../../../../application/top-up/top-up.service';
+import type { DbClient } from '@/db/client';
+import type { BotContext } from '@/bot/core/context';
+import { resolveAdminIds } from '@/bot/core/middleware/admin.middleware';
+import { getCurrentRate } from '@/application/exchange-rate/exchange-rate.service';
+import { getActiveAccount } from '@/application/bank-account/bank-account.service';
+import { registerBuyer } from '@/application/buyer/registration.service';
+import { getActiveTopUpRequest } from '@/application/top-up/top-up.service';
 import {
   getTopUpUnavailableMessage,
   getTopUpActiveExistsMessage,
   getAdminNoRateAlertMessage,
-} from './top-up.messages';
-import { TOPUP_CONVERSATION_ID } from './top-up.conversation';
+} from '@/bot/modules/buyer/top-up/top-up.messages';
+import { TOPUP_CONVERSATION_ID } from '@/bot/modules/buyer/top-up/top-up.conversation';
 
 /**
  * Handles the /topup command entry:

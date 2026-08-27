@@ -1,16 +1,16 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import { buyerRepository } from '../../../../infrastructure/repositories/drizzle-buyer.repository';
-import { cancelTopUp } from '../../../../application/top-up/top-up.service';
+import type { DbClient } from '@/db/client';
+import { buyerRepository } from '@/infrastructure/repositories/drizzle-buyer.repository';
+import { cancelTopUp } from '@/application/top-up/top-up.service';
 import {
   CannotCancelPendingTopUpError,
   NoActiveTopUpRequestError,
-} from '../../../../domain/top-up/top-up.errors';
+} from '@/domain/top-up/top-up.errors';
 import {
   getCancelSuccessMessage,
   getCannotCancelPendingMessage,
   getNoActiveRequestToCancelMessage,
-} from './cancel.messages';
+} from '@/bot/modules/buyer/cancel/cancel.messages';
 
 /**
  * Handles the /cancel command:

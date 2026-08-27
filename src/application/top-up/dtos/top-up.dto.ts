@@ -1,9 +1,9 @@
 import type Decimal from 'decimal.js';
-import type { TopUpRequest } from '../../../domain/top-up/top-up-request.entity';
-import type { ExchangeRate } from '../../../domain/exchange-rate/exchange-rate.entity';
-import type { Wallet } from '../../../domain/wallet/wallet.entity';
-import type { LedgerTransaction } from '../../../domain/ledger/ledger-transaction.entity';
-import type { LedgerEntry } from '../../../domain/ledger/ledger-entry.entity';
+import type { TopUpRequest } from '@/domain/top-up/top-up-request.entity';
+import type { ExchangeRate } from '@/domain/exchange-rate/exchange-rate.entity';
+import type { Wallet } from '@/domain/wallet/wallet.entity';
+import type { LedgerTransaction } from '@/domain/ledger/ledger-transaction.entity';
+import type { LedgerEntry } from '@/domain/ledger/ledger-entry.entity';
 
 export interface InitiateTopUpInput {
   userId: string;
@@ -80,7 +80,7 @@ export interface CancelTopUpResult {
   request: TopUpRequest;
 }
 
-export type { PendingTopUpRequestItem } from '../../../domain/top-up/top-up.repository';
+export type { PendingTopUpRequestItem } from '@/domain/top-up/top-up.repository';
 
 
 

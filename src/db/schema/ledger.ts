@@ -1,7 +1,7 @@
 import { pgTable, uuid, numeric, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { topUpRequests } from './top-up-requests';
-import { wallets } from './wallets';
+import { topUpRequests } from '@/db/schema/top-up-requests';
+import { wallets } from '@/db/schema/wallets';
 
 export const ledgerAccountTypeEnum = pgEnum('ledger_account_type', [
   'BUYER_WALLET',

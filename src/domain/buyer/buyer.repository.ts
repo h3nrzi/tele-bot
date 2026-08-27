@@ -1,4 +1,4 @@
-import type { Buyer } from './buyer.entity';
+import type { Buyer } from '@/domain/buyer/buyer.entity';
 
 export interface UpsertBuyerResult {
   buyer: Buyer;

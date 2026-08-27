@@ -1,9 +1,9 @@
-import type { DbClient } from '../../db/client';
-import { getDefaultDb } from '../../db/client';
-import { exchangeRateRepository } from '../../infrastructure/repositories/drizzle-exchange-rate.repository';
-import { normalizeChatId } from '../../utils/telegram';
-import { ExchangeRate } from '../../domain/exchange-rate/exchange-rate.entity';
-import { InvalidExchangeRateError } from '../../domain/exchange-rate/exchange-rate.errors';
+import type { DbClient } from '@/db/client';
+import { getDefaultDb } from '@/db/client';
+import { exchangeRateRepository } from '@/infrastructure/repositories/drizzle-exchange-rate.repository';
+import { normalizeChatId } from '@/utils/telegram';
+import { ExchangeRate } from '@/domain/exchange-rate/exchange-rate.entity';
+import { InvalidExchangeRateError } from '@/domain/exchange-rate/exchange-rate.errors';
 
 /**
  * Appends a new Exchange Rate row and returns the domain entity.

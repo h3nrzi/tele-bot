@@ -1,10 +1,10 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import { registerBuyer } from '../../../../application/buyer/registration.service';
+import type { DbClient } from '@/db/client';
+import { registerBuyer } from '@/application/buyer/registration.service';
 import {
   getNewBuyerWelcomeMessage,
   getReturningBuyerWelcomeMessage,
-} from './start.messages';
+} from '@/bot/modules/buyer/start/start.messages';
 
 /**
  * Handles the /start command.

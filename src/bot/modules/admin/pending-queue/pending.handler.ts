@@ -1,17 +1,17 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import type { DbClient } from '../../../../db/client';
+import type { DbClient } from '@/db/client';
 import {
   getPendingRequests,
   getPendingRequestById,
-} from '../../../../application/top-up/top-up.service';
+} from '@/application/top-up/top-up.service';
 import {
   getEmptyPendingQueueMessage,
   formatPendingQueuePage,
-} from './pending.messages';
-import { getPendingQueueKeyboard } from './pending.keyboards';
-import { formatAdminReceiptNotification } from '../top-up-approval/approval.messages';
-import { getAdminReceiptKeyboard } from '../top-up-approval/approval.keyboards';
+} from '@/bot/modules/admin/pending-queue/pending.messages';
+import { getPendingQueueKeyboard } from '@/bot/modules/admin/pending-queue/pending.keyboards';
+import { formatAdminReceiptNotification } from '@/bot/modules/admin/top-up-approval/approval.messages';
+import { getAdminReceiptKeyboard } from '@/bot/modules/admin/top-up-approval/approval.keyboards';
 
 export const PENDING_PAGE_SIZE = 10;
 

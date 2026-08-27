@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { UsdAmount } from '../shared/money.vo';
+import { UsdAmount } from '@/domain/shared/money.vo';
 
 export type ValidateTopUpAmountResult =
   | { valid: true; amount: UsdAmount; amountDecimal: Decimal; amountString: string }

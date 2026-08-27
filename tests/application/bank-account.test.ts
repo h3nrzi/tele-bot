@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { setupTestDatabase } from '../helpers/test-db';
-import { bankAccounts } from '../../src/db/schema/bank-accounts';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { bankAccounts } from '@/db/schema/bank-accounts';
 import {
   setActiveAccount,
   getActiveAccount,
-} from '../../src/application/bank-account/bank-account.service';
+} from '@/application/bank-account/bank-account.service';
 
 describe('Bank Account Service - setActiveAccount', () => {
   const { db } = setupTestDatabase();

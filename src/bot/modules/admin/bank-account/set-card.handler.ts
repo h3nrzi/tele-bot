@@ -1,5 +1,5 @@
-import type { BotContext } from '../../../core/context';
-import { SETCARD_CONVERSATION_ID } from './set-card.conversation';
+import type { BotContext } from '@/bot/core/context';
+import { SETCARD_CONVERSATION_ID } from '@/bot/modules/admin/bank-account/set-card.conversation';
 
 /**
  * Handles the /setcard Admin command by entering the setcard conversation.

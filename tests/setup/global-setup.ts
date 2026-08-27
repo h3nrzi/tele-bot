@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyMigrations } from '../../src/db/migrate';
+import { applyMigrations } from '@/db/migrate';
 
 dotenv.config();
 

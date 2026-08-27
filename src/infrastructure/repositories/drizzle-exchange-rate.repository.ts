@@ -1,9 +1,9 @@
 import { desc } from 'drizzle-orm';
-import { exchangeRates } from '../../db/schema/exchange-rates';
-import { getDefaultDb } from '../../db/client';
-import type { DbExecutor } from '../db/types';
-import { ExchangeRate } from '../../domain/exchange-rate/exchange-rate.entity';
-import type { IExchangeRateRepository } from '../../domain/exchange-rate/exchange-rate.repository';
+import { exchangeRates } from '@/db/schema/exchange-rates';
+import { getDefaultDb } from '@/db/client';
+import type { DbExecutor } from '@/infrastructure/db/types';
+import { ExchangeRate } from '@/domain/exchange-rate/exchange-rate.entity';
+import type { IExchangeRateRepository } from '@/domain/exchange-rate/exchange-rate.repository';
 
 export class DrizzleExchangeRateRepository
   implements IExchangeRateRepository<DbExecutor>

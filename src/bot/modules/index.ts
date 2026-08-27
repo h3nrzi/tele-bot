@@ -1,2 +1,2 @@
-export * from './buyer';
-export * from './admin';
+export * from '@/bot/modules/buyer';
+export * from '@/bot/modules/admin';

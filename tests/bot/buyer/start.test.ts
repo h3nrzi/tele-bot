@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { setupTestDatabase } from '../../helpers/test-db';
-import { createMockContext } from '../../helpers/mock-context';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { createMockContext } from '@tests/helpers/mock-context';
 import {
   handleStart,
   getNewBuyerWelcomeMessage,
   getReturningBuyerWelcomeMessage,
-} from '../../../src/bot/modules/buyer';
-import { createBot } from '../../../src/bot/bot';
-import { users } from '../../../src/db/schema/users';
-import { wallets } from '../../../src/db/schema/wallets';
+} from '@/bot/modules/buyer';
+import { createBot } from '@/bot/bot';
+import { users } from '@/db/schema/users';
+import { wallets } from '@/db/schema/wallets';
 import { eq } from 'drizzle-orm';
 
 describe('/start Handler', () => {

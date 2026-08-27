@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { TopUpRequest } from '../../src/domain/top-up/top-up-request.entity';
+import { TopUpRequest } from '@/domain/top-up/top-up-request.entity';
 import {
   TopUpRequestExpiredError,
   TopUpRequestNotPendingError,
   CannotCancelPendingTopUpError,
-} from '../../src/domain/top-up/top-up.errors';
+} from '@/domain/top-up/top-up.errors';
 
 describe('TopUpRequest Aggregate Entity', () => {
   const baseProps = {

@@ -1,4 +1,4 @@
-import { DomainError } from '../shared/domain.error';
+import { DomainError } from '@/domain/shared/domain.error';
 
 export class BuyerNotFoundError extends DomainError {
   constructor(message = 'Buyer not found.') {

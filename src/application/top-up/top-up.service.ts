@@ -1,12 +1,12 @@
-import type { DbClient } from '../../db/client';
-import { getDefaultDb } from '../../db/client';
-import { topUpRequestRepository } from '../../infrastructure/repositories/drizzle-top-up-request.repository';
-import { exchangeRateRepository } from '../../infrastructure/repositories/drizzle-exchange-rate.repository';
-import { buyerRepository } from '../../infrastructure/repositories/drizzle-buyer.repository';
-import { walletRepository } from '../../infrastructure/repositories/drizzle-wallet.repository';
-import { ledgerRepository } from '../../infrastructure/repositories/drizzle-ledger.repository';
-import { TopUpLimits } from '../../domain/top-up/top-up.limits.vo';
-import { TopUpRequest } from '../../domain/top-up/top-up-request.entity';
+import type { DbClient } from '@/db/client';
+import { getDefaultDb } from '@/db/client';
+import { topUpRequestRepository } from '@/infrastructure/repositories/drizzle-top-up-request.repository';
+import { exchangeRateRepository } from '@/infrastructure/repositories/drizzle-exchange-rate.repository';
+import { buyerRepository } from '@/infrastructure/repositories/drizzle-buyer.repository';
+import { walletRepository } from '@/infrastructure/repositories/drizzle-wallet.repository';
+import { ledgerRepository } from '@/infrastructure/repositories/drizzle-ledger.repository';
+import { TopUpLimits } from '@/domain/top-up/top-up.limits.vo';
+import { TopUpRequest } from '@/domain/top-up/top-up-request.entity';
 import {
   ActiveTopUpRequestExistsError,
   InvalidTopUpAmountError,
@@ -16,10 +16,10 @@ import {
   TopUpRequestNotPendingError,
   CannotCancelPendingTopUpError,
   NoActiveTopUpRequestError,
-} from '../../domain/top-up/top-up.errors';
-import { NoExchangeRateError } from '../../domain/exchange-rate/exchange-rate.errors';
-import { WalletNotFoundError } from '../../domain/wallet/wallet.errors';
-import { normalizeChatId } from '../../utils/telegram';
+} from '@/domain/top-up/top-up.errors';
+import { NoExchangeRateError } from '@/domain/exchange-rate/exchange-rate.errors';
+import { WalletNotFoundError } from '@/domain/wallet/wallet.errors';
+import { normalizeChatId } from '@/utils/telegram';
 import type {
   InitiateTopUpInput,
   InitiateTopUpResult,
@@ -36,7 +36,7 @@ import type {
   CancelTopUpOptions,
   CancelTopUpResult,
   PendingTopUpRequestItem,
-} from './dtos/top-up.dto';
+} from '@/application/top-up/dtos/top-up.dto';
 
 /**
  * Initiates a new Top-Up Request for a Buyer:

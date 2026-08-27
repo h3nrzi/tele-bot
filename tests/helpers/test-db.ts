@@ -3,7 +3,7 @@ import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { sql } from 'drizzle-orm';
 import dotenv from 'dotenv';
 import { beforeAll, beforeEach, afterAll } from 'vitest';
-import * as schema from '../../src/db/schema/index';
+import * as schema from '@/db/schema/index';
 
 dotenv.config();
 

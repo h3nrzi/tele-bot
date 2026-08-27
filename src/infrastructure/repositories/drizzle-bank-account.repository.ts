@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
-import { bankAccounts } from '../../db/schema/bank-accounts';
-import { getDefaultDb } from '../../db/client';
-import type { DbExecutor } from '../db/types';
-import { BankAccount } from '../../domain/bank-account/bank-account.entity';
-import type { IBankAccountRepository } from '../../domain/bank-account/bank-account.repository';
+import { bankAccounts } from '@/db/schema/bank-accounts';
+import { getDefaultDb } from '@/db/client';
+import type { DbExecutor } from '@/infrastructure/db/types';
+import { BankAccount } from '@/domain/bank-account/bank-account.entity';
+import type { IBankAccountRepository } from '@/domain/bank-account/bank-account.repository';
 
 export class DrizzleBankAccountRepository
   implements IBankAccountRepository<DbExecutor>

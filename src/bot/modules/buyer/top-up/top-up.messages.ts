@@ -1,6 +1,6 @@
-import { formatUsd, formatIrr } from '../../../../utils/currency';
-import type { BankAccount } from '../../../../domain/bank-account/bank-account.entity';
-import type { UsdAmount } from '../../../../domain/shared/money.vo';
+import { formatUsd, formatIrr } from '@/utils/currency';
+import type { BankAccount } from '@/domain/bank-account/bank-account.entity';
+import type { UsdAmount } from '@/domain/shared/money.vo';
 import type Decimal from 'decimal.js';
 
 export function getTopUpPromptMessage(

@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setupTestDatabase } from '../../helpers/test-db';
+import { setupTestDatabase } from '@tests/helpers/test-db';
 import {
   createMockFetch,
   type MockSentPhoto,
   type MockEditedMessage,
   type MockAnsweredCallbackQuery,
-} from '../../helpers/mock-context';
-import { createBot } from '../../../src/bot/bot';
-import { setRate } from '../../../src/application/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '../../../src/application/bank-account/bank-account.service';
-import { topUpRequests } from '../../../src/db/schema/top-up-requests';
-import { wallets } from '../../../src/db/schema/wallets';
-import { ledgerTransactions, ledgerEntries } from '../../../src/db/schema/ledger';
+} from '@tests/helpers/mock-context';
+import { createBot } from '@/bot/bot';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
+import { setActiveAccount } from '@/application/bank-account/bank-account.service';
+import { topUpRequests } from '@/db/schema/top-up-requests';
+import { wallets } from '@/db/schema/wallets';
+import { ledgerTransactions, ledgerEntries } from '@/db/schema/ledger';
 import {
   formatBuyerApprovalMessage,
-} from '../../../src/bot/modules/admin';
+} from '@/bot/modules/admin';
 import { eq } from 'drizzle-orm';
 
 describe('Admin Approval Callback Handler', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Decimal from 'decimal.js';
-import { UsdAmount, IrrAmount } from '../../src/domain/shared/money.vo';
+import { UsdAmount, IrrAmount } from '@/domain/shared/money.vo';
 
 describe('Domain Value Objects: UsdAmount & IrrAmount', () => {
   describe('UsdAmount', () => {

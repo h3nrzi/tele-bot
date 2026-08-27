@@ -1,4 +1,4 @@
-import { IrrAmount, UsdAmount } from '../shared/money.vo';
+import { IrrAmount, UsdAmount } from '@/domain/shared/money.vo';
 
 export interface ExchangeRateProps {
   id: string;

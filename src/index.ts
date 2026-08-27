@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import { createDatabaseConnection } from './db/client';
-import { createBot } from './bot/bot';
+import { createDatabaseConnection } from '@/db/client';
+import { createBot } from '@/bot/bot';
 
 async function main(): Promise<void> {
   const token = process.env.BOT_TOKEN;

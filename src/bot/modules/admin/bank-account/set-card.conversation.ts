@@ -1,7 +1,7 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import type { BotConversation } from '../../../core/context';
-import { setActiveAccount } from '../../../../application/bank-account/bank-account.service';
+import type { DbClient } from '@/db/client';
+import type { BotConversation } from '@/bot/core/context';
+import { setActiveAccount } from '@/application/bank-account/bank-account.service';
 import {
   cleanCardNumber,
   isValidCardNumber,
@@ -16,7 +16,7 @@ import {
   getAdditionalNotesPromptMessage,
   getSetCardCancelledMessage,
   getSetCardSuccessMessage,
-} from './set-card.messages';
+} from '@/bot/modules/admin/bank-account/set-card.messages';
 
 export type SetCardConversation = BotConversation;
 export const SETCARD_CONVERSATION_ID = 'setcard';

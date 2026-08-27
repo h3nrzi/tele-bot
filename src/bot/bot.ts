@@ -2,23 +2,23 @@ import { Bot, type Context } from 'grammy';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import type { UserFromGetMe } from 'grammy/types';
 import type { ApiClientOptions } from 'grammy';
-import type { DbClient } from '../db/client';
-import { getTopUpLimits, type TopUpLimits } from '../utils/currency';
-import type { BotContext } from './core/context';
+import type { DbClient } from '@/db/client';
+import { getTopUpLimits, type TopUpLimits } from '@/utils/currency';
+import type { BotContext } from '@/bot/core/context';
 import {
   createSetCardConversation,
   SETCARD_CONVERSATION_ID,
-} from './modules/admin/bank-account/set-card.conversation';
+} from '@/bot/modules/admin/bank-account/set-card.conversation';
 import {
   createTopUpConversation,
   TOPUP_CONVERSATION_ID,
-} from './modules/buyer/top-up/top-up.conversation';
+} from '@/bot/modules/buyer/top-up/top-up.conversation';
 import {
   createRejectConversation,
   REJECT_CONVERSATION_ID,
-} from './modules/admin/top-up-rejection/reject.conversation';
-import { createBuyerComposer } from './modules/buyer/buyer.composer';
-import { createAdminComposer } from './modules/admin/admin.composer';
+} from '@/bot/modules/admin/top-up-rejection/reject.conversation';
+import { createBuyerComposer } from '@/bot/modules/buyer/buyer.composer';
+import { createAdminComposer } from '@/bot/modules/admin/admin.composer';
 
 export interface CreateBotOptions {
   token?: string | undefined;

@@ -1,4 +1,4 @@
-import { UsdAmount } from '../shared/money.vo';
+import { UsdAmount } from '@/domain/shared/money.vo';
 
 export interface WalletProps {
   id: string;

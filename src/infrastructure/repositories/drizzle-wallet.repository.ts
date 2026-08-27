@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm';
-import { wallets } from '../../db/schema/wallets';
-import { getDefaultDb } from '../../db/client';
-import type { DbExecutor } from '../db/types';
-import { Wallet } from '../../domain/wallet/wallet.entity';
-import type { IWalletRepository } from '../../domain/wallet/wallet.repository';
-import { UsdAmount } from '../../domain/shared/money.vo';
+import { wallets } from '@/db/schema/wallets';
+import { getDefaultDb } from '@/db/client';
+import type { DbExecutor } from '@/infrastructure/db/types';
+import { Wallet } from '@/domain/wallet/wallet.entity';
+import type { IWalletRepository } from '@/domain/wallet/wallet.repository';
+import { UsdAmount } from '@/domain/shared/money.vo';
 
 export class DrizzleWalletRepository implements IWalletRepository<DbExecutor> {
   private getDb(executor?: DbExecutor): DbExecutor {

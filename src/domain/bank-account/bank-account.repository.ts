@@ -1,4 +1,4 @@
-import type { BankAccount } from './bank-account.entity';
+import type { BankAccount } from '@/domain/bank-account/bank-account.entity';
 
 /**
  * Domain Repository Interface for BankAccount.

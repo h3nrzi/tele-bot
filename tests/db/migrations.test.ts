@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll, beforeEach } from 'vitest';
 import pg from 'pg';
 import dotenv from 'dotenv';
-import { truncateAllTables } from '../helpers/test-db';
+import { truncateAllTables } from '@tests/helpers/test-db';
 
 dotenv.config();
 

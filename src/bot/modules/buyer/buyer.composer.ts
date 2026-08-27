@@ -1,12 +1,12 @@
 import { Composer } from 'grammy';
-import type { DbClient } from '../../../db/client';
-import type { BotContext } from '../../core/context';
-import { handleStart } from './start/start.handler';
-import { handleBalance } from './balance/balance.handler';
-import { handleTopUpCommand } from './top-up/top-up.handler';
-import { handleCancelCommand } from './cancel/cancel.handler';
-import { handleStatusCommand } from './status/status.handler';
-import { handlePhotoMessage } from './receipt/receipt.handler';
+import type { DbClient } from '@/db/client';
+import type { BotContext } from '@/bot/core/context';
+import { handleStart } from '@/bot/modules/buyer/start/start.handler';
+import { handleBalance } from '@/bot/modules/buyer/balance/balance.handler';
+import { handleTopUpCommand } from '@/bot/modules/buyer/top-up/top-up.handler';
+import { handleCancelCommand } from '@/bot/modules/buyer/cancel/cancel.handler';
+import { handleStatusCommand } from '@/bot/modules/buyer/status/status.handler';
+import { handlePhotoMessage } from '@/bot/modules/buyer/receipt/receipt.handler';
 
 export interface BuyerComposerOptions {
   dbClient?: DbClient | undefined;

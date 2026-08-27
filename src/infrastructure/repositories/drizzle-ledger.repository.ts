@@ -1,13 +1,13 @@
-import { ledgerTransactions, ledgerEntries } from '../../db/schema/ledger';
-import type { DbExecutor } from '../db/types';
-import { LedgerTransaction } from '../../domain/ledger/ledger-transaction.entity';
-import { LedgerEntry } from '../../domain/ledger/ledger-entry.entity';
+import { ledgerTransactions, ledgerEntries } from '@/db/schema/ledger';
+import type { DbExecutor } from '@/infrastructure/db/types';
+import { LedgerTransaction } from '@/domain/ledger/ledger-transaction.entity';
+import { LedgerEntry } from '@/domain/ledger/ledger-entry.entity';
 import type {
   ILedgerRepository,
   CreateLedgerTransactionParams,
   CreateLedgerTransactionResult,
-} from '../../domain/ledger/ledger.repository';
-import { UsdAmount } from '../../domain/shared/money.vo';
+} from '@/domain/ledger/ledger.repository';
+import { UsdAmount } from '@/domain/shared/money.vo';
 
 export class DrizzleLedgerRepository
   implements ILedgerRepository<DbExecutor>

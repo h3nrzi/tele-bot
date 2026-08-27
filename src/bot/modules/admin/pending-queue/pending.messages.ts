@@ -1,5 +1,5 @@
-import { formatUsd, formatIrr } from '../../../../utils/currency';
-import type { PendingTopUpRequestItem } from '../../../../application/top-up/dtos/top-up.dto';
+import { formatUsd, formatIrr } from '@/utils/currency';
+import type { PendingTopUpRequestItem } from '@/application/top-up/dtos/top-up.dto';
 
 /**
  * Message returned when the pending top-up queue is empty.

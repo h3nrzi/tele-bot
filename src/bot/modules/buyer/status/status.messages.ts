@@ -1,6 +1,6 @@
-import { formatUsd, formatIrr } from '../../../../utils/currency';
-import type { TopUpStatus } from '../../../../domain/top-up/top-up-request.entity';
-import type { UsdAmount, IrrAmount } from '../../../../domain/shared/money.vo';
+import { formatUsd, formatIrr } from '@/utils/currency';
+import type { TopUpStatus } from '@/domain/top-up/top-up-request.entity';
+import type { UsdAmount, IrrAmount } from '@/domain/shared/money.vo';
 import type Decimal from 'decimal.js';
 
 /**

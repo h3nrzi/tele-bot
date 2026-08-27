@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '../helpers/test-db';
-import { topUpRequests } from '../../src/db/schema/top-up-requests';
-import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { topUpRequests } from '@/db/schema/top-up-requests';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
 import {
   initiateTopUp,
   cancelTopUp,
   getLatestTopUpRequest,
-} from '../../src/application/top-up/top-up.service';
-import { registerBuyer } from '../../src/application/buyer/registration.service';
+} from '@/application/top-up/top-up.service';
+import { registerBuyer } from '@/application/buyer/registration.service';
 
 describe('Buyer Top-Up Status Service', () => {
   const { db } = setupTestDatabase();

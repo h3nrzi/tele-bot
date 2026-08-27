@@ -1,5 +1,5 @@
-import type { BotContext } from '../../../core/context';
-import { REJECT_CONVERSATION_ID } from './reject.conversation';
+import type { BotContext } from '@/bot/core/context';
+import { REJECT_CONVERSATION_ID } from '@/bot/modules/admin/top-up-rejection/reject.conversation';
 
 /**
  * Handles inline Reject button callback queries from Admins by entering the reject conversation.

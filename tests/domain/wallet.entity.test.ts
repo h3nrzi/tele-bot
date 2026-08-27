@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Wallet } from '../../src/domain/wallet/wallet.entity';
-import { UsdAmount } from '../../src/domain/shared/money.vo';
+import { Wallet } from '@/domain/wallet/wallet.entity';
+import { UsdAmount } from '@/domain/shared/money.vo';
 
 describe('Wallet Aggregate Entity', () => {
   it('credits balance with exact decimal precision', () => {

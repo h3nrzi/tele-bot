@@ -1,12 +1,12 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import { setRate } from '../../../../application/exchange-rate/exchange-rate.service';
+import type { DbClient } from '@/db/client';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
 import {
   extractSetRateArgument,
   parseSetRateArg,
   getSetRateUsageErrorMessage,
   getSetRateSuccessMessage,
-} from './exchange-rate.messages';
+} from '@/bot/modules/admin/exchange-rate/exchange-rate.messages';
 
 /**
  * Handles the /setrate Admin command.

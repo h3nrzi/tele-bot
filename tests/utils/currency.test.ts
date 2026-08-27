@@ -6,7 +6,7 @@ import {
   computeIrrAmount,
   getTopUpLimits,
   validateTopUpAmount,
-} from '../../src/utils/currency';
+} from '@/utils/currency';
 
 describe('Currency & Amount Validation Utilities', () => {
   describe('formatUsd', () => {

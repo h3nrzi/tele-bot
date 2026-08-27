@@ -1,13 +1,13 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import { approveTopUp } from '../../../../application/top-up/top-up.service';
-import { TopUpRequestNotPendingError } from '../../../../domain/top-up/top-up.errors';
+import type { DbClient } from '@/db/client';
+import { approveTopUp } from '@/application/top-up/top-up.service';
+import { TopUpRequestNotPendingError } from '@/domain/top-up/top-up.errors';
 import {
   formatBuyerApprovalMessage,
   formatAdminApprovalOutcome,
   formatAdminAlreadyProcessedOutcome,
-} from './approval.messages';
+} from '@/bot/modules/admin/top-up-approval/approval.messages';
 
 export interface ApproveHandlerOptions {
   adminIds?: string | Set<bigint> | undefined;

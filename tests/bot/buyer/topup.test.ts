@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '../../helpers/test-db';
-import { createMockFetch } from '../../helpers/mock-context';
-import { createBot } from '../../../src/bot/bot';
-import { setRate } from '../../../src/application/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '../../../src/application/bank-account/bank-account.service';
-import { topUpRequests } from '../../../src/db/schema/top-up-requests';
-import { users } from '../../../src/db/schema/users';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { createMockFetch } from '@tests/helpers/mock-context';
+import { createBot } from '@/bot/bot';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
+import { setActiveAccount } from '@/application/bank-account/bank-account.service';
+import { topUpRequests } from '@/db/schema/top-up-requests';
+import { users } from '@/db/schema/users';
 import {
   getTopUpPromptMessage,
   getTopUpUnavailableMessage,
@@ -13,7 +13,7 @@ import {
   getTopUpCancelledMessage,
   getTopUpSuccessMessage,
   getAdminNoRateAlertMessage,
-} from '../../../src/bot/modules/buyer';
+} from '@/bot/modules/buyer';
 import { eq, count } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 

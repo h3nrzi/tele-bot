@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '../../helpers/test-db';
-import { createMockContext, captureBotReplies } from '../../helpers/mock-context';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { createMockContext, captureBotReplies } from '@tests/helpers/mock-context';
 import {
   handleRate,
   getCurrentRateMessage,
   getNoRateConfiguredMessage,
-} from '../../../src/bot/modules/admin';
-import { setRate } from '../../../src/application/exchange-rate/exchange-rate.service';
-import { createBot } from '../../../src/bot/bot';
+} from '@/bot/modules/admin';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
+import { createBot } from '@/bot/bot';
 
 describe('/rate Handler', () => {
   const { db } = setupTestDatabase();

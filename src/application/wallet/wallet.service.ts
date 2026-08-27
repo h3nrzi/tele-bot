@@ -1,12 +1,12 @@
-import type { DbClient } from '../../db/client';
-import { getDefaultDb } from '../../db/client';
-import { buyerRepository } from '../../infrastructure/repositories/drizzle-buyer.repository';
-import { walletRepository } from '../../infrastructure/repositories/drizzle-wallet.repository';
-import { normalizeChatId } from '../../utils/telegram';
+import type { DbClient } from '@/db/client';
+import { getDefaultDb } from '@/db/client';
+import { buyerRepository } from '@/infrastructure/repositories/drizzle-buyer.repository';
+import { walletRepository } from '@/infrastructure/repositories/drizzle-wallet.repository';
+import { normalizeChatId } from '@/utils/telegram';
 import type {
   GetBuyerWalletInput,
   BuyerWalletResult,
-} from './dtos/get-buyer-wallet.dto';
+} from '@/application/wallet/dtos/get-buyer-wallet.dto';
 
 /**
  * Retrieves a Buyer and their associated Wallet by Telegram chat ID.

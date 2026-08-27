@@ -1,4 +1,4 @@
-import { UsdAmount } from '../shared/money.vo';
+import { UsdAmount } from '@/domain/shared/money.vo';
 
 export type LedgerAccountType = 'BUYER_WALLET' | 'SYSTEM_CASH';
 export type LedgerEntryDirection = 'DEBIT' | 'CREDIT';

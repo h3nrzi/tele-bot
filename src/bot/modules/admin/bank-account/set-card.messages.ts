@@ -1,5 +1,5 @@
-import type { SetActiveAccountInput } from '../../../../application/bank-account/dtos/set-active-account.dto';
-import { isCancelCommand } from '../../../../utils/telegram';
+import type { SetActiveAccountInput } from '@/application/bank-account/dtos/set-active-account.dto';
+import { isCancelCommand } from '@/utils/telegram';
 
 export { isCancelCommand };
 

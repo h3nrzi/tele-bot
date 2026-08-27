@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setupTestDatabase } from '../../helpers/test-db';
-import { createMockFetch, type MockSentPhoto } from '../../helpers/mock-context';
-import { createBot } from '../../../src/bot/bot';
-import { setRate } from '../../../src/application/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '../../../src/application/bank-account/bank-account.service';
-import { topUpRequests } from '../../../src/db/schema/top-up-requests';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { createMockFetch, type MockSentPhoto } from '@tests/helpers/mock-context';
+import { createBot } from '@/bot/bot';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
+import { setActiveAccount } from '@/application/bank-account/bank-account.service';
+import { topUpRequests } from '@/db/schema/top-up-requests';
 import {
   getReceiptSubmittedBuyerMessage,
   getReceiptExpiredMessage,
   getReceiptAlreadyPendingMessage,
   getNoActiveTopUpRequestMessage,
-} from '../../../src/bot/modules/buyer';
+} from '@/bot/modules/buyer';
 import {
   formatAdminReceiptNotification,
   getAdminReceiptKeyboard,
-} from '../../../src/bot/modules/admin';
+} from '@/bot/modules/admin';
 import { eq } from 'drizzle-orm';
 
 describe('Receipt Submission & Admin Push Notification Handler', () => {

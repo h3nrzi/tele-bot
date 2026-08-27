@@ -1,17 +1,17 @@
 import { eq, and, inArray, desc, asc } from 'drizzle-orm';
-import { topUpRequests } from '../../db/schema/top-up-requests';
-import { users } from '../../db/schema/users';
-import { getDefaultDb } from '../../db/client';
-import type { DbExecutor } from '../db/types';
+import { topUpRequests } from '@/db/schema/top-up-requests';
+import { users } from '@/db/schema/users';
+import { getDefaultDb } from '@/db/client';
+import type { DbExecutor } from '@/infrastructure/db/types';
 import {
   TopUpRequest,
   type TopUpStatus,
-} from '../../domain/top-up/top-up-request.entity';
+} from '@/domain/top-up/top-up-request.entity';
 import type {
   ITopUpRequestRepository,
   PendingTopUpRequestItem,
-} from '../../domain/top-up/top-up.repository';
-import { UsdAmount, IrrAmount } from '../../domain/shared/money.vo';
+} from '@/domain/top-up/top-up.repository';
+import { UsdAmount, IrrAmount } from '@/domain/shared/money.vo';
 
 export class DrizzleTopUpRequestRepository
   implements ITopUpRequestRepository<DbExecutor>

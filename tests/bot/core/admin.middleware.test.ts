@@ -5,9 +5,9 @@ import {
   createAdminMiddleware,
   parseAdminIds,
   isAdmin,
-} from '../../../src/bot/core/middleware/admin.middleware';
-import { createMockContext } from '../../helpers/mock-context';
-import { createBot } from '../../../src/bot/bot';
+} from '@/bot/core/middleware/admin.middleware';
+import { createMockContext } from '@tests/helpers/mock-context';
+import { createBot } from '@/bot/bot';
 
 describe('Admin Middleware', () => {
   const originalEnv = process.env.ADMIN_IDS;

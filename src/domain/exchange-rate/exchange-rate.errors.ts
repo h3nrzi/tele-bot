@@ -1,4 +1,4 @@
-import { DomainError } from '../shared/domain.error';
+import { DomainError } from '@/domain/shared/domain.error';
 
 export class NoExchangeRateError extends DomainError {
   constructor(message = 'No exchange rate has been configured.') {

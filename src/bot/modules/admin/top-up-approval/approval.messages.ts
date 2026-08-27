@@ -1,5 +1,5 @@
-import { formatUsd, formatIrr } from '../../../../utils/currency';
-import type { UsdAmount, IrrAmount } from '../../../../domain/shared/money.vo';
+import { formatUsd, formatIrr } from '@/utils/currency';
+import type { UsdAmount, IrrAmount } from '@/domain/shared/money.vo';
 import type Decimal from 'decimal.js';
 
 export function formatAdminReceiptNotification(params: {

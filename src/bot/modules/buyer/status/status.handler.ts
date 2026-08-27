@@ -1,11 +1,11 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import { buyerRepository } from '../../../../infrastructure/repositories/drizzle-buyer.repository';
-import { getLatestTopUpRequest } from '../../../../application/top-up/top-up.service';
+import type { DbClient } from '@/db/client';
+import { buyerRepository } from '@/infrastructure/repositories/drizzle-buyer.repository';
+import { getLatestTopUpRequest } from '@/application/top-up/top-up.service';
 import {
   getNoTopUpHistoryMessage,
   formatStatusMessage,
-} from './status.messages';
+} from '@/bot/modules/buyer/status/status.messages';
 
 /**
  * Handles the /status command:

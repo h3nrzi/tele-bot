@@ -1,5 +1,5 @@
-import type { Buyer } from '../../../domain/buyer/buyer.entity';
-import type { Wallet } from '../../../domain/wallet/wallet.entity';
+import type { Buyer } from '@/domain/buyer/buyer.entity';
+import type { Wallet } from '@/domain/wallet/wallet.entity';
 
 export interface RegisterBuyerInput {
   telegramChatId: bigint | number;

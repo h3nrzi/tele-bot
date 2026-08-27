@@ -1,19 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '../helpers/test-db';
-import { topUpRequests } from '../../src/db/schema/top-up-requests';
-import { wallets } from '../../src/db/schema/wallets';
-import { ledgerTransactions } from '../../src/db/schema/ledger';
-import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { topUpRequests } from '@/db/schema/top-up-requests';
+import { wallets } from '@/db/schema/wallets';
+import { ledgerTransactions } from '@/db/schema/ledger';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
 import {
   initiateTopUp,
   submitReceipt,
   cancelTopUp,
-} from '../../src/application/top-up/top-up.service';
-import { registerBuyer } from '../../src/application/buyer/registration.service';
+} from '@/application/top-up/top-up.service';
+import { registerBuyer } from '@/application/buyer/registration.service';
 import {
   CannotCancelPendingTopUpError,
   NoActiveTopUpRequestError,
-} from '../../src/domain/top-up/top-up.errors';
+} from '@/domain/top-up/top-up.errors';
 import { eq } from 'drizzle-orm';
 
 describe('Top-Up Cancellation Service', () => {

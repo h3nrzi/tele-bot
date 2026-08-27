@@ -1,5 +1,5 @@
-import type { Wallet } from './wallet.entity';
-import type { UsdAmount } from '../shared/money.vo';
+import type { Wallet } from '@/domain/wallet/wallet.entity';
+import type { UsdAmount } from '@/domain/shared/money.vo';
 
 /**
  * Domain Repository Interface for Wallet.

@@ -1,20 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setupTestDatabase } from '../helpers/test-db';
-import { users } from '../../src/db/schema/users';
-import { wallets } from '../../src/db/schema/wallets';
-import { topUpRequests } from '../../src/db/schema/top-up-requests';
-import { ledgerTransactions, ledgerEntries } from '../../src/db/schema/ledger';
-import { setRate } from '../../src/application/exchange-rate/exchange-rate.service';
-import { registerBuyer } from '../../src/application/buyer/registration.service';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { users } from '@/db/schema/users';
+import { wallets } from '@/db/schema/wallets';
+import { topUpRequests } from '@/db/schema/top-up-requests';
+import { ledgerTransactions, ledgerEntries } from '@/db/schema/ledger';
+import { setRate } from '@/application/exchange-rate/exchange-rate.service';
+import { registerBuyer } from '@/application/buyer/registration.service';
 import {
   initiateTopUp,
   submitReceipt,
   approveTopUp,
-} from '../../src/application/top-up/top-up.service';
+} from '@/application/top-up/top-up.service';
 import {
   TopUpRequestNotFoundError,
   TopUpRequestNotPendingError,
-} from '../../src/domain/top-up/top-up.errors';
+} from '@/domain/top-up/top-up.errors';
 import { eq, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 

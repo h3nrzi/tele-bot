@@ -1,23 +1,23 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '../../../../db/client';
+import type { DbClient } from '@/db/client';
 import {
   submitReceipt,
   getActiveTopUpRequest,
-} from '../../../../application/top-up/top-up.service';
+} from '@/application/top-up/top-up.service';
 import {
   TopUpRequestExpiredError,
   NoInitiatedTopUpRequestError,
-} from '../../../../domain/top-up/top-up.errors';
-import { registerBuyer } from '../../../../application/buyer/registration.service';
-import { resolveAdminIds } from '../../../core/middleware/admin.middleware';
+} from '@/domain/top-up/top-up.errors';
+import { registerBuyer } from '@/application/buyer/registration.service';
+import { resolveAdminIds } from '@/bot/core/middleware/admin.middleware';
 import {
   getReceiptSubmittedBuyerMessage,
   getReceiptExpiredMessage,
   getReceiptAlreadyPendingMessage,
   getNoActiveTopUpRequestMessage,
-} from './receipt.messages';
-import { formatAdminReceiptNotification } from '../../admin/top-up-approval/approval.messages';
-import { getAdminReceiptKeyboard } from '../../admin/top-up-approval/approval.keyboards';
+} from '@/bot/modules/buyer/receipt/receipt.messages';
+import { formatAdminReceiptNotification } from '@/bot/modules/admin/top-up-approval/approval.messages';
+import { getAdminReceiptKeyboard } from '@/bot/modules/admin/top-up-approval/approval.keyboards';
 
 export interface PhotoHandlerOptions {
   adminIds?: string | Set<bigint> | undefined;

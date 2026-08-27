@@ -1,4 +1,4 @@
-import { DomainError } from '../shared/domain.error';
+import { DomainError } from '@/domain/shared/domain.error';
 
 export class NoActiveBankAccountError extends DomainError {
   constructor(message = 'No active bank account configured.') {

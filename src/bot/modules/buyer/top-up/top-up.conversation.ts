@@ -1,35 +1,35 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '../../../../db/client';
-import type { BotContext, BotConversation } from '../../../core/context';
+import type { DbClient } from '@/db/client';
+import type { BotContext, BotConversation } from '@/bot/core/context';
 import {
   initiateTopUp,
-} from '../../../../application/top-up/top-up.service';
+} from '@/application/top-up/top-up.service';
 import {
   ActiveTopUpRequestExistsError,
-} from '../../../../domain/top-up/top-up.errors';
+} from '@/domain/top-up/top-up.errors';
 import {
   NoExchangeRateError,
-} from '../../../../domain/exchange-rate/exchange-rate.errors';
+} from '@/domain/exchange-rate/exchange-rate.errors';
 import {
   getActiveAccount,
-} from '../../../../application/bank-account/bank-account.service';
+} from '@/application/bank-account/bank-account.service';
 import {
   NoActiveBankAccountError,
-} from '../../../../domain/bank-account/bank-account.errors';
-import { registerBuyer } from '../../../../application/buyer/registration.service';
+} from '@/domain/bank-account/bank-account.errors';
+import { registerBuyer } from '@/application/buyer/registration.service';
 import {
   getTopUpLimits,
   validateTopUpAmount,
   type TopUpLimits,
-} from '../../../../utils/currency';
-import { isCancelCommand } from '../../../../utils/telegram';
+} from '@/utils/currency';
+import { isCancelCommand } from '@/utils/telegram';
 import {
   getTopUpPromptMessage,
   getTopUpUnavailableMessage,
   getTopUpActiveExistsMessage,
   getTopUpCancelledMessage,
   getTopUpSuccessMessage,
-} from './top-up.messages';
+} from '@/bot/modules/buyer/top-up/top-up.messages';
 
 export type TopUpConversation = BotConversation;
 export const TOPUP_CONVERSATION_ID = 'topup';
