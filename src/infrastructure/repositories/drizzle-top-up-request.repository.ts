@@ -1,12 +1,16 @@
-import { eq, and, inArray, desc } from 'drizzle-orm';
+import { eq, and, inArray, desc, asc } from 'drizzle-orm';
 import { topUpRequests } from '../../db/schema/top-up-requests';
+import { users } from '../../db/schema/users';
 import { getDefaultDb } from '../../db/client';
 import type { DbExecutor } from '../db/types';
 import {
   TopUpRequest,
   type TopUpStatus,
 } from '../../domain/top-up/top-up-request.entity';
-import type { ITopUpRequestRepository } from '../../domain/top-up/top-up.repository';
+import type {
+  ITopUpRequestRepository,
+  PendingTopUpRequestItem,
+} from '../../domain/top-up/top-up.repository';
 import { UsdAmount, IrrAmount } from '../../domain/shared/money.vo';
 
 export class DrizzleTopUpRequestRepository
@@ -67,6 +71,80 @@ export class DrizzleTopUpRequestRepository
     }
 
     return this.mapToDomain(row);
+  }
+
+  private static readonly PENDING_WITH_BUYER_SELECTION = {
+    id: topUpRequests.id,
+    userId: topUpRequests.userId,
+    telegramChatId: users.telegramChatId,
+    telegramUsername: users.telegramUsername,
+    usdAmount: topUpRequests.usdAmount,
+    irrAmount: topUpRequests.irrAmount,
+    status: topUpRequests.status,
+    receiptFileId: topUpRequests.receiptFileId,
+    receiptCaption: topUpRequests.receiptCaption,
+    createdAt: topUpRequests.createdAt,
+    updatedAt: topUpRequests.updatedAt,
+  };
+
+  private mapToPendingItem(row: {
+    id: string;
+    userId: string;
+    telegramChatId: bigint;
+    telegramUsername: string | null;
+    usdAmount: string;
+    irrAmount: bigint;
+    status: string;
+    receiptFileId: string | null;
+    receiptCaption: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): PendingTopUpRequestItem {
+    return {
+      id: row.id,
+      userId: row.userId,
+      telegramChatId: row.telegramChatId,
+      telegramUsername: row.telegramUsername,
+      usdAmount: row.usdAmount,
+      irrAmount: row.irrAmount,
+      status: 'PENDING',
+      receiptFileId: row.receiptFileId,
+      receiptCaption: row.receiptCaption,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  public async findByIdWithBuyer(
+    id: string,
+    executor?: DbExecutor
+  ): Promise<PendingTopUpRequestItem | null> {
+    const db = this.getDb(executor);
+    const [row] = await db
+      .select(DrizzleTopUpRequestRepository.PENDING_WITH_BUYER_SELECTION)
+      .from(topUpRequests)
+      .innerJoin(users, eq(topUpRequests.userId, users.id))
+      .where(eq(topUpRequests.id, id));
+
+    if (!row) {
+      return null;
+    }
+
+    return this.mapToPendingItem(row);
+  }
+
+  public async findPendingWithBuyer(
+    executor?: DbExecutor
+  ): Promise<PendingTopUpRequestItem[]> {
+    const db = this.getDb(executor);
+    const rows = await db
+      .select(DrizzleTopUpRequestRepository.PENDING_WITH_BUYER_SELECTION)
+      .from(topUpRequests)
+      .innerJoin(users, eq(topUpRequests.userId, users.id))
+      .where(eq(topUpRequests.status, 'PENDING'))
+      .orderBy(asc(topUpRequests.createdAt));
+
+    return rows.map((r) => this.mapToPendingItem(r));
   }
 
   public async findActiveByUserId(

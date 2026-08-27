@@ -7,6 +7,11 @@ import { handleRate } from './exchange-rate/rate.handler';
 import { handleSetCardCommand } from './bank-account/set-card.handler';
 import { handleApproveCallback } from './top-up-approval/approve.handler';
 import { handleRejectCallback } from './top-up-rejection/reject.handler';
+import {
+  handlePending,
+  handlePendingPage,
+  handleReviewCallback,
+} from './pending-queue/pending.handler';
 
 export interface AdminComposerOptions {
   dbClient?: DbClient | undefined;
@@ -18,6 +23,9 @@ export interface AdminComposerOptions {
  * - /setrate
  * - /rate
  * - /setcard
+ * - /pending
+ * - callbackQuery pending_page:<page>
+ * - callbackQuery review:<requestId>
  * - callbackQuery approve:<requestId>
  * - callbackQuery reject:<requestId>
  */
@@ -37,6 +45,18 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     await handleSetCardCommand(ctx);
   });
 
+  composer.command('pending', adminAuth, async (ctx) => {
+    await handlePending(ctx, options?.dbClient);
+  });
+
+  composer.callbackQuery(/^pending_page:(\d+)$/, adminAuth, async (ctx) => {
+    await handlePendingPage(ctx, options?.dbClient);
+  });
+
+  composer.callbackQuery(/^review:(.+)$/, adminAuth, async (ctx) => {
+    await handleReviewCallback(ctx, options?.dbClient);
+  });
+
   composer.callbackQuery(/^approve:(.+)$/, adminAuth, async (ctx) => {
     await handleApproveCallback(ctx, options?.dbClient, {
       adminIds: options?.adminIds,
@@ -49,3 +69,4 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
 
   return composer;
 }
+

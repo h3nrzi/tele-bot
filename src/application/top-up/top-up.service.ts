@@ -35,6 +35,7 @@ import type {
   CancelTopUpInput,
   CancelTopUpOptions,
   CancelTopUpResult,
+  PendingTopUpRequestItem,
 } from './dtos/top-up.dto';
 
 /**
@@ -442,5 +443,28 @@ export async function getLatestTopUpRequest(
   const client = dbClient ?? getDefaultDb();
   return await topUpRequestRepository.findLatestByUserId(userId, client);
 }
+
+/**
+ * Returns all top-up requests in PENDING status, ordered by created_at ascending (oldest first),
+ * joined with buyer details (telegramChatId and telegramUsername).
+ */
+export async function getPendingRequests(
+  dbClient?: DbClient
+): Promise<PendingTopUpRequestItem[]> {
+  const client = dbClient ?? getDefaultDb();
+  return await topUpRequestRepository.findPendingWithBuyer(client);
+}
+
+/**
+ * Returns a top-up request with joined buyer details by ID, or null if not found.
+ */
+export async function getPendingRequestById(
+  id: string,
+  dbClient?: DbClient
+): Promise<PendingTopUpRequestItem | null> {
+  const client = dbClient ?? getDefaultDb();
+  return await topUpRequestRepository.findByIdWithBuyer(id, client);
+}
+
 
 

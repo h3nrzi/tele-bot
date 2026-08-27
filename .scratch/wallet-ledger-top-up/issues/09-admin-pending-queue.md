@@ -6,9 +6,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Admin queue service: `getPendingRequests()` returns all `top_up_requests` rows where `status = 'PENDING'`, ordered by `created_at` ascending (oldest first), joined with the `users` table to include `telegram_chat_id` and `telegram_username`.
-- [ ] `/pending` Admin command: calls `getPendingRequests()`. If the result is empty, replies with a "queue is empty" message. If results exist, formats each as a summary line (Buyer identifier, USD amount, IRR amount, time since submission) with an inline **Review** button. The **Review** button callback re-sends the full receipt details (photo, amounts, inline Approve/Reject buttons) for that specific request to the Admin in a new message.
-- [ ] The **Review** button callback re-uses the same Approve/Reject inline button logic from ticket 05/06/07: the Admin can approve or reject directly from the re-sent message.
-- [ ] `/pending` is silently ignored when sent by a non-Admin.
-- [ ] The list is paginated if more than 10 requests are pending: inline **Next →** and **← Prev** navigation buttons are shown when the queue exceeds one page.
-- [ ] Admin queue service tests cover: empty queue returns an empty array; single `PENDING` request returned; multiple `PENDING` requests returned in ascending creation order; requests in `INITIATED`, `APPROVED`, `REJECTED`, `EXPIRED`, or `CANCELLED` status are not included.
+- [x] Admin queue service: `getPendingRequests()` returns all `top_up_requests` rows where `status = 'PENDING'`, ordered by `created_at` ascending (oldest first), joined with the `users` table to include `telegram_chat_id` and `telegram_username`.
+- [x] `/pending` Admin command: calls `getPendingRequests()`. If the result is empty, replies with a "queue is empty" message. If results exist, formats each as a summary line (Buyer identifier, USD amount, IRR amount, time since submission) with an inline **Review** button. The **Review** button callback re-sends the full receipt details (photo, amounts, inline Approve/Reject buttons) for that specific request to the Admin in a new message.
+- [x] The **Review** button callback re-uses the same Approve/Reject inline button logic from ticket 05/06/07: the Admin can approve or reject directly from the re-sent message.
+- [x] `/pending` is silently ignored when sent by a non-Admin.
+- [x] The list is paginated if more than 10 requests are pending: inline **Next →** and **← Prev** navigation buttons are shown when the queue exceeds one page.
+- [x] Admin queue service tests cover: empty queue returns an empty array; single `PENDING` request returned; multiple `PENDING` requests returned in ascending creation order; requests in `INITIATED`, `APPROVED`, `REJECTED`, `EXPIRED`, or `CANCELLED` status are not included.
+

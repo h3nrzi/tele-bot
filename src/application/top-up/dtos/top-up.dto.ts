@@ -80,4 +80,7 @@ export interface CancelTopUpResult {
   request: TopUpRequest;
 }
 
+export type { PendingTopUpRequestItem } from '../../../domain/top-up/top-up.repository';
+
+
 
