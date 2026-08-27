@@ -13,6 +13,10 @@ import {
   createTopUpConversation,
   TOPUP_CONVERSATION_ID,
 } from './modules/buyer/top-up/top-up.conversation';
+import {
+  createRejectConversation,
+  REJECT_CONVERSATION_ID,
+} from './modules/admin/top-up-rejection/reject.conversation';
 import { createBuyerComposer } from './modules/buyer/buyer.composer';
 import { createAdminComposer } from './modules/admin/admin.composer';
 
@@ -61,6 +65,14 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
       createTopUpConversation(options?.dbClient, limits),
       {
         id: TOPUP_CONVERSATION_ID,
+      }
+    )
+  );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createRejectConversation(options?.dbClient),
+      {
+        id: REJECT_CONVERSATION_ID,
       }
     )
   );

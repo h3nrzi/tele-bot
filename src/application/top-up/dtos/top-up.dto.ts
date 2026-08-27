@@ -49,3 +49,22 @@ export interface ApproveTopUpResult {
   ledgerEntries: [LedgerEntry, LedgerEntry];
   buyerChatId: bigint;
 }
+
+export interface RejectTopUpInput {
+  topUpRequestId: string;
+  adminTelegramId: bigint | number;
+  rejectionReason: string;
+}
+
+export interface RejectTopUpDependencies {
+  notifyBuyer?: (params: {
+    buyerTelegramChatId: bigint;
+    rejectionReason: string;
+  }) => Promise<void>;
+}
+
+export interface RejectTopUpResult {
+  request: TopUpRequest;
+  buyerChatId: bigint;
+}
+

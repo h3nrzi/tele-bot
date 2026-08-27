@@ -6,6 +6,7 @@ import { handleSetRate } from './exchange-rate/set-rate.handler';
 import { handleRate } from './exchange-rate/rate.handler';
 import { handleSetCardCommand } from './bank-account/set-card.handler';
 import { handleApproveCallback } from './top-up-approval/approve.handler';
+import { handleRejectCallback } from './top-up-rejection/reject.handler';
 
 export interface AdminComposerOptions {
   dbClient?: DbClient | undefined;
@@ -18,6 +19,7 @@ export interface AdminComposerOptions {
  * - /rate
  * - /setcard
  * - callbackQuery approve:<requestId>
+ * - callbackQuery reject:<requestId>
  */
 export function createAdminComposer(options?: AdminComposerOptions): Composer<BotContext> {
   const composer = new Composer<BotContext>();
@@ -39,6 +41,10 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     await handleApproveCallback(ctx, options?.dbClient, {
       adminIds: options?.adminIds,
     });
+  });
+
+  composer.callbackQuery(/^reject:(.+)$/, adminAuth, async (ctx) => {
+    await handleRejectCallback(ctx);
   });
 
   return composer;

@@ -27,6 +27,9 @@ import type {
   ApproveTopUpInput,
   ApproveTopUpDependencies,
   ApproveTopUpResult,
+  RejectTopUpInput,
+  RejectTopUpDependencies,
+  RejectTopUpResult,
 } from './dtos/top-up.dto';
 
 /**
@@ -208,7 +211,7 @@ export async function approveTopUp(
     // 3. Fetch Buyer
     const buyer = await buyerRepository.findById(request.userId, tx);
     if (!buyer) {
-      throw new Error('Buyer user record not found for top-up request.');
+      throw new Error('Buyer record not found for top-up request.');
     }
 
     // 4. SELECT wallet FOR UPDATE
@@ -298,3 +301,81 @@ export async function approveTopUp(
 
   return txResult;
 }
+
+/**
+ * Rejects a pending Top-Up Request inside a single atomic PostgreSQL transaction:
+ * 1. SELECT top_up_requests FOR UPDATE
+ * 2. Assert status = 'PENDING' via domain entity method
+ * 3. Update top_up_requests status to REJECTED and save rejection_reason, processed_by_admin_telegram_id, processed_at
+ * 4. Dispatches notifyBuyer post-commit.
+ */
+export async function rejectTopUp(
+  input: RejectTopUpInput,
+  dbClient?: DbClient,
+  dependencies?: RejectTopUpDependencies
+): Promise<RejectTopUpResult> {
+  const client = dbClient ?? getDefaultDb();
+  const adminId = normalizeChatId(input.adminTelegramId);
+  const now = new Date();
+
+  const txResult = await client.transaction(async (tx) => {
+    // 1. SELECT top_up_request FOR UPDATE
+    const request = await topUpRequestRepository.findByIdForUpdate(
+      input.topUpRequestId,
+      tx
+    );
+
+    if (!request) {
+      throw new TopUpRequestNotFoundError('Top-up request not found.');
+    }
+
+    // 2. Domain state transition (asserts status = 'PENDING')
+    request.reject(adminId, input.rejectionReason, now);
+
+    // 3. Fetch Buyer
+    const buyer = await buyerRepository.findById(request.userId, tx);
+    if (!buyer) {
+      throw new Error('Buyer record not found for top-up request.');
+    }
+
+    // 4. Update top_up_requests status to REJECTED in DB
+    const updatedRequest = await topUpRequestRepository.updateStatus(
+      request.id,
+      'REJECTED',
+      {
+        rejectionReason: request.rejectionReason,
+        processedByAdminTelegramId: adminId,
+        processedAt: request.processedAt,
+        updatedAt: request.updatedAt,
+      },
+      tx
+    );
+
+    if (!updatedRequest) {
+      throw new Error('Failed to update top-up request status.');
+    }
+
+    return {
+      request: updatedRequest,
+      buyerChatId: buyer.telegramChatId,
+    };
+  });
+
+  // Post-commit notification
+  if (dependencies?.notifyBuyer) {
+    try {
+      await dependencies.notifyBuyer({
+        buyerTelegramChatId: txResult.buyerChatId,
+        rejectionReason: input.rejectionReason,
+      });
+    } catch (notifyErr) {
+      console.error(
+        `Failed to send buyer rejection push notification to ${txResult.buyerChatId}:`,
+        notifyErr
+      );
+    }
+  }
+
+  return txResult;
+}
+
