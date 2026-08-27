@@ -1,27 +1,20 @@
 import { Bot, type Context } from 'grammy';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import type { UserFromGetMe } from 'grammy/types';
+import type { ApiClientOptions } from 'grammy';
 import type { DbClient } from '../db/client';
-import { handleStart } from './handlers/start';
-import { handleBalance } from './handlers/balance';
-import { handleSetRate } from './handlers/set-rate';
-import { handleRate } from './handlers/rate';
+import { getTopUpLimits, type TopUpLimits } from '../utils/currency';
+import type { BotContext } from './core/context';
 import {
   createSetCardConversation,
   SETCARD_CONVERSATION_ID,
-  type BotContext,
-} from './handlers/set-card';
+} from './modules/admin/bank-account/set-card.conversation';
 import {
   createTopUpConversation,
-  handleTopUpCommand,
   TOPUP_CONVERSATION_ID,
-} from './handlers/topup';
-import { handlePhotoMessage } from './handlers/receipt';
-import { handleApproveCallback } from './handlers/approve';
-import { createAdminMiddleware } from './middleware/admin';
-import { getTopUpLimits, type TopUpLimits } from '../utils/currency';
-
-import type { ApiClientOptions } from 'grammy';
+} from './modules/buyer/top-up/top-up.conversation';
+import { createBuyerComposer } from './modules/buyer/buyer.composer';
+import { createAdminComposer } from './modules/admin/admin.composer';
 
 export interface CreateBotOptions {
   token?: string | undefined;
@@ -33,7 +26,7 @@ export interface CreateBotOptions {
 }
 
 /**
- * Creates and configures a grammY Bot instance with all command handlers and middleware.
+ * Creates and configures a grammY Bot instance with domain-aligned composers, conversations, and plugins.
  */
 export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   const token = options?.token ?? process.env.BOT_TOKEN;
@@ -53,11 +46,15 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
 
   const bot = new Bot<BotContext>(token, botConfig);
 
+  // 1. Plugins & Conversations
   bot.use(conversations());
   bot.use(
-    createConversation<BotContext, Context>(createSetCardConversation(options?.dbClient), {
-      id: SETCARD_CONVERSATION_ID,
-    })
+    createConversation<BotContext, Context>(
+      createSetCardConversation(options?.dbClient),
+      {
+        id: SETCARD_CONVERSATION_ID,
+      }
+    )
   );
   bot.use(
     createConversation<BotContext, Context>(
@@ -68,44 +65,22 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
     )
   );
 
-  bot.command('start', async (ctx) => {
-    await handleStart(ctx, options?.dbClient);
-  });
-
-  bot.command('balance', async (ctx) => {
-    await handleBalance(ctx, options?.dbClient);
-  });
-
-  bot.command('topup', async (ctx) => {
-    await handleTopUpCommand(ctx, options?.dbClient, { adminIds: options?.adminIds });
-  });
-
-  const adminAuth = createAdminMiddleware<BotContext>({ adminIds: options?.adminIds });
-
-  bot.command('setrate', adminAuth, async (ctx) => {
-    await handleSetRate(ctx, options?.dbClient);
-  });
-
-  bot.command('rate', adminAuth, async (ctx) => {
-    await handleRate(ctx, options?.dbClient);
-  });
-
-  bot.command('setcard', adminAuth, async (ctx) => {
-    await ctx.conversation.enter(SETCARD_CONVERSATION_ID);
-  });
-
-  bot.on('message:photo', async (ctx) => {
-    await handlePhotoMessage(ctx, options?.dbClient, {
+  // 2. Domain Presentation Composers
+  bot.use(
+    createBuyerComposer({
+      dbClient: options?.dbClient,
       adminIds: options?.adminIds,
-    });
-  });
+    })
+  );
 
-  bot.callbackQuery(/^approve:(.+)$/, adminAuth, async (ctx) => {
-    await handleApproveCallback(ctx, options?.dbClient, {
+  bot.use(
+    createAdminComposer({
+      dbClient: options?.dbClient,
       adminIds: options?.adminIds,
-    });
-  });
+    })
+  );
 
+  // 3. Error Boundary
   bot.catch((err) => {
     const ctx = err.ctx;
     console.error(`Error while handling update ${ctx.update.update_id}:`, err.error);
@@ -113,5 +88,3 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
 
   return bot;
 }
-
-
