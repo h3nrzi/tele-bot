@@ -4,6 +4,8 @@ import type { BotContext } from '../../core/context';
 import { handleStart } from './start/start.handler';
 import { handleBalance } from './balance/balance.handler';
 import { handleTopUpCommand } from './top-up/top-up.handler';
+import { handleCancelCommand } from './cancel/cancel.handler';
+import { handleStatusCommand } from './status/status.handler';
 import { handlePhotoMessage } from './receipt/receipt.handler';
 
 export interface BuyerComposerOptions {
@@ -16,6 +18,8 @@ export interface BuyerComposerOptions {
  * - /start
  * - /balance
  * - /topup
+ * - /cancel
+ * - /status
  * - message:photo (receipt upload)
  */
 export function createBuyerComposer(options?: BuyerComposerOptions): Composer<BotContext> {
@@ -31,6 +35,14 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 
   composer.command('topup', async (ctx) => {
     await handleTopUpCommand(ctx, options?.dbClient, { adminIds: options?.adminIds });
+  });
+
+  composer.command('cancel', async (ctx) => {
+    await handleCancelCommand(ctx, options?.dbClient);
+  });
+
+  composer.command('status', async (ctx) => {
+    await handleStatusCommand(ctx, options?.dbClient);
   });
 
   composer.on('message:photo', async (ctx) => {

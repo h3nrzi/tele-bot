@@ -2,6 +2,7 @@ import { UsdAmount, IrrAmount } from '../shared/money.vo';
 import {
   TopUpRequestExpiredError,
   TopUpRequestNotPendingError,
+  CannotCancelPendingTopUpError,
 } from './top-up.errors';
 
 export type TopUpStatus =
@@ -185,6 +186,25 @@ export class TopUpRequest {
     this._rejectionReason = rejectionReason;
     this._processedByAdminTelegramId = adminTelegramId;
     this._processedAt = now;
+    this._updatedAt = now;
+  }
+
+  /**
+   * Cancels an INITIATED top-up request.
+   * Throws CannotCancelPendingTopUpError if the request has already progressed to PENDING.
+   */
+  public cancel(now: Date = new Date()): void {
+    if (this._status === 'PENDING') {
+      throw new CannotCancelPendingTopUpError(
+        'Cannot cancel top-up request after receipt has been submitted.'
+      );
+    }
+
+    if (this._status !== 'INITIATED') {
+      throw new Error(`Cannot cancel request in status ${this._status}`);
+    }
+
+    this._status = 'CANCELLED';
     this._updatedAt = now;
   }
 }

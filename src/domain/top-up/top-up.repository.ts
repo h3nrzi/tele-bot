@@ -9,6 +9,7 @@ export interface ITopUpRequestRepository<TExecutor = unknown> {
   findByIdForUpdate(id: string, executor: TExecutor): Promise<TopUpRequest | null>;
   findActiveByUserId(userId: string, executor?: TExecutor): Promise<TopUpRequest | null>;
   findInitiatedByUserId(userId: string, executor?: TExecutor): Promise<TopUpRequest | null>;
+  findLatestByUserId(userId: string, executor?: TExecutor): Promise<TopUpRequest | null>;
   insert(
     data: {
       userId: string;

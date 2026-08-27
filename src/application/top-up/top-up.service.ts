@@ -14,6 +14,8 @@ import {
   TopUpRequestExpiredError,
   TopUpRequestNotFoundError,
   TopUpRequestNotPendingError,
+  CannotCancelPendingTopUpError,
+  NoActiveTopUpRequestError,
 } from '../../domain/top-up/top-up.errors';
 import { NoExchangeRateError } from '../../domain/exchange-rate/exchange-rate.errors';
 import { WalletNotFoundError } from '../../domain/wallet/wallet.errors';
@@ -30,6 +32,9 @@ import type {
   RejectTopUpInput,
   RejectTopUpDependencies,
   RejectTopUpResult,
+  CancelTopUpInput,
+  CancelTopUpOptions,
+  CancelTopUpResult,
 } from './dtos/top-up.dto';
 
 /**
@@ -378,4 +383,64 @@ export async function rejectTopUp(
 
   return txResult;
 }
+
+/**
+ * Cancels an active INITIATED Top-Up Request for a Buyer:
+ * 1. Fetches the active top-up request (INITIATED or PENDING).
+ * 2. If no active request exists, throws NoActiveTopUpRequestError.
+ * 3. If request is in PENDING status, throws CannotCancelPendingTopUpError (no mutation).
+ * 4. If request is in INITIATED status, updates status to 'CANCELLED' in a single UPDATE statement.
+ * 5. Does not write ledger entries or mutate wallet balance.
+ */
+export async function cancelTopUp(
+  input: CancelTopUpInput,
+  dbClient?: DbClient,
+  options?: CancelTopUpOptions
+): Promise<CancelTopUpResult> {
+  const client = dbClient ?? getDefaultDb();
+  const now = options?.now ?? new Date();
+
+  // 1. Fetch active request
+  const activeRequest = await topUpRequestRepository.findActiveByUserId(
+    input.userId,
+    client
+  );
+
+  if (!activeRequest) {
+    throw new NoActiveTopUpRequestError('No active top-up request found to cancel.');
+  }
+
+  // 2. Aggregate domain validation & transition
+  activeRequest.cancel(now);
+
+  // 3. Persist CANCELLED update (single UPDATE statement)
+  const updatedRequest = await topUpRequestRepository.updateStatus(
+    activeRequest.id,
+    'CANCELLED',
+    {
+      updatedAt: activeRequest.updatedAt,
+    },
+    client
+  );
+
+  if (!updatedRequest) {
+    throw new NoActiveTopUpRequestError('Top-up request no longer exists.');
+  }
+
+  return {
+    request: updatedRequest,
+  };
+}
+
+/**
+ * Returns the most recent top-up request for a Buyer regardless of status, or null if none exists.
+ */
+export async function getLatestTopUpRequest(
+  userId: string,
+  dbClient?: DbClient
+): Promise<TopUpRequest | null> {
+  const client = dbClient ?? getDefaultDb();
+  return await topUpRequestRepository.findLatestByUserId(userId, client);
+}
+
 

@@ -37,3 +37,18 @@ export class TopUpRequestNotPendingError extends DomainError {
     super(message, 'TOP_UP_REQUEST_NOT_PENDING');
   }
 }
+
+export class CannotCancelPendingTopUpError extends DomainError {
+  constructor(
+    message = 'Cannot cancel top-up request after receipt has been submitted.'
+  ) {
+    super(message, 'CANNOT_CANCEL_PENDING_TOP_UP');
+  }
+}
+
+export class NoActiveTopUpRequestError extends DomainError {
+  constructor(message = 'No active top-up request found.') {
+    super(message, 'NO_ACTIVE_TOP_UP_REQUEST');
+  }
+}
+

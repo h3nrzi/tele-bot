@@ -1,4 +1,4 @@
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, desc } from 'drizzle-orm';
 import { topUpRequests } from '../../db/schema/top-up-requests';
 import { getDefaultDb } from '../../db/client';
 import type { DbExecutor } from '../db/types';
@@ -106,6 +106,25 @@ export class DrizzleTopUpRequestRepository
           eq(topUpRequests.status, 'INITIATED')
         )
       )
+      .limit(1);
+
+    if (!row) {
+      return null;
+    }
+
+    return this.mapToDomain(row);
+  }
+
+  public async findLatestByUserId(
+    userId: string,
+    executor?: DbExecutor
+  ): Promise<TopUpRequest | null> {
+    const db = this.getDb(executor);
+    const [row] = await db
+      .select()
+      .from(topUpRequests)
+      .where(eq(topUpRequests.userId, userId))
+      .orderBy(desc(topUpRequests.createdAt))
       .limit(1);
 
     if (!row) {

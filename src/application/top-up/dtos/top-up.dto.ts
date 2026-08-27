@@ -68,3 +68,16 @@ export interface RejectTopUpResult {
   buyerChatId: bigint;
 }
 
+export interface CancelTopUpInput {
+  userId: string;
+}
+
+export interface CancelTopUpOptions {
+  now?: Date | undefined;
+}
+
+export interface CancelTopUpResult {
+  request: TopUpRequest;
+}
+
+

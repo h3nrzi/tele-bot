@@ -3,6 +3,7 @@ import { TopUpRequest } from '../../src/domain/top-up/top-up-request.entity';
 import {
   TopUpRequestExpiredError,
   TopUpRequestNotPendingError,
+  CannotCancelPendingTopUpError,
 } from '../../src/domain/top-up/top-up.errors';
 
 describe('TopUpRequest Aggregate Entity', () => {
@@ -75,5 +76,22 @@ describe('TopUpRequest Aggregate Entity', () => {
     request.reject(123n, 'Unreadable receipt photo');
     expect(request.status).toBe('REJECTED');
     expect(request.rejectionReason).toBe('Unreadable receipt photo');
+  });
+
+  it('cancels INITIATED request and transitions status to CANCELLED', () => {
+    const request = new TopUpRequest(baseProps);
+    const now = new Date();
+    request.cancel(now);
+
+    expect(request.status).toBe('CANCELLED');
+    expect(request.updatedAt).toBe(now);
+  });
+
+  it('throws CannotCancelPendingTopUpError if cancel() is called on PENDING request', () => {
+    const request = new TopUpRequest(baseProps);
+    request.submitReceipt('file_xyz');
+    expect(request.status).toBe('PENDING');
+
+    expect(() => request.cancel()).toThrow(CannotCancelPendingTopUpError);
   });
 });
