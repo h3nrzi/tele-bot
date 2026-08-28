@@ -5,7 +5,7 @@ import {
   createAdminMiddleware,
   parseAdminIds,
   isAdmin,
-} from '@/bot/core/middleware/admin.middleware';
+} from '@/bot/middleware/admin.middleware';
 import { createMockContext } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
 

@@ -5,7 +5,4 @@ export * from '@/modules/exchange-rate/exchange-rate.repository.interface';
 export * from '@/modules/exchange-rate/exchange-rate.repository';
 export * from '@/modules/exchange-rate/dtos/set-rate.dto';
 export * from '@/modules/exchange-rate/exchange-rate.service';
-export * from '@/modules/exchange-rate/presentation/exchange-rate.messages';
-export * from '@/modules/exchange-rate/presentation/rate.handler';
-export * from '@/modules/exchange-rate/presentation/set-rate.handler';
 export * from '@/modules/exchange-rate/exchange-rate.module';

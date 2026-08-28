@@ -2,8 +2,7 @@ import 'reflect-metadata';
 import 'dotenv/config';
 import { createAppContainer } from '@/core/di/container';
 import { createDatabaseConnection } from '@/core/database/client';
-import { createBot } from '@/core/bot/bot';
-import { setupBotCommands } from '@/core/bot/commands';
+import { createBot, setupBotCommands } from '@/bot';
 
 async function main(): Promise<void> {
   const token = process.env.BOT_TOKEN;

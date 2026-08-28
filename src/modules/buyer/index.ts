@@ -5,7 +5,4 @@ export * from '@/modules/buyer/buyer.repository.interface';
 export * from '@/modules/buyer/buyer.repository';
 export * from '@/modules/buyer/dtos/register-buyer.dto';
 export * from '@/modules/buyer/buyer.service';
-export * from '@/modules/buyer/presentation/start.messages';
-export * from '@/modules/buyer/presentation/start.handler';
-export * from '@/modules/buyer/presentation/buyer.composer';
 export * from '@/modules/buyer/buyer.module';

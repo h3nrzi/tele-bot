@@ -1,2 +1,1 @@
-export * from '@/bot/handlers/buyer';
 export * from '@/bot/handlers/admin';

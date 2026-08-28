@@ -5,7 +5,4 @@ export * from '@/modules/bank-account/bank-account.repository.interface';
 export * from '@/modules/bank-account/bank-account.repository';
 export * from '@/modules/bank-account/dtos/set-active-account.dto';
 export * from '@/modules/bank-account/bank-account.service';
-export * from '@/modules/bank-account/presentation/bank-account.messages';
-export * from '@/modules/bank-account/presentation/set-card.conversation';
-export * from '@/modules/bank-account/presentation/set-card.handler';
 export * from '@/modules/bank-account/bank-account.module';

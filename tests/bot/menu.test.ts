@@ -7,14 +7,14 @@ import { setRate } from '@/application/exchange-rate/exchange-rate.service';
 import {
   getBuyerMainMenuKeyboard,
   getAdminMainMenuKeyboard,
-} from '@/bot/core/keyboards/menu.keyboards';
-import { getBalanceMessage } from '@/bot/modules/buyer/balance/balance.messages';
-import { getNoTopUpHistoryMessage } from '@/bot/modules/buyer/status/status.messages';
-import { getNoActiveRequestToCancelMessage } from '@/bot/modules/buyer/cancel/cancel.messages';
+} from '@/bot/keyboards/menu.keyboards';
+import { getBalanceMessage } from '@/bot/handlers/buyer/balance.messages';
+import { getNoTopUpHistoryMessage } from '@/bot/handlers/buyer/status.messages';
+import { getNoActiveRequestToCancelMessage } from '@/bot/handlers/buyer/cancel.messages';
 import {
   getCurrentRateMessage,
   getSetRatePromptGuideMessage,
-} from '@/bot/modules/admin/exchange-rate/exchange-rate.messages';
+} from '@/bot/handlers/admin/exchange-rate.messages';
 
 describe('Role-based Menus and Keyboards', () => {
   const { db } = setupTestDatabase();
@@ -26,7 +26,7 @@ describe('Role-based Menus and Keyboards', () => {
     expect(keyboard).toBeDefined();
     // Verify keyboard buttons contain the expected texts
     const flatButtons = keyboard.build().flat();
-    const buttonTexts = flatButtons.map((btn) => (typeof btn === 'string' ? btn : btn.text));
+    const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
     expect(buttonTexts).toContain('💰 موجودی کیف پول');
     expect(buttonTexts).toContain('➕ افزایش موجودی');
     expect(buttonTexts).toContain('📋 پیگیری وضعیت');
@@ -37,7 +37,7 @@ describe('Role-based Menus and Keyboards', () => {
     const keyboard = getAdminMainMenuKeyboard();
     expect(keyboard).toBeDefined();
     const flatButtons = keyboard.build().flat();
-    const buttonTexts = flatButtons.map((btn) => (typeof btn === 'string' ? btn : btn.text));
+    const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
     expect(buttonTexts).toContain('⏳ درخواست‌های در انتظار');
     expect(buttonTexts).toContain('💳 تنظیم کارت بانکی');
     expect(buttonTexts).toContain('💱 نرخ ارز فعلی');
@@ -206,7 +206,7 @@ describe('Role-based Menus and Keyboards', () => {
         }),
       };
 
-      const { setupBotCommands } = await import('@/bot/core/commands');
+      const { setupBotCommands } = await import('@/bot/commands');
       await setupBotCommands(mockApi, `${adminChatId}`);
 
       expect(mockApi.setChatMenuButton).toHaveBeenCalledTimes(2); // global + admin chat

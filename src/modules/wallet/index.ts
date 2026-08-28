@@ -5,6 +5,4 @@ export * from '@/modules/wallet/wallet.repository.interface';
 export * from '@/modules/wallet/wallet.repository';
 export * from '@/modules/wallet/dtos/get-buyer-wallet.dto';
 export * from '@/modules/wallet/wallet.service';
-export * from '@/modules/wallet/presentation/balance.messages';
-export * from '@/modules/wallet/presentation/balance.handler';
 export * from '@/modules/wallet/wallet.module';
