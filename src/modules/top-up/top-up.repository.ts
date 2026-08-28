@@ -304,3 +304,6 @@ export class DrizzleTopUpRequestRepository
     return this.mapToDomain(row);
   }
 }
+
+export const TopUpRequestRepository = DrizzleTopUpRequestRepository;
+

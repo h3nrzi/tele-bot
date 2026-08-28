@@ -54,3 +54,41 @@ export class ExchangeRateService {
     return await this.exchangeRateRepo.findLatest(client);
   }
 }
+
+import { ExchangeRateRepository } from '@/modules/exchange-rate/exchange-rate.repository';
+
+export async function setRate(
+  adminTelegramIdOrInput: bigint | number | { adminTelegramId: bigint | number; irrPerUsd: bigint | number | string },
+  irrPerUsdOrExecutor?: bigint | number | string | DbExecutor,
+  maybeExecutor?: DbExecutor
+): Promise<ExchangeRate> {
+  const executor = maybeExecutor ?? (typeof irrPerUsdOrExecutor === 'object' && irrPerUsdOrExecutor !== null ? irrPerUsdOrExecutor : undefined) as DbExecutor;
+  const service = new ExchangeRateService(
+    executor as DbClient,
+    new ExchangeRateRepository()
+  );
+  if (typeof adminTelegramIdOrInput === 'object' && 'adminTelegramId' in adminTelegramIdOrInput) {
+    return await service.setRate(
+      adminTelegramIdOrInput.adminTelegramId,
+      adminTelegramIdOrInput.irrPerUsd as any,
+      irrPerUsdOrExecutor as DbExecutor
+    );
+  }
+  return await service.setRate(
+    adminTelegramIdOrInput,
+    irrPerUsdOrExecutor as any,
+    maybeExecutor
+  );
+}
+
+
+export async function getCurrentRate(
+  executor?: DbExecutor
+): Promise<ExchangeRate | null> {
+  const service = new ExchangeRateService(
+    executor as DbClient,
+    new ExchangeRateRepository()
+  );
+  return await service.getCurrentRate(executor);
+}
+

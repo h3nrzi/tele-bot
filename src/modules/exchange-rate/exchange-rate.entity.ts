@@ -36,4 +36,9 @@ export class ExchangeRate {
   public formatRate(): string {
     return new IrrAmount(this.irrPerUsd).format();
   }
+
+  public get formattedRate(): string {
+    return this.formatRate();
+  }
 }
+

@@ -84,3 +84,6 @@ export class DrizzleBankAccountRepository
     });
   }
 }
+
+export const BankAccountRepository = DrizzleBankAccountRepository;
+

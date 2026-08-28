@@ -5,10 +5,10 @@ import {
   handleBalance,
   getBalanceMessage,
   getUnregisteredBalanceMessage,
-} from '@/bot/modules/buyer';
+} from '@/bot/handlers/buyer';
 import { createBot } from '@/bot/bot';
-import { registerBuyer } from '@/application/buyer/registration.service';
-import { wallets } from '@/db/schema/wallets';
+import { registerBuyer } from '@/modules/buyer/buyer.service';
+import { wallets } from '@/modules/wallet/wallet.schema';
 import { eq } from 'drizzle-orm';
 
 describe('/balance Handler', () => {

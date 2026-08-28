@@ -2,19 +2,19 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockFetch, type MockSentPhoto } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { setRate } from '@/application/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '@/application/bank-account/bank-account.service';
-import { topUpRequests } from '@/db/schema/top-up-requests';
+import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
+import { setActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import {
   getReceiptSubmittedBuyerMessage,
   getReceiptExpiredMessage,
   getReceiptAlreadyPendingMessage,
   getNoActiveTopUpRequestMessage,
-} from '@/bot/modules/buyer';
+} from '@/bot/handlers/buyer';
 import {
   formatAdminReceiptNotification,
   getAdminReceiptKeyboard,
-} from '@/bot/modules/admin';
+} from '@/bot/handlers/admin';
 import { eq } from 'drizzle-orm';
 
 describe('Receipt Submission & Admin Push Notification Handler', () => {

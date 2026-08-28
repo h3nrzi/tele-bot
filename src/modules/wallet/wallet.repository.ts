@@ -125,3 +125,6 @@ export class DrizzleWalletRepository implements IWalletRepository<DbExecutor> {
     });
   }
 }
+
+export const WalletRepository = DrizzleWalletRepository;
+

@@ -31,7 +31,7 @@ export class BankAccountService {
   ): Promise<BankAccount> {
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 
-    const cardNumber = input.cardNumber?.trim();
+    const cardNumber = input.cardNumber?.replace(/[\s-]/g, '').trim();
     if (!cardNumber || !/^\d{16}$/.test(cardNumber)) {
       throw new InvalidCardNumberError('Card number must be a 16-digit string');
     }
@@ -87,3 +87,27 @@ export class BankAccountService {
     return await this.bankAccountRepo.findActive(client);
   }
 }
+
+import { BankAccountRepository } from '@/modules/bank-account/bank-account.repository';
+
+export async function setActiveAccount(
+  input: SetActiveAccountInput,
+  executor?: DbExecutor
+): Promise<BankAccount> {
+  const service = new BankAccountService(
+    executor as DbClient,
+    new BankAccountRepository()
+  );
+  return await service.setActiveAccount(input, executor);
+}
+
+export async function getActiveAccount(
+  executor?: DbExecutor
+): Promise<BankAccount | null> {
+  const service = new BankAccountService(
+    executor as DbClient,
+    new BankAccountRepository()
+  );
+  return await service.getActiveAccount(executor);
+}
+

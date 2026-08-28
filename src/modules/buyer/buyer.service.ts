@@ -51,6 +51,20 @@ export class BuyerService {
     if (existingBuyer) {
       const existingWallet = await this.walletRepo.findByUserId(existingBuyer.id, tx);
       if (existingWallet) {
+        if (existingBuyer.telegramUsername !== username) {
+          const { buyer } = await this.buyerRepo.upsert(
+            {
+              telegramChatId: chatId,
+              telegramUsername: username,
+            },
+            tx
+          );
+          return {
+            buyer,
+            wallet: existingWallet,
+            isNew: false,
+          };
+        }
         return {
           buyer: existingBuyer,
           wallet: existingWallet,
@@ -78,3 +92,19 @@ export class BuyerService {
     };
   }
 }
+
+import { BuyerRepository } from '@/modules/buyer/buyer.repository';
+import { WalletRepository } from '@/modules/wallet/wallet.repository';
+
+export async function registerBuyer(
+  input: RegisterBuyerInput,
+  executor?: DbExecutor
+): Promise<RegisterBuyerResult> {
+  const service = new BuyerService(
+    executor as DbClient,
+    new BuyerRepository(),
+    new WalletRepository()
+  );
+  return await service.register(input, executor);
+}
+

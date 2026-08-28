@@ -43,3 +43,29 @@ export class WalletService {
     return { buyer, wallet };
   }
 }
+
+import { BuyerRepository } from '@/modules/buyer/buyer.repository';
+import { WalletRepository } from '@/modules/wallet/wallet.repository';
+
+export async function getBuyerWallet(
+  input: GetBuyerWalletInput | { userId: string } | { telegramChatId: bigint | number },
+  executor?: DbExecutor
+): Promise<BuyerWalletResult | null> {
+  const service = new WalletService(
+    executor as DbClient,
+    new BuyerRepository(),
+    new WalletRepository()
+  );
+  if ('userId' in input) {
+    const client = executor ?? getDefaultDb();
+    const buyerRepo = new BuyerRepository();
+    const walletRepo = new WalletRepository();
+    const buyer = await buyerRepo.findById(input.userId, client);
+    if (!buyer) return null;
+    const wallet = await walletRepo.findByUserId(buyer.id, client);
+    if (!wallet) return null;
+    return { buyer, wallet };
+  }
+  return await service.getBuyerWallet(input as GetBuyerWalletInput, executor);
+}
+

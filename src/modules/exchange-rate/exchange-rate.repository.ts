@@ -64,3 +64,6 @@ export class DrizzleExchangeRateRepository
     });
   }
 }
+
+export const ExchangeRateRepository = DrizzleExchangeRateRepository;
+

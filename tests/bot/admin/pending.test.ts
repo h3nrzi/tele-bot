@@ -7,15 +7,15 @@ import {
   type MockAnsweredCallbackQuery,
 } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { setRate } from '@/application/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '@/application/bank-account/bank-account.service';
-import { topUpRequests } from '@/db/schema/top-up-requests';
-import { wallets } from '@/db/schema/wallets';
-import { ledgerTransactions, ledgerEntries } from '@/db/schema/ledger';
+import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
+import { setActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { topUpRequests } from '@/modules/top-up/top-up.schema';
+import { wallets } from '@/modules/wallet/wallet.schema';
+import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
 import {
   getEmptyPendingQueueMessage,
   formatBuyerApprovalMessage,
-} from '@/bot/modules/admin';
+} from '@/bot/handlers/admin';
 import { eq } from 'drizzle-orm';
 
 describe('/pending Admin Queue and Review Callback', () => {
@@ -51,14 +51,14 @@ describe('/pending Admin Queue and Review Callback', () => {
     } as any;
   }
 
-  function makePhotoUpdate(updateId: number, chatId: number, fileId: string, caption?: string) {
+  function makePhotoUpdate(updateId: number, chatId: number, fileId: string, caption?: string, username = 'buyer_user') {
     return {
       update_id: updateId,
       message: {
         message_id: updateId,
         date: Math.floor(Date.now() / 1000),
         chat: { id: chatId, type: 'private', first_name: 'Buyer' },
-        from: { id: chatId, is_bot: false, first_name: 'Buyer', username: 'buyer_user' },
+        from: { id: chatId, is_bot: false, first_name: 'Buyer', username },
         photo: [
           { file_id: `${fileId}_thumb`, width: 90, height: 90 },
           { file_id: fileId, width: 800, height: 800 },
@@ -214,7 +214,7 @@ describe('/pending Admin Queue and Review Callback', () => {
           text: '50',
         },
       } as any);
-      await bot.handleUpdate(makePhotoUpdate(300 + i, bChatId, `photo_${i}`));
+      await bot.handleUpdate(makePhotoUpdate(300 + i, bChatId, `photo_${i}`, undefined, `buyer_${i}`));
     }
 
     // Admin sends /pending

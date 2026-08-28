@@ -5,15 +5,15 @@ import {
   handleStatusCommand,
   getNoTopUpHistoryMessage,
   formatStatusMessage,
-} from '@/bot/modules/buyer';
+} from '@/bot/handlers/buyer';
 import { createBot } from '@/bot/bot';
-import { registerBuyer } from '@/application/buyer/registration.service';
-import { setRate } from '@/application/exchange-rate/exchange-rate.service';
+import { registerBuyer } from '@/modules/buyer/buyer.service';
+import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
 import {
   initiateTopUp,
   submitReceipt,
   rejectTopUp,
-} from '@/application/top-up/top-up.service';
+} from '@/modules/top-up/top-up.service';
 
 describe('/status Command Handler', () => {
   const { db } = setupTestDatabase();

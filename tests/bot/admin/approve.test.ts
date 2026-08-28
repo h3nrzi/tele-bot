@@ -7,14 +7,14 @@ import {
   type MockAnsweredCallbackQuery,
 } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { setRate } from '@/application/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '@/application/bank-account/bank-account.service';
-import { topUpRequests } from '@/db/schema/top-up-requests';
-import { wallets } from '@/db/schema/wallets';
-import { ledgerTransactions, ledgerEntries } from '@/db/schema/ledger';
+import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
+import { setActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { topUpRequests } from '@/modules/top-up/top-up.schema';
+import { wallets } from '@/modules/wallet/wallet.schema';
+import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
 import {
   formatBuyerApprovalMessage,
-} from '@/bot/modules/admin';
+} from '@/bot/handlers/admin';
 import { eq } from 'drizzle-orm';
 
 describe('Admin Approval Callback Handler', () => {

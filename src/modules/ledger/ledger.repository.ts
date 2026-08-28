@@ -82,3 +82,6 @@ export class DrizzleLedgerRepository
     };
   }
 }
+
+export const LedgerRepository = DrizzleLedgerRepository;
+

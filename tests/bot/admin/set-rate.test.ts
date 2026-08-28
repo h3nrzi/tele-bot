@@ -5,9 +5,9 @@ import {
   handleSetRate,
   getSetRateSuccessMessage,
   getSetRateUsageErrorMessage,
-} from '@/bot/modules/admin';
+} from '@/bot/handlers/admin';
 import { createBot } from '@/bot/bot';
-import { exchangeRates } from '@/db/schema/exchange-rates';
+import { exchangeRates } from '@/modules/exchange-rate/exchange-rate.schema';
 import { count } from 'drizzle-orm';
 
 describe('/setrate Handler', () => {

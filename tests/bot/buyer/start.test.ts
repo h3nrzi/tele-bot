@@ -5,10 +5,10 @@ import {
   handleStart,
   getNewBuyerWelcomeMessage,
   getReturningBuyerWelcomeMessage,
-} from '@/bot/modules/buyer';
+} from '@/bot/handlers/buyer';
 import { createBot } from '@/bot/bot';
-import { users } from '@/db/schema/users';
-import { wallets } from '@/db/schema/wallets';
+import { users } from '@/modules/buyer/buyer.schema';
+import { wallets } from '@/modules/wallet/wallet.schema';
 import { eq } from 'drizzle-orm';
 
 describe('/start Handler', () => {

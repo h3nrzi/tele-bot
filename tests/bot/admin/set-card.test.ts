@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockFetch } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { bankAccounts } from '@/db/schema/bank-accounts';
-import { setActiveAccount, getActiveAccount } from '@/application/bank-account/bank-account.service';
+import { bankAccounts } from '@/modules/bank-account/bank-account.schema';
+import { setActiveAccount, getActiveAccount } from '@/modules/bank-account/bank-account.service';
 import {
   isValidCardNumber,
   cleanCardNumber,
@@ -18,7 +18,7 @@ import {
   getAdditionalNotesPromptMessage,
   getSetCardCancelledMessage,
   getSetCardSuccessMessage,
-} from '@/bot/modules/admin';
+} from '@/bot/handlers/admin';
 import { count } from 'drizzle-orm';
 
 describe('/setcard Admin Command & Conversation', () => {

@@ -71,6 +71,7 @@ export class DrizzleBuyerRepository implements IBuyerRepository<DbExecutor> {
         target: users.telegramChatId,
         set: {
           telegramChatId: data.telegramChatId,
+          telegramUsername: username,
         },
       })
       .returning({
@@ -96,3 +97,6 @@ export class DrizzleBuyerRepository implements IBuyerRepository<DbExecutor> {
     };
   }
 }
+
+export const BuyerRepository = DrizzleBuyerRepository;
+
