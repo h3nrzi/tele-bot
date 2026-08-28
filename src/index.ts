@@ -1,8 +1,9 @@
+import 'reflect-metadata';
 import 'dotenv/config';
-import { createDatabaseConnection } from '@/db/client';
-import { createBot } from '@/bot/bot';
-import { setupBotCommands } from '@/bot/core/commands';
-
+import { createAppContainer } from '@/core/di/container';
+import { createDatabaseConnection } from '@/core/database/client';
+import { createBot } from '@/core/bot/bot';
+import { setupBotCommands } from '@/core/bot/commands';
 
 async function main(): Promise<void> {
   const token = process.env.BOT_TOKEN;
@@ -11,13 +12,14 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const { db, pool } = createDatabaseConnection();
-  const bot = createBot({ token, dbClient: db });
+  const dbConnection = createDatabaseConnection();
+  const container = createAppContainer({ databaseConnection: dbConnection });
+  const bot = createBot({ token, container });
 
   const shutdown = async () => {
     console.log('Stopping bot and closing database pool...');
     await bot.stop();
-    await pool.end();
+    await dbConnection.pool.end();
     process.exit(0);
   };
 

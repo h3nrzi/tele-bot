@@ -1,36 +1,13 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '@/db/client';
-import { getCurrentRate } from '@/application/exchange-rate/exchange-rate.service';
-import {
-  getCurrentRateMessage,
-  getNoRateConfiguredMessage,
-} from '@/bot/modules/admin/exchange-rate/exchange-rate.messages';
-import { getAdminMainMenuKeyboard } from '@/bot/core/keyboards/menu.keyboards';
+import type { DbClient } from '@/core/database/client';
+import { createAppContainer } from '@/core/di/container';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { handleRate as handleRateNew } from '@/modules/exchange-rate/presentation/rate.handler';
 
-/**
- * Handles the /rate Admin command.
- * - If a rate exists: shows the current `irr_per_usd` value and when it was set.
- * - If no rate exists: tells the Admin that no rate is configured.
- * - If ctx.from is undefined: silently ignores.
- */
 export async function handleRate(
   ctx: Context,
   dbClient?: DbClient
 ): Promise<void> {
-  if (!ctx.from) {
-    return;
-  }
-
-  const rate = await getCurrentRate(dbClient);
-
-  if (!rate) {
-    await ctx.reply(getNoRateConfiguredMessage(), {
-      reply_markup: getAdminMainMenuKeyboard(),
-    });
-    return;
-  }
-
-  await ctx.reply(getCurrentRateMessage(rate), {
-    reply_markup: getAdminMainMenuKeyboard(),
-  });
+  const container = createAppContainer({ dbClient, child: true });
+  return await handleRateNew(ctx, container.resolve(ExchangeRateService));
 }

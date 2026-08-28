@@ -1,39 +1,14 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '@/db/client';
-import { getBuyerWallet } from '@/application/wallet/wallet.service';
-import {
-  getBalanceMessage,
-  getUnregisteredBalanceMessage,
-} from '@/bot/modules/buyer/balance/balance.messages';
-import { getBuyerMainMenuKeyboard } from '@/bot/core/keyboards/menu.keyboards';
+import type { DbClient } from '@/core/database/client';
+import { createAppContainer } from '@/core/di/container';
+import { WalletService } from '@/modules/wallet/wallet.service';
+import { handleBalance as handleBalanceNew } from '@/modules/wallet/presentation/balance.handler';
 
-/**
- * Handles the /balance command.
- * - For a registered Buyer: returns their current Available Balance.
- * - For an unregistered sender: prompts them to send /start first.
- * - For updates without sender info (ctx.from undefined): silently ignores.
- */
 export async function handleBalance(
   ctx: Context,
   dbClient?: DbClient
 ): Promise<void> {
-  if (!ctx.from) {
-    return;
-  }
-
-  const result = await getBuyerWallet(
-    {
-      telegramChatId: ctx.from.id,
-    },
-    dbClient
-  );
-
-  if (!result) {
-    await ctx.reply(getUnregisteredBalanceMessage());
-    return;
-  }
-
-  await ctx.reply(getBalanceMessage(result.wallet.availableBalance), {
-    reply_markup: getBuyerMainMenuKeyboard(),
-  });
+  const container = createAppContainer({ dbClient, child: true });
+  const walletService = container.resolve(WalletService);
+  return await handleBalanceNew(ctx, walletService);
 }

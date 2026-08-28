@@ -1,9 +1,11 @@
+import 'reflect-metadata';
 import pg from 'pg';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { sql } from 'drizzle-orm';
 import dotenv from 'dotenv';
-import { beforeAll, beforeEach, afterAll } from 'vitest';
-import * as schema from '@/db/schema/index';
+import { beforeEach, afterAll } from 'vitest';
+import type { DependencyContainer } from 'tsyringe';
+import * as schema from '@/core/database/schema';
+import { createAppContainer } from '@/core/di/container';
 
 dotenv.config();
 
@@ -14,6 +16,7 @@ export type TestDbClient = NodePgDatabase<typeof schema>;
 export interface TestDatabaseContext {
   db: TestDbClient;
   pool: pg.Pool;
+  container: DependencyContainer;
 }
 
 export function getTestDatabaseUrl(): string {
@@ -28,7 +31,8 @@ export function createTestDbClient(): TestDatabaseContext {
   const connectionString = getTestDatabaseUrl();
   const pool = new Pool({ connectionString });
   const db = drizzle(pool, { schema });
-  return { db, pool };
+  const container = createAppContainer({ dbClient: db, child: true });
+  return { db, pool, container };
 }
 
 export async function truncateAllTables(poolOrDb: pg.Pool | TestDbClient): Promise<void> {

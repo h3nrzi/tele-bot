@@ -1,55 +1,18 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '@/db/client';
-import { buyerRepository } from '@/infrastructure/repositories/drizzle-buyer.repository';
-import { getLatestTopUpRequest } from '@/application/top-up/top-up.service';
-import {
-  getNoTopUpHistoryMessage,
-  formatStatusMessage,
-} from '@/bot/modules/buyer/status/status.messages';
-import { getBuyerMainMenuKeyboard } from '@/bot/core/keyboards/menu.keyboards';
+import type { DbClient } from '@/core/database/client';
+import { createAppContainer } from '@/core/di/container';
+import { TOKENS } from '@/core/di/tokens';
+import type { IBuyerRepository } from '@/modules/buyer/buyer.repository.interface';
+import { TopUpService } from '@/modules/top-up/top-up.service';
+import { handleStatusCommand as handleStatusNew } from '@/modules/top-up/presentation/buyer/status.handler';
 
-/**
- * Handles the /status command:
- * - Silently ignored for unregistered senders (no users row).
- * - If no request exists, tells the Buyer they have no top-up history.
- * - Otherwise formats and replies with a status message including status, USD, IRR, date, and rejection reason (if rejected).
- */
 export async function handleStatusCommand(
   ctx: Context,
   dbClient?: DbClient
 ): Promise<void> {
-  const sender = ctx.from;
-  if (!sender) {
-    return;
-  }
-
-  const buyer = await buyerRepository.findByTelegramChatId(
-    BigInt(sender.id),
-    dbClient
-  );
-
-  if (!buyer) {
-    return;
-  }
-
-  const latestRequest = await getLatestTopUpRequest(buyer.id, dbClient);
-  if (!latestRequest) {
-    await ctx.reply(getNoTopUpHistoryMessage(), {
-      reply_markup: getBuyerMainMenuKeyboard(),
-    });
-    return;
-  }
-
-  await ctx.reply(
-    formatStatusMessage({
-      status: latestRequest.status,
-      usdAmount: latestRequest.usdAmount,
-      irrAmount: latestRequest.irrAmount,
-      createdAt: latestRequest.createdAt,
-      rejectionReason: latestRequest.rejectionReason,
-    }),
-    {
-      reply_markup: getBuyerMainMenuKeyboard(),
-    }
-  );
+  const container = createAppContainer({ dbClient, child: true });
+  return await handleStatusNew(ctx, {
+    buyerRepo: container.resolve<IBuyerRepository>(TOKENS.BuyerRepository),
+    topUpService: container.resolve(TopUpService),
+  });
 }

@@ -1,6 +1,1 @@
-export interface SetActiveAccountInput {
-  cardNumber: string;
-  cardHolderName: string;
-  bankName: string;
-  additionalNotes?: string | null;
-}
+export * from '@/modules/bank-account/dtos/set-active-account.dto';

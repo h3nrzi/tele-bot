@@ -3,7 +3,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyMigrations } from '@/db/migrate';
+import { applyMigrations } from '@/core/database/migrate';
+import * as schema from '@/core/database/schema';
 
 dotenv.config();
 
@@ -18,11 +19,17 @@ export async function setup(): Promise<void> {
     'postgres://postgres:postgres@localhost:5432/tele_bot_test';
 
   const pool = new Pool({ connectionString });
-  const db = drizzle(pool);
+  const db = drizzle(pool, { schema });
 
   try {
     const migrationsFolder = path.resolve(__dirname, '../../drizzle');
     await applyMigrations(db, migrationsFolder);
+  } catch (err: any) {
+    if (err?.code === 'ECONNREFUSED' || err?.message?.includes('ECONNREFUSED')) {
+      console.warn('⚠️ Warning: PostgreSQL database is offline. Database-dependent tests will fail until PostgreSQL is running.');
+    } else {
+      throw err;
+    }
   } finally {
     await pool.end();
   }

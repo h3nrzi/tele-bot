@@ -1,60 +1,18 @@
 import type { Context } from 'grammy';
-import type { DbClient } from '@/db/client';
-import { buyerRepository } from '@/infrastructure/repositories/drizzle-buyer.repository';
-import { cancelTopUp } from '@/application/top-up/top-up.service';
-import {
-  CannotCancelPendingTopUpError,
-  NoActiveTopUpRequestError,
-} from '@/domain/top-up/top-up.errors';
-import {
-  getCancelSuccessMessage,
-  getCannotCancelPendingMessage,
-  getNoActiveRequestToCancelMessage,
-} from '@/bot/modules/buyer/cancel/cancel.messages';
-import { getBuyerMainMenuKeyboard } from '@/bot/core/keyboards/menu.keyboards';
+import type { DbClient } from '@/core/database/client';
+import { createAppContainer } from '@/core/di/container';
+import { TOKENS } from '@/core/di/tokens';
+import type { IBuyerRepository } from '@/modules/buyer/buyer.repository.interface';
+import { TopUpService } from '@/modules/top-up/top-up.service';
+import { handleCancelCommand as handleCancelNew } from '@/modules/top-up/presentation/buyer/cancel.handler';
 
-/**
- * Handles the /cancel command:
- * - Silently ignored for unregistered senders (no users row).
- * - Forwards cancellation to the cancellation service.
- * - Replies with clear outcome for each case: cancelled, cannot cancel (receipt submitted), no active request.
- */
 export async function handleCancelCommand(
   ctx: Context,
   dbClient?: DbClient
 ): Promise<void> {
-  const sender = ctx.from;
-  if (!sender) {
-    return;
-  }
-
-  const buyer = await buyerRepository.findByTelegramChatId(
-    BigInt(sender.id),
-    dbClient
-  );
-
-  if (!buyer) {
-    return;
-  }
-
-  try {
-    await cancelTopUp({ userId: buyer.id }, dbClient);
-    await ctx.reply(getCancelSuccessMessage(), {
-      reply_markup: getBuyerMainMenuKeyboard(),
-    });
-  } catch (err: any) {
-    if (err instanceof CannotCancelPendingTopUpError) {
-      await ctx.reply(getCannotCancelPendingMessage(), {
-        reply_markup: getBuyerMainMenuKeyboard(),
-      });
-      return;
-    }
-    if (err instanceof NoActiveTopUpRequestError) {
-      await ctx.reply(getNoActiveRequestToCancelMessage(), {
-        reply_markup: getBuyerMainMenuKeyboard(),
-      });
-      return;
-    }
-    throw err;
-  }
+  const container = createAppContainer({ dbClient, child: true });
+  return await handleCancelNew(ctx, {
+    buyerRepo: container.resolve<IBuyerRepository>(TOKENS.BuyerRepository),
+    topUpService: container.resolve(TopUpService),
+  });
 }

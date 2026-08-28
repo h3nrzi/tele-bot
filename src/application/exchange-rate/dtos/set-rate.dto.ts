@@ -1,4 +1,1 @@
-export interface SetRateInput {
-  adminTelegramId: bigint | number;
-  irrPerUsd: bigint | number;
-}
+export * from '@/modules/exchange-rate/dtos/set-rate.dto';
