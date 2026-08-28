@@ -140,4 +140,20 @@ describe('/start Handler', () => {
     expect(repliedMessages).toHaveLength(1);
     expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
   });
+
+  it('sends Admin welcome panel message when /start is sent by an Admin', async () => {
+    const adminChatId = 999111222;
+    const { ctx, repliedMessages } = createMockContext({
+      id: adminChatId,
+      first_name: 'AdminBoss',
+      username: 'admin_boss',
+    });
+
+    await handleStart(ctx, db, { adminIds: `${adminChatId}` });
+
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
+    expect(repliedMessages[0]).toContain('پنل مدیریت');
+    expect(repliedMessages[0]).toContain('AdminBoss');
+  });
 });
+

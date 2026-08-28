@@ -6,6 +6,7 @@ import {
   getNoTopUpHistoryMessage,
   formatStatusMessage,
 } from '@/bot/modules/buyer/status/status.messages';
+import { getBuyerMainMenuKeyboard } from '@/bot/core/keyboards/menu.keyboards';
 
 /**
  * Handles the /status command:
@@ -33,7 +34,9 @@ export async function handleStatusCommand(
 
   const latestRequest = await getLatestTopUpRequest(buyer.id, dbClient);
   if (!latestRequest) {
-    await ctx.reply(getNoTopUpHistoryMessage());
+    await ctx.reply(getNoTopUpHistoryMessage(), {
+      reply_markup: getBuyerMainMenuKeyboard(),
+    });
     return;
   }
 
@@ -44,6 +47,9 @@ export async function handleStatusCommand(
       irrAmount: latestRequest.irrAmount,
       createdAt: latestRequest.createdAt,
       rejectionReason: latestRequest.rejectionReason,
-    })
+    }),
+    {
+      reply_markup: getBuyerMainMenuKeyboard(),
+    }
   );
 }

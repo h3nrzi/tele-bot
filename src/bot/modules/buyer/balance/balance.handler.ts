@@ -5,6 +5,7 @@ import {
   getBalanceMessage,
   getUnregisteredBalanceMessage,
 } from '@/bot/modules/buyer/balance/balance.messages';
+import { getBuyerMainMenuKeyboard } from '@/bot/core/keyboards/menu.keyboards';
 
 /**
  * Handles the /balance command.
@@ -32,5 +33,7 @@ export async function handleBalance(
     return;
   }
 
-  await ctx.reply(getBalanceMessage(result.wallet.availableBalance));
+  await ctx.reply(getBalanceMessage(result.wallet.availableBalance), {
+    reply_markup: getBuyerMainMenuKeyboard(),
+  });
 }

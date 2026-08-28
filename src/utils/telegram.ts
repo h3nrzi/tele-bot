@@ -13,5 +13,14 @@ export function isCancelCommand(raw: string): boolean {
     return false;
   }
   const trimmed = raw.trim();
-  return /^\/cancel(@\w+)?$/i.test(trimmed) || trimmed.toLowerCase() === 'cancel';
+  return (
+    /^\/cancel(@\w+)?$/i.test(trimmed) ||
+    trimmed.toLowerCase() === 'cancel' ||
+    trimmed === 'انصراف' ||
+    trimmed === 'لغو' ||
+    trimmed === '❌ انصراف' ||
+    trimmed === '❌ لغو' ||
+    trimmed === '❌ لغو درخواست' ||
+    trimmed === 'لغو درخواست'
+  );
 }

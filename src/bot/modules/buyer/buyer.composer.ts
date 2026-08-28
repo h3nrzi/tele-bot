@@ -14,19 +14,20 @@ export interface BuyerComposerOptions {
 }
 
 /**
- * Creates a grammY Composer that mounts all Buyer routes:
- * - /start
- * - /balance
- * - /topup
- * - /cancel
- * - /status
+ * Creates a grammY Composer that mounts all Buyer routes & menu handlers:
+ * - /start & '🏠 منوی اصلی'
+ * - /balance & '💰 موجودی کیف پول'
+ * - /topup & '➕ افزایش موجودی'
+ * - /cancel & '❌ لغو درخواست'
+ * - /status & '📋 پیگیری وضعیت'
  * - message:photo (receipt upload)
  */
 export function createBuyerComposer(options?: BuyerComposerOptions): Composer<BotContext> {
   const composer = new Composer<BotContext>();
 
+  // Commands
   composer.command('start', async (ctx) => {
-    await handleStart(ctx, options?.dbClient);
+    await handleStart(ctx, options?.dbClient, { adminIds: options?.adminIds });
   });
 
   composer.command('balance', async (ctx) => {
@@ -45,6 +46,28 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     await handleStatusCommand(ctx, options?.dbClient);
   });
 
+  // Menu Button Handlers (Hears)
+  composer.hears(['💰 موجودی کیف پول', 'موجودی کیف پول', 'موجودی'], async (ctx) => {
+    await handleBalance(ctx, options?.dbClient);
+  });
+
+  composer.hears(['➕ افزایش موجودی', 'افزایش موجودی', 'شارژ کیف پول'], async (ctx) => {
+    await handleTopUpCommand(ctx, options?.dbClient, { adminIds: options?.adminIds });
+  });
+
+  composer.hears(['📋 پیگیری وضعیت', 'پیگیری وضعیت', 'وضعیت درخواست'], async (ctx) => {
+    await handleStatusCommand(ctx, options?.dbClient);
+  });
+
+  composer.hears(['❌ لغو درخواست', 'لغو درخواست'], async (ctx) => {
+    await handleCancelCommand(ctx, options?.dbClient);
+  });
+
+  composer.hears(['🏠 منوی اصلی', 'منوی اصلی'], async (ctx) => {
+    await handleStart(ctx, options?.dbClient, { adminIds: options?.adminIds });
+  });
+
+  // Media
   composer.on('message:photo', async (ctx) => {
     await handlePhotoMessage(ctx, options?.dbClient, { adminIds: options?.adminIds });
   });

@@ -33,6 +33,13 @@ export function getSetRateUsageErrorMessage(): string {
 }
 
 /**
+ * Returns a helpful guide message when an Admin taps the 'تنظیم نرخ ارز' button.
+ */
+export function getSetRatePromptGuideMessage(): string {
+  return '✏️ برای تغییر نرخ تبدیل دلار به ریال، دستور زیر را به همراه نرخ مورد نظر به ریال ارسال کنید:\n\n/setrate <مبلغ_به_ریال>\n\nمثال:\n/setrate 650000';
+}
+
+/**
  * Parses and validates the raw exchange rate argument string as a positive bigint.
  * Returns null if the argument is missing, non-numeric, zero, or negative.
  */

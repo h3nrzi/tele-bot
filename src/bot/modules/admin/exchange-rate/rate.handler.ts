@@ -5,6 +5,7 @@ import {
   getCurrentRateMessage,
   getNoRateConfiguredMessage,
 } from '@/bot/modules/admin/exchange-rate/exchange-rate.messages';
+import { getAdminMainMenuKeyboard } from '@/bot/core/keyboards/menu.keyboards';
 
 /**
  * Handles the /rate Admin command.
@@ -23,9 +24,13 @@ export async function handleRate(
   const rate = await getCurrentRate(dbClient);
 
   if (!rate) {
-    await ctx.reply(getNoRateConfiguredMessage());
+    await ctx.reply(getNoRateConfiguredMessage(), {
+      reply_markup: getAdminMainMenuKeyboard(),
+    });
     return;
   }
 
-  await ctx.reply(getCurrentRateMessage(rate));
+  await ctx.reply(getCurrentRateMessage(rate), {
+    reply_markup: getAdminMainMenuKeyboard(),
+  });
 }

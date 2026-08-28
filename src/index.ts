@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { createDatabaseConnection } from '@/db/client';
 import { createBot } from '@/bot/bot';
+import { setupBotCommands } from '@/bot/core/commands';
+
 
 async function main(): Promise<void> {
   const token = process.env.BOT_TOKEN;
@@ -21,6 +23,9 @@ async function main(): Promise<void> {
 
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);
+
+  console.log('Setting up Telegram command menus and chat menu button...');
+  await setupBotCommands(bot.api, process.env.ADMIN_IDS);
 
   console.log('Starting Tele-Bot with long polling...');
   await bot.start({

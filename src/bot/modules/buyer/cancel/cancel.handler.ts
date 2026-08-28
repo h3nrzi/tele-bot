@@ -11,6 +11,7 @@ import {
   getCannotCancelPendingMessage,
   getNoActiveRequestToCancelMessage,
 } from '@/bot/modules/buyer/cancel/cancel.messages';
+import { getBuyerMainMenuKeyboard } from '@/bot/core/keyboards/menu.keyboards';
 
 /**
  * Handles the /cancel command:
@@ -38,14 +39,20 @@ export async function handleCancelCommand(
 
   try {
     await cancelTopUp({ userId: buyer.id }, dbClient);
-    await ctx.reply(getCancelSuccessMessage());
+    await ctx.reply(getCancelSuccessMessage(), {
+      reply_markup: getBuyerMainMenuKeyboard(),
+    });
   } catch (err: any) {
     if (err instanceof CannotCancelPendingTopUpError) {
-      await ctx.reply(getCannotCancelPendingMessage());
+      await ctx.reply(getCannotCancelPendingMessage(), {
+        reply_markup: getBuyerMainMenuKeyboard(),
+      });
       return;
     }
     if (err instanceof NoActiveTopUpRequestError) {
-      await ctx.reply(getNoActiveRequestToCancelMessage());
+      await ctx.reply(getNoActiveRequestToCancelMessage(), {
+        reply_markup: getBuyerMainMenuKeyboard(),
+      });
       return;
     }
     throw err;
