@@ -1,9 +1,6 @@
 import type { Context } from 'grammy';
 import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
-import {
-  getRateCurrentMessage,
-  getRateNotSetMessage,
-} from '@/bot/handlers/admin/exchange-rate.messages';
+import { formatIrr } from '@/core/shared/currency.utils';
 
 /**
  * Handles the /rate command for Admins.
@@ -19,14 +16,16 @@ export async function handleRate(
   const currentRate = await service.getCurrentRate();
 
   if (!currentRate) {
-    await ctx.reply(getRateNotSetMessage());
+    await ctx.reply(
+      '⚠️ در حال حاضر هیچ نرخ ارزی در سیستم تنظیم نشده است. لطفاً با دستور /setrate نرخ ارز را تنظیم کنید.'
+    );
     return;
   }
 
+  const date = currentRate.updatedAt ?? currentRate.createdAt ?? new Date();
   await ctx.reply(
-    getRateCurrentMessage({
-      irrPerUsd: currentRate.irrPerUsd,
-      createdAt: currentRate.createdAt,
-    })
+    `💱 نرخ فعلی تبدیل ارز:\n\n` +
+    `هر ۱ دلار آمریکا = ${formatIrr(currentRate.irrPerUsd)} ریال\n` +
+    `آخرین به‌روزرسانی: ${date.toISOString()}`
   );
 }

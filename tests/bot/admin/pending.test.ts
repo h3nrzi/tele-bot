@@ -11,10 +11,6 @@ import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
-import {
-  getEmptyPendingQueueMessage,
-  formatBuyerApprovalMessage,
-} from '@/bot/handlers/admin';
 import { eq } from 'drizzle-orm';
 
 describe('/pending Admin Queue and Review Callback', () => {
@@ -130,7 +126,7 @@ describe('/pending Admin Queue and Review Callback', () => {
     await bot.handleUpdate(makeCommandUpdate(1, adminChatId, '/pending'));
 
     expect(repliedMessages).toHaveLength(1);
-    expect(repliedMessages[0]).toBe(getEmptyPendingQueueMessage());
+    expect(repliedMessages[0]).toContain('صف درخواست‌های در انتظار خالی است');
   });
 
   it('/pending with pending requests formats list with summary and Review button', async () => {
@@ -320,11 +316,7 @@ describe('/pending Admin Queue and Review Callback', () => {
     expect(entryRows).toHaveLength(2);
 
     // Verify Buyer push notification
-    const buyerNotification = formatBuyerApprovalMessage({
-      usdAmount: '100.00',
-      availableBalance: '100.00',
-    });
-    expect(repliedMessages).toContain(buyerNotification);
+    expect(repliedMessages.some((msg) => msg.includes('تایید شد') && msg.includes('$100.00'))).toBe(true);
   });
 
   it('silently ignores /pending, review, and pending_page callbacks from non-Admins', async () => {
@@ -402,8 +394,7 @@ describe('/pending Admin Queue and Review Callback', () => {
     );
 
     expect(editedMessages).toHaveLength(1);
-    expect(editedMessages[0]?.text).toBe(getEmptyPendingQueueMessage());
+    expect(editedMessages[0]?.text).toContain('صف درخواست‌های در انتظار خالی است');
     expect(answeredCallbackQueries).toHaveLength(1);
   });
 });
-

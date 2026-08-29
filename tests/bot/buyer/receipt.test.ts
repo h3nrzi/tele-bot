@@ -4,16 +4,6 @@ import { createMockFetch, type MockSentPhoto } from '@tests/helpers/mock-context
 import { createBot } from '@/bot/bot';
 import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
-import {
-  getReceiptSubmittedBuyerMessage,
-  getReceiptExpiredMessage,
-  getReceiptAlreadyPendingMessage,
-  getNoActiveTopUpRequestMessage,
-} from '@/bot/handlers/buyer';
-import {
-  formatAdminReceiptNotification,
-  getAdminReceiptKeyboard,
-} from '@/bot/handlers/admin';
 import { eq } from 'drizzle-orm';
 
 describe('Receipt Submission & Admin Push Notification Handler', () => {
@@ -131,7 +121,7 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
     );
 
     // Verify buyer received receipt submitted confirmation
-    expect(repliedMessages).toContain(getReceiptSubmittedBuyerMessage());
+    expect(repliedMessages.some((msg) => msg.includes('رسید پرداخت شما با موفقیت ثبت شد'))).toBe(true);
 
     // Verify DB record
     const [requestRow] = await db.select().from(topUpRequests);
@@ -206,7 +196,7 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
     await bot.handleUpdate(makePhotoUpdate(3, buyerChatId, 'photo_expired'));
 
     // Verify buyer received expired message
-    expect(repliedMessages).toContain(getReceiptExpiredMessage());
+    expect(repliedMessages.some((msg) => msg.includes('مهلت پرداخت') || msg.includes('منقضی'))).toBe(true);
 
     // Verify DB record transitioned to EXPIRED
     const [updatedRow] = await db
@@ -224,7 +214,7 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
 
     await bot.handleUpdate(makePhotoUpdate(1, buyerChatId, 'photo_random'));
 
-    expect(repliedMessages).toContain(getNoActiveTopUpRequestMessage());
+    expect(repliedMessages.some((msg) => msg.includes('هیچ درخواست افزایش موجودی فعالی'))).toBe(true);
     expect(sentPhotos).toHaveLength(0);
   });
 
@@ -260,7 +250,7 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
     // 2. Photo 2
     await bot.handleUpdate(makePhotoUpdate(4, buyerChatId, 'photo_2'));
 
-    expect(repliedMessages).toContain(getReceiptAlreadyPendingMessage());
+    expect(repliedMessages.some((msg) => msg.includes('قبلاً رسید پرداخت خود را ارسال کرده‌اید'))).toBe(true);
     // No additional admin notification sent
     expect(sentPhotos).toHaveLength(2);
   });
@@ -341,7 +331,7 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
     await bot.handleUpdate(makePhotoUpdate(3, buyerChatId, 'photo_mellat_fail'));
 
     // Buyer still receives confirmation
-    expect(repliedMessages).toContain(getReceiptSubmittedBuyerMessage());
+    expect(repliedMessages.some((msg) => msg.includes('رسید پرداخت شما با موفقیت ثبت شد'))).toBe(true);
 
     // DB state is still PENDING
     const [requestRow] = await db.select().from(topUpRequests);

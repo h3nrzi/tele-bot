@@ -4,11 +4,6 @@ import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.
 import type { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import type { BuyerService } from '@/modules/buyer/buyer.service';
 import type { TopUpService } from '@/modules/top-up/top-up.service';
-import {
-  getTopUpUnavailableMessage,
-  getTopUpActiveExistsMessage,
-  getAdminNoRateAlertMessage,
-} from '@/bot/handlers/buyer/top-up.messages';
 import { TOPUP_CONVERSATION_ID } from '@/bot/handlers/buyer/top-up.conversation';
 
 export interface TopUpHandlerDependencies {
@@ -36,10 +31,11 @@ export async function handleTopUpCommand(
   // 1. Check if Exchange Rate is configured
   const currentRate = await exchangeRateService.getCurrentRate();
   if (!currentRate) {
-    await ctx.reply(getTopUpUnavailableMessage());
+    await ctx.reply('افزایش موجودی موقتاً در دسترس نیست. لطفاً بعداً تلاش کنید.');
 
     const resolvedAdminIds = resolveAdminIds(adminIds);
-    const alertMsg = getAdminNoRateAlertMessage();
+    const alertMsg =
+      '⚠️ فوری: کاربری قصد افزایش موجودی داشت اما هیچ نرخ ارزی تنظیم نشده است! لطفاً هرچه سریع‌تر با دستور /setrate نرخ ارز را مشخص کنید.';
     for (const adminId of resolvedAdminIds) {
       try {
         await ctx.api.sendMessage(Number(adminId), alertMsg);
@@ -53,7 +49,7 @@ export async function handleTopUpCommand(
   // 2. Check active bank account
   const activeAccount = await bankAccountService.getActiveAccount();
   if (!activeAccount) {
-    await ctx.reply(getTopUpUnavailableMessage());
+    await ctx.reply('افزایش موجودی موقتاً در دسترس نیست. لطفاً بعداً تلاش کنید.');
     return;
   }
 
@@ -66,7 +62,9 @@ export async function handleTopUpCommand(
   // 4. Check for active request
   const activeRequest = await topUpService.getActiveTopUpRequest(buyer.id);
   if (activeRequest) {
-    await ctx.reply(getTopUpActiveExistsMessage());
+    await ctx.reply(
+      'شما یک درخواست افزایش موجودی فعال دارید. لطفاً قبل از ثبت درخواست جدید، درخواست قبلی را تکمیل یا لغو کنید.'
+    );
     return;
   }
 

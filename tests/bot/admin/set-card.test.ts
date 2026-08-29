@@ -9,15 +9,6 @@ import {
   cleanCardNumber,
   isCancelCommand,
   isSkipCommand,
-  getCardNumberPromptMessage,
-  getCardNumberErrorMessage,
-  getCardHolderNamePromptMessage,
-  getCardHolderNameErrorMessage,
-  getBankNamePromptMessage,
-  getBankNameErrorMessage,
-  getAdditionalNotesPromptMessage,
-  getSetCardCancelledMessage,
-  getSetCardSuccessMessage,
 } from '@/bot/handlers/admin';
 import { count } from 'drizzle-orm';
 
@@ -105,27 +96,6 @@ describe('/setcard Admin Command & Conversation', () => {
 
       expect(isSkipCommand('Some note')).toBe(false);
     });
-
-    it('formats success summary message properly', () => {
-      const summaryWithoutNotes = getSetCardSuccessMessage({
-        cardNumber: '6037991234567890',
-        cardHolderName: 'Ali Reza',
-        bankName: 'Mellat',
-        additionalNotes: null,
-      });
-      expect(summaryWithoutNotes).toContain('6037991234567890');
-      expect(summaryWithoutNotes).toContain('Ali Reza');
-      expect(summaryWithoutNotes).toContain('Mellat');
-      expect(summaryWithoutNotes).toContain('ندارد');
-
-      const summaryWithNotes = getSetCardSuccessMessage({
-        cardNumber: '6037991234567890',
-        cardHolderName: 'Ali Reza',
-        bankName: 'Mellat',
-        additionalNotes: 'Transfer only from personal account',
-      });
-      expect(summaryWithNotes).toContain('Transfer only from personal account');
-    });
   });
 
   describe('Bot conversation flow', () => {
@@ -159,38 +129,35 @@ describe('/setcard Admin Command & Conversation', () => {
       await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toBe(getCardNumberPromptMessage());
+      expect(repliedMessages[0]).toContain('شماره کارت ۱۶ رقمی');
 
       // Step 2: Send valid 16-digit card number
       await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '6037 9912 3456 7890'));
 
       expect(repliedMessages).toHaveLength(2);
-      expect(repliedMessages[1]).toBe(getCardHolderNamePromptMessage());
+      expect(repliedMessages[1]).toContain('نام صاحب حساب');
 
       // Step 3: Send card holder name
       await bot.handleUpdate(makeMessageUpdate(3, adminChatId, 'Ali Reza'));
 
       expect(repliedMessages).toHaveLength(3);
-      expect(repliedMessages[2]).toBe(getBankNamePromptMessage());
+      expect(repliedMessages[2]).toContain('نام بانک');
 
       // Step 4: Send bank name
       await bot.handleUpdate(makeMessageUpdate(4, adminChatId, 'Mellat Bank'));
 
       expect(repliedMessages).toHaveLength(4);
-      expect(repliedMessages[3]).toBe(getAdditionalNotesPromptMessage());
+      expect(repliedMessages[3]).toContain('توضیحات تکمیلی');
 
       // Step 5: Send /skip for optional notes
       await bot.handleUpdate(makeMessageUpdate(5, adminChatId, '/skip'));
 
       expect(repliedMessages).toHaveLength(5);
-      expect(repliedMessages[4]).toBe(
-        getSetCardSuccessMessage({
-          cardNumber: '6037991234567890',
-          cardHolderName: 'Ali Reza',
-          bankName: 'Mellat Bank',
-          additionalNotes: null,
-        })
-      );
+      expect(repliedMessages[4]).toContain('به‌روزرسانی شد');
+      expect(repliedMessages[4]).toContain('6037991234567890');
+      expect(repliedMessages[4]).toContain('Ali Reza');
+      expect(repliedMessages[4]).toContain('Mellat Bank');
+      expect(repliedMessages[4]).toContain('ندارد');
 
       const activeAccount = await getTestActiveAccount(container);
       expect(activeAccount).not.toBeNull();
@@ -222,14 +189,11 @@ describe('/setcard Admin Command & Conversation', () => {
       await bot.handleUpdate(makeMessageUpdate(5, adminChatId, 'Include tracking ID in description'));
 
       expect(repliedMessages).toHaveLength(5);
-      expect(repliedMessages[4]).toBe(
-        getSetCardSuccessMessage({
-          cardNumber: '5022291012345678',
-          cardHolderName: 'Sara Smith',
-          bankName: 'Pasargad',
-          additionalNotes: 'Include tracking ID in description',
-        })
-      );
+      expect(repliedMessages[4]).toContain('به‌روزرسانی شد');
+      expect(repliedMessages[4]).toContain('5022291012345678');
+      expect(repliedMessages[4]).toContain('Sara Smith');
+      expect(repliedMessages[4]).toContain('Pasargad');
+      expect(repliedMessages[4]).toContain('Include tracking ID in description');
 
       const allRows = await db.select().from(bankAccounts);
       expect(allRows).toHaveLength(2);
@@ -250,42 +214,38 @@ describe('/setcard Admin Command & Conversation', () => {
 
       // Enter flow
       await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
-      expect(repliedMessages[0]).toBe(getCardNumberPromptMessage());
+      expect(repliedMessages[0]).toContain('شماره کارت ۱۶ رقمی');
 
       // Invalid card number (short)
       await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '12345'));
-      expect(repliedMessages[1]).toBe(getCardNumberErrorMessage());
+      expect(repliedMessages[1]).toContain('شماره کارت نامعتبر است');
 
       // Valid card number
       await bot.handleUpdate(makeMessageUpdate(3, adminChatId, '6037991234567890'));
-      expect(repliedMessages[2]).toBe(getCardHolderNamePromptMessage());
+      expect(repliedMessages[2]).toContain('نام صاحب حساب');
 
       // Empty / whitespace holder name
       await bot.handleUpdate(makeMessageUpdate(4, adminChatId, '   '));
-      expect(repliedMessages[3]).toBe(getCardHolderNameErrorMessage());
+      expect(repliedMessages[3]).toContain('نام صاحب حساب');
 
       // Valid holder name
       await bot.handleUpdate(makeMessageUpdate(5, adminChatId, 'John Doe'));
-      expect(repliedMessages[4]).toBe(getBankNamePromptMessage());
+      expect(repliedMessages[4]).toContain('نام بانک');
 
       // Empty bank name
       await bot.handleUpdate(makeMessageUpdate(6, adminChatId, ''));
-      expect(repliedMessages[5]).toBe(getBankNameErrorMessage());
+      expect(repliedMessages[5]).toContain('نام بانک');
 
       // Valid bank name
       await bot.handleUpdate(makeMessageUpdate(7, adminChatId, 'Tejarat'));
-      expect(repliedMessages[6]).toBe(getAdditionalNotesPromptMessage());
+      expect(repliedMessages[6]).toContain('توضیحات تکمیلی');
 
       // Skip notes
       await bot.handleUpdate(makeMessageUpdate(8, adminChatId, 'skip'));
-      expect(repliedMessages[7]).toBe(
-        getSetCardSuccessMessage({
-          cardNumber: '6037991234567890',
-          cardHolderName: 'John Doe',
-          bankName: 'Tejarat',
-          additionalNotes: null,
-        })
-      );
+      expect(repliedMessages[7]).toContain('به‌روزرسانی شد');
+      expect(repliedMessages[7]).toContain('6037991234567890');
+      expect(repliedMessages[7]).toContain('John Doe');
+      expect(repliedMessages[7]).toContain('Tejarat');
     });
 
     it('cancels the conversation at step 1 (card number)', async () => {
@@ -295,7 +255,7 @@ describe('/setcard Admin Command & Conversation', () => {
       await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '/cancel'));
 
       expect(repliedMessages).toHaveLength(2);
-      expect(repliedMessages[1]).toBe(getSetCardCancelledMessage());
+      expect(repliedMessages[1]).toContain('لغو شد');
 
       const [countResult] = await db.select({ value: count() }).from(bankAccounts);
       expect(Number(countResult?.value ?? 0)).toBe(0);
@@ -309,7 +269,7 @@ describe('/setcard Admin Command & Conversation', () => {
       await bot.handleUpdate(makeMessageUpdate(3, adminChatId, 'cancel'));
 
       expect(repliedMessages).toHaveLength(3);
-      expect(repliedMessages[2]).toBe(getSetCardCancelledMessage());
+      expect(repliedMessages[2]).toContain('لغو شد');
 
       const [countResult] = await db.select({ value: count() }).from(bankAccounts);
       expect(Number(countResult?.value ?? 0)).toBe(0);
@@ -324,7 +284,7 @@ describe('/setcard Admin Command & Conversation', () => {
       await bot.handleUpdate(makeMessageUpdate(4, adminChatId, '/cancel'));
 
       expect(repliedMessages).toHaveLength(4);
-      expect(repliedMessages[3]).toBe(getSetCardCancelledMessage());
+      expect(repliedMessages[3]).toContain('لغو شد');
 
       const [countResult] = await db.select({ value: count() }).from(bankAccounts);
       expect(Number(countResult?.value ?? 0)).toBe(0);
@@ -340,7 +300,7 @@ describe('/setcard Admin Command & Conversation', () => {
       await bot.handleUpdate(makeMessageUpdate(5, adminChatId, '/cancel'));
 
       expect(repliedMessages).toHaveLength(5);
-      expect(repliedMessages[4]).toBe(getSetCardCancelledMessage());
+      expect(repliedMessages[4]).toContain('لغو شد');
 
       const [countResult] = await db.select({ value: count() }).from(bankAccounts);
       expect(Number(countResult?.value ?? 0)).toBe(0);

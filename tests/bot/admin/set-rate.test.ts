@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext } from '@tests/helpers/mock-context';
-import {
-  handleSetRate,
-  getSetRateSuccessMessage,
-  getSetRateUsageErrorMessage,
-} from '@/bot/handlers/admin';
+import { handleSetRate } from '@/bot/handlers/admin';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { createBot } from '@/bot/bot';
 import { exchangeRates } from '@/modules/exchange-rate/exchange-rate.schema';
@@ -34,7 +30,7 @@ describe('/setrate Handler', () => {
     await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getSetRateSuccessMessage(620000n));
+    expect(repliedMessages[0]).toContain('نرخ جدید با موفقیت تنظیم شد');
     expect(repliedMessages[0]).toContain('620,000');
 
     const rows = await db.select().from(exchangeRates);
@@ -52,7 +48,8 @@ describe('/setrate Handler', () => {
     await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getSetRateSuccessMessage(650000n));
+    expect(repliedMessages[0]).toContain('نرخ جدید با موفقیت تنظیم شد');
+    expect(repliedMessages[0]).toContain('650,000');
 
     const rows = await db.select().from(exchangeRates);
     expect(rows).toHaveLength(1);
@@ -68,7 +65,8 @@ describe('/setrate Handler', () => {
     await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getSetRateSuccessMessage(700000n));
+    expect(repliedMessages[0]).toContain('نرخ جدید با موفقیت تنظیم شد');
+    expect(repliedMessages[0]).toContain('700,000');
 
     const rows = await db.select().from(exchangeRates);
     expect(rows).toHaveLength(1);
@@ -84,7 +82,7 @@ describe('/setrate Handler', () => {
     await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getSetRateUsageErrorMessage());
+    expect(repliedMessages[0]).toContain('فرمت نرخ وارد شده نامعتبر است');
 
     const [countResult] = await db.select({ value: count() }).from(exchangeRates);
     expect(Number(countResult?.value ?? 0)).toBe(0);
@@ -99,7 +97,7 @@ describe('/setrate Handler', () => {
     await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getSetRateUsageErrorMessage());
+    expect(repliedMessages[0]).toContain('فرمت نرخ وارد شده نامعتبر است');
 
     const [countResult] = await db.select({ value: count() }).from(exchangeRates);
     expect(Number(countResult?.value ?? 0)).toBe(0);
@@ -114,7 +112,7 @@ describe('/setrate Handler', () => {
     await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getSetRateUsageErrorMessage());
+    expect(repliedMessages[0]).toContain('فرمت نرخ وارد شده نامعتبر است');
 
     const [countResult] = await db.select({ value: count() }).from(exchangeRates);
     expect(Number(countResult?.value ?? 0)).toBe(0);
@@ -126,14 +124,14 @@ describe('/setrate Handler', () => {
       { match: 'abc' }
     );
     await handleSetRate(ctxText, exchangeRateService);
-    expect(messagesText[0]).toBe(getSetRateUsageErrorMessage());
+    expect(messagesText[0]).toContain('فرمت نرخ وارد شده نامعتبر است');
 
     const { ctx: ctxFloat, repliedMessages: messagesFloat } = createMockContext(
       { id: adminChatId, username: 'admin_user' },
       { match: '620000.50' }
     );
     await handleSetRate(ctxFloat, exchangeRateService);
-    expect(messagesFloat[0]).toBe(getSetRateUsageErrorMessage());
+    expect(messagesFloat[0]).toContain('فرمت نرخ وارد شده نامعتبر است');
 
     const [countResult] = await db.select({ value: count() }).from(exchangeRates);
     expect(Number(countResult?.value ?? 0)).toBe(0);
@@ -196,7 +194,8 @@ describe('/setrate Handler', () => {
       });
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toBe(getSetRateSuccessMessage(620000n));
+      expect(repliedMessages[0]).toContain('نرخ جدید با موفقیت تنظیم شد');
+      expect(repliedMessages[0]).toContain('620,000');
 
       const rows = await db.select().from(exchangeRates);
       expect(rows).toHaveLength(1);

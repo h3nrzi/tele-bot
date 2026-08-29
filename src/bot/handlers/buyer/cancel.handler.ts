@@ -5,11 +5,6 @@ import {
   CannotCancelPendingTopUpError,
   NoActiveTopUpRequestError,
 } from '@/modules/top-up/top-up.errors';
-import {
-  getCancelSuccessMessage,
-  getCannotCancelPendingMessage,
-  getNoActiveRequestToCancelMessage,
-} from '@/bot/handlers/buyer/cancel.messages';
 import { getBuyerMainMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
 
 export interface CancelHandlerDependencies {
@@ -38,20 +33,26 @@ export async function handleCancelCommand(
 
   try {
     await topUpService.cancelTopUp({ userId: buyer.id });
-    await ctx.reply(getCancelSuccessMessage(), {
+    await ctx.reply('درخواست افزایش موجودی شما با موفقیت لغو شد.', {
       reply_markup: getBuyerMainMenuKeyboard(),
     });
   } catch (err: any) {
     if (err instanceof CannotCancelPendingTopUpError) {
-      await ctx.reply(getCannotCancelPendingMessage(), {
-        reply_markup: getBuyerMainMenuKeyboard(),
-      });
+      await ctx.reply(
+        'امکان لغو این درخواست وجود ندارد زیرا رسید پرداخت ارسال شده است. لطفاً منتظر بررسی ادمین باشید.',
+        {
+          reply_markup: getBuyerMainMenuKeyboard(),
+        }
+      );
       return;
     }
     if (err instanceof NoActiveTopUpRequestError) {
-      await ctx.reply(getNoActiveRequestToCancelMessage(), {
-        reply_markup: getBuyerMainMenuKeyboard(),
-      });
+      await ctx.reply(
+        'شما در حال حاضر هیچ درخواست افزایش موجودی فعالی برای لغو ندارید.',
+        {
+          reply_markup: getBuyerMainMenuKeyboard(),
+        }
+      );
       return;
     }
     throw err;

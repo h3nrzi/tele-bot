@@ -4,7 +4,6 @@ import type { BotContext } from '@/bot/context';
 import { createAdminMiddleware } from '@/bot/middleware/admin.middleware';
 import { handleSetRate } from '@/bot/handlers/admin/set-rate.handler';
 import { handleRate } from '@/bot/handlers/admin/rate.handler';
-import { getSetRatePromptGuideMessage } from '@/bot/handlers/admin/exchange-rate.messages';
 import { handleSetCardCommand } from '@/bot/handlers/admin/set-card.handler';
 import { handleApproveCallback } from '@/bot/handlers/admin/approve.handler';
 import { handleRejectCallback } from '@/bot/handlers/admin/reject.handler';
@@ -80,7 +79,10 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.hears(['✏️ تنظیم نرخ ارز', 'تنظیم نرخ ارز'], adminAuth, async (ctx) => {
-    await ctx.reply(getSetRatePromptGuideMessage());
+    await ctx.reply(
+      `برای تنظیم نرخ ارز، لطفاً مقدار ریالی هر دلار را به همراه دستور /setrate ارسال کنید.\n` +
+      `مثال: /setrate 620000`
+    );
   });
 
   // Admin Callback Queries

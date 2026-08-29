@@ -1,12 +1,8 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import type { TopUpService } from '@/modules/top-up/top-up.service';
-import {
-  getEmptyPendingQueueMessage,
-  formatPendingQueuePage,
-} from '@/bot/handlers/admin/pending.messages';
+import { formatUsd, formatIrr } from '@/core/shared/currency.utils';
 import { getPendingQueueKeyboard } from '@/bot/handlers/admin/pending.keyboards';
-import { formatAdminReceiptNotification } from '@/bot/handlers/admin/approval.messages';
 import { getAdminReceiptKeyboard } from '@/bot/handlers/admin/approval.keyboards';
 
 export const PENDING_PAGE_SIZE = 10;
@@ -18,6 +14,24 @@ export interface PendingHandlerOptions {
 interface PendingQueueView {
   messageText: string;
   keyboard: InlineKeyboard;
+}
+
+function formatTimeAgo(date: Date, now: Date = new Date()): string {
+  const diffMs = Math.max(0, now.getTime() - date.getTime());
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) {
+    return 'لحظاتی پیش';
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes} دقیقه پیش`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours} ساعت پیش`;
+  }
+  return `${diffDays} روز پیش`;
 }
 
 function buildPendingQueueView(
@@ -34,14 +48,25 @@ function buildPendingQueueView(
     startIndex + PENDING_PAGE_SIZE
   );
 
-  const messageText = formatPendingQueuePage({
-    items: itemsOnPage,
-    page,
-    totalPages,
-    totalCount,
-    startIndex,
-    now,
+  const header =
+    totalPages > 1
+      ? `📋 صف درخواست‌های در انتظار (صفحه ${page} از ${totalPages} - مجموع: ${totalCount} مورد)\n\n`
+      : `📋 صف درخواست‌های در انتظار (${totalCount} مورد)\n\n`;
+
+  const lines = itemsOnPage.map((item, index) => {
+    const itemNumber = startIndex + index + 1;
+    const buyerDisplay = item.telegramUsername
+      ? `@${item.telegramUsername} (شناسه: ${item.telegramChatId})`
+      : `شناسه: ${item.telegramChatId}`;
+    const timeAgo = formatTimeAgo(item.updatedAt ?? item.createdAt, now);
+    return (
+      `${itemNumber}. خریدار: ${buyerDisplay}\n` +
+      `   مبلغ: ${formatUsd(item.usdAmount)} (${formatIrr(item.irrAmount)} ریال)\n` +
+      `   زمان ثبت رسید: ${timeAgo}`
+    );
   });
+
+  const messageText = header + lines.join('\n\n');
 
   const keyboard = getPendingQueueKeyboard({
     items: itemsOnPage,
@@ -69,7 +94,7 @@ export async function handlePending(
   const pendingRequests = await service.getPendingRequests();
 
   if (pendingRequests.length === 0) {
-    await ctx.reply(getEmptyPendingQueueMessage());
+    await ctx.reply('📥 صف درخواست‌های در انتظار خالی است.');
     return;
   }
 
@@ -109,13 +134,13 @@ export async function handlePendingPage(
 
   if (pendingRequests.length === 0) {
     try {
-      await ctx.editMessageText(getEmptyPendingQueueMessage(), {
+      await ctx.editMessageText('📥 صف درخواست‌های در انتظار خالی است.', {
         reply_markup: new InlineKeyboard(),
       });
-    } catch {}
+    } catch { }
     try {
       await ctx.answerCallbackQuery();
-    } catch {}
+    } catch { }
     return;
   }
 
@@ -135,7 +160,7 @@ export async function handlePendingPage(
 
   try {
     await ctx.answerCallbackQuery();
-  } catch {}
+  } catch { }
 }
 
 /**
@@ -166,17 +191,24 @@ export async function handleReviewCallback(
         text: '⚠️ درخواست یافت نشد.',
         show_alert: true,
       });
-    } catch {}
+    } catch { }
     return;
   }
 
-  const caption = formatAdminReceiptNotification({
-    buyerUsername: req.telegramUsername,
-    buyerChatId: req.telegramChatId,
-    usdAmount: req.usdAmount,
-    irrAmount: req.irrAmount,
-    caption: req.receiptCaption,
-  });
+  const buyerDisplay = req.telegramUsername
+    ? `@${req.telegramUsername} (شناسه: ${req.telegramChatId})`
+    : `شناسه: ${req.telegramChatId}`;
+
+  const captionLine = req.receiptCaption
+    ? `\n\nتوضیحات خریدار:\n${req.receiptCaption}`
+    : '';
+
+  const caption =
+    `📥 رسید پرداخت جدید دریافت شد\n\n` +
+    `خریدار: ${buyerDisplay}\n` +
+    `مبلغ درخواستی: ${formatUsd(req.usdAmount)}\n` +
+    `مبلغ ریالی: ${formatIrr(req.irrAmount)} ریال` +
+    captionLine;
 
   const keyboard = getAdminReceiptKeyboard(req.id);
 
@@ -197,5 +229,5 @@ export async function handleReviewCallback(
 
   try {
     await ctx.answerCallbackQuery();
-  } catch {}
+  } catch { }
 }

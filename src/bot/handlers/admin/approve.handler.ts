@@ -2,11 +2,7 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import type { TopUpService } from '@/modules/top-up/top-up.service';
 import { TopUpRequestNotPendingError } from '@/modules/top-up/top-up.errors';
-import {
-  formatBuyerApprovalMessage,
-  formatAdminApprovalOutcome,
-  formatAdminAlreadyProcessedOutcome,
-} from '@/bot/handlers/admin/approval.messages';
+import { formatUsd } from '@/core/shared/currency.utils';
 
 export interface ApproveHandlerDependencies {
   topUpService: TopUpService;
@@ -79,10 +75,10 @@ export async function handleApproveCallback(
       },
       {
         notifyBuyer: async (params) => {
-          const messageText = formatBuyerApprovalMessage({
-            usdAmount: params.creditedUsdAmount,
-            availableBalance: params.newAvailableBalance,
-          });
+          const messageText =
+            `✅ درخواست افزایش موجودی شما تایید شد!\n\n` +
+            `مبلغ شارژ شده: ${formatUsd(params.creditedUsdAmount)}\n` +
+            `موجودی جدید کیف پول: ${formatUsd(params.newAvailableBalance)}`;
           await ctx.api.sendMessage(
             params.buyerTelegramChatId.toString(),
             messageText
@@ -92,7 +88,7 @@ export async function handleApproveCallback(
     );
 
     // Edit admin notification message to show approved outcome
-    const newCaption = formatAdminApprovalOutcome(originalCaption, adminDisplay);
+    const newCaption = `${originalCaption}\n\n✅ تایید شد توسط: ${adminDisplay}`;
     await editAdminMessageOutcome(ctx, newCaption);
 
     // Answer callback query
@@ -101,8 +97,7 @@ export async function handleApproveCallback(
     });
   } catch (err: any) {
     if (err instanceof TopUpRequestNotPendingError) {
-      const alreadyProcessedCaption =
-        formatAdminAlreadyProcessedOutcome(originalCaption);
+      const alreadyProcessedCaption = `${originalCaption}\n\n⚠️ این درخواست قبلاً تعیین تکلیف شده است.`;
       await editAdminMessageOutcome(ctx, alreadyProcessedCaption);
 
       await ctx.answerCallbackQuery({

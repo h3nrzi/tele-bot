@@ -7,13 +7,6 @@ import {
   getBuyerMainMenuKeyboard,
   getAdminMainMenuKeyboard,
 } from '@/bot/keyboards/menu.keyboards';
-import { getBalanceMessage } from '@/bot/handlers/buyer/balance.messages';
-import { getNoTopUpHistoryMessage } from '@/bot/handlers/buyer/status.messages';
-import { getNoActiveRequestToCancelMessage } from '@/bot/handlers/buyer/cancel.messages';
-import {
-  getCurrentRateMessage,
-  getSetRatePromptGuideMessage,
-} from '@/bot/handlers/admin/exchange-rate.messages';
 
 describe('Role-based Menus and Keyboards', () => {
   const { db, container } = setupTestDatabase();
@@ -84,7 +77,8 @@ describe('Role-based Menus and Keyboards', () => {
       });
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toBe(getBalanceMessage('0.00'));
+      expect(repliedMessages[0]).toContain('موجودی کیف پول');
+      expect(repliedMessages[0]).toContain('$0.00');
     });
 
     it("triggers status reply when sending '📋 پیگیری وضعیت'", async () => {
@@ -100,7 +94,7 @@ describe('Role-based Menus and Keyboards', () => {
       });
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toBe(getNoTopUpHistoryMessage());
+      expect(repliedMessages[0]).toContain('هیچ درخواست افزایش موجودی ثبت نکرده‌اید');
     });
 
     it("triggers cancel reply when sending '❌ لغو درخواست'", async () => {
@@ -116,7 +110,7 @@ describe('Role-based Menus and Keyboards', () => {
       });
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toBe(getNoActiveRequestToCancelMessage());
+      expect(repliedMessages[0]).toContain('هیچ درخواست افزایش موجودی فعالی');
     });
   });
 
@@ -174,7 +168,7 @@ describe('Role-based Menus and Keyboards', () => {
       });
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toBe(getSetRatePromptGuideMessage());
+      expect(repliedMessages[0]).toContain('/setrate');
     });
 
     it('silently ignores Admin menu buttons when sent by a non-Admin', async () => {

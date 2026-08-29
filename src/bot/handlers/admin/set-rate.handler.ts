@@ -1,9 +1,6 @@
 import type { Context } from 'grammy';
 import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
-import {
-  getSetRateSuccessMessage,
-  getSetRateUsageErrorMessage,
-} from '@/bot/handlers/admin/exchange-rate.messages';
+import { formatIrr } from '@/core/shared/currency.utils';
 
 /**
  * Handles the /setrate command for Admins.
@@ -26,15 +23,20 @@ export async function handleSetRate(
     rawRateInput = match?.[1]?.trim();
   }
 
+  const usageErrorMsg =
+    `❌ فرمت نرخ وارد شده نامعتبر است.\n` +
+    `لطفاً یک عدد صحیح مثبت به ریال وارد کنید.\n` +
+    `مثال: /setrate 620000`;
+
   if (!rawRateInput || !/^\d+$/.test(rawRateInput)) {
-    await ctx.reply(getSetRateUsageErrorMessage());
+    await ctx.reply(usageErrorMsg);
     return;
   }
 
   const irrPerUsd = BigInt(rawRateInput);
 
   if (irrPerUsd <= 0n) {
-    await ctx.reply(getSetRateUsageErrorMessage());
+    await ctx.reply(usageErrorMsg);
     return;
   }
 
@@ -43,5 +45,7 @@ export async function handleSetRate(
     irrPerUsd
   );
 
-  await ctx.reply(getSetRateSuccessMessage(updatedRate.irrPerUsd));
+  await ctx.reply(
+    `✅ نرخ جدید با موفقیت تنظیم شد:\nهر ۱ دلار آمریکا = ${formatIrr(updatedRate.irrPerUsd)} ریال`
+  );
 }

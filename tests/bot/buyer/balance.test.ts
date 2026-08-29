@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext } from '@tests/helpers/mock-context';
-import {
-  handleBalance,
-  getBalanceMessage,
-  getUnregisteredBalanceMessage,
-} from '@/bot/handlers/buyer';
+import { handleBalance } from '@/bot/handlers/buyer';
 import { WalletService } from '@/modules/wallet/wallet.service';
 import { createBot } from '@/bot/bot';
 import { createTestBuyer } from '@tests/helpers/fixtures';
@@ -35,7 +31,7 @@ describe('/balance Handler', () => {
     await handleBalance(ctx, walletService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getBalanceMessage('0.00'));
+    expect(repliedMessages[0]).toContain('موجودی کیف پول');
     expect(repliedMessages[0]).toContain('$0.00');
   });
 
@@ -63,7 +59,7 @@ describe('/balance Handler', () => {
     await handleBalance(ctx, walletService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getBalanceMessage('123.45'));
+    expect(repliedMessages[0]).toContain('موجودی کیف پول');
     expect(repliedMessages[0]).toContain('$123.45');
   });
 
@@ -77,7 +73,7 @@ describe('/balance Handler', () => {
     await handleBalance(ctx, walletService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getUnregisteredBalanceMessage());
+    expect(repliedMessages[0]).toContain('ثبت نام');
     expect(repliedMessages[0]).toContain('/start');
   });
 
@@ -143,6 +139,7 @@ describe('/balance Handler', () => {
     });
 
     expect(repliedMessages).toHaveLength(1);
-    expect(repliedMessages[0]).toBe(getBalanceMessage('0.00'));
+    expect(repliedMessages[0]).toContain('موجودی کیف پول');
+    expect(repliedMessages[0]).toContain('$0.00');
   });
 });

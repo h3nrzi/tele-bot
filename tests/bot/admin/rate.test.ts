@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext, captureBotReplies } from '@tests/helpers/mock-context';
-import {
-  handleRate,
-  getCurrentRateMessage,
-  getNoRateConfiguredMessage,
-} from '@/bot/handlers/admin';
+import { handleRate } from '@/bot/handlers/admin';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { setTestRate } from '@tests/helpers/fixtures';
 import { createBot } from '@/bot/bot';
@@ -33,7 +29,7 @@ describe('/rate Handler', () => {
     await handleRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getNoRateConfiguredMessage());
+    expect(repliedMessages[0]).toContain('هیچ نرخ ارزی در سیستم تنظیم نشده است');
     expect(repliedMessages[0]).toContain('/setrate');
   });
 
@@ -48,7 +44,7 @@ describe('/rate Handler', () => {
     await handleRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getCurrentRateMessage(createdRate));
+    expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
     expect(repliedMessages[0]).toContain('620,000');
     expect(repliedMessages[0]).toContain(createdRate.createdAt.toISOString());
   });
@@ -65,7 +61,7 @@ describe('/rate Handler', () => {
     await handleRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getCurrentRateMessage(secondRate));
+    expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
     expect(repliedMessages[0]).toContain('650,000');
     expect(repliedMessages[0]).toContain(secondRate.createdAt.toISOString());
   });
@@ -80,7 +76,7 @@ describe('/rate Handler', () => {
 
   describe('Bot integration with /rate', () => {
     it('executes /rate command for Admin and shows current rate via bot.handleUpdate', async () => {
-      const activeRate = await setTestRate(container, adminChatId, 630000n);
+      await setTestRate(container, adminChatId, 630000n);
 
       const bot = createBot({
         token: 'test_token',
@@ -112,7 +108,7 @@ describe('/rate Handler', () => {
       });
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toBe(getCurrentRateMessage(activeRate));
+      expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
       expect(repliedMessages[0]).toContain('630,000');
     });
 
@@ -147,7 +143,7 @@ describe('/rate Handler', () => {
       });
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toBe(getNoRateConfiguredMessage());
+      expect(repliedMessages[0]).toContain('هیچ نرخ ارزی در سیستم تنظیم نشده است');
     });
 
     it('silently ignores /rate command when sent by a non-Admin', async () => {

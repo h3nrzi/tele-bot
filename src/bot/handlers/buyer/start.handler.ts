@@ -1,11 +1,7 @@
 import type { Context } from 'grammy';
 import type { BuyerService } from '@/modules/buyer/buyer.service';
 import { isAdmin } from '@/bot/middleware/admin.middleware';
-import {
-  getNewBuyerWelcomeMessage,
-  getReturningBuyerWelcomeMessage,
-  getAdminWelcomeMessage,
-} from '@/bot/handlers/buyer/start.messages';
+import { formatUsd } from '@/core/shared/currency.utils';
 import {
   getBuyerMainMenuKeyboard,
   getAdminMainMenuKeyboard,
@@ -32,9 +28,14 @@ export async function handleStart(
     (ctx.from.username ? `@${ctx.from.username}` : null);
 
   if (isAdmin(ctx.from.id, options?.adminIds)) {
-    await ctx.reply(getAdminWelcomeMessage(displayName), {
-      reply_markup: getAdminMainMenuKeyboard(),
-    });
+    const greeting = displayName ? `سلام ${displayName} (ادمین گرامی)!` : `سلام ادمین گرامی!`;
+    await ctx.reply(
+      `${greeting}\nبه پنل مدیریت Tele-Bot خوش آمدید.\n\n` +
+      `از منوی زیر می‌توانید نرخ ارز، کارت بانکی و صف درخواست‌های افزایش موجودی را مدیریت کنید:`,
+      {
+        reply_markup: getAdminMainMenuKeyboard(),
+      }
+    );
     return;
   }
 
@@ -44,12 +45,21 @@ export async function handleStart(
   });
 
   if (result.isNew) {
-    await ctx.reply(getNewBuyerWelcomeMessage(), {
-      reply_markup: getBuyerMainMenuKeyboard(),
-    });
-  } else {
     await ctx.reply(
-      getReturningBuyerWelcomeMessage(displayName, result.wallet.availableBalance),
+      `سلام! به Tele-Bot خوش آمدید.\n\n` +
+      `کیف پول شما با موفقیت ایجاد شد.\n` +
+      `موجودی فعلی شما: ${formatUsd('0.00')}\n\n` +
+      `از دکمه‌های زیر برای دسترسی به امکانات استفاده کنید.`,
+      {
+        reply_markup: getBuyerMainMenuKeyboard(),
+      }
+    );
+  } else {
+    const greeting = displayName ? `سلام ${displayName} عزیز!` : `سلام!`;
+    await ctx.reply(
+      `${greeting}\nبه Tele-Bot خوش آمدید.\n\n` +
+      `موجودی کیف پول شما: ${formatUsd(result.wallet.availableBalance)}\n\n` +
+      `از منوی زیر گزینه مورد نظر خود را انتخاب کنید:`,
       {
         reply_markup: getBuyerMainMenuKeyboard(),
       }

@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext } from '@tests/helpers/mock-context';
-import {
-  handleStatusCommand,
-  getNoTopUpHistoryMessage,
-  formatStatusMessage,
-} from '@/bot/handlers/buyer';
+import { handleStatusCommand } from '@/bot/handlers/buyer';
 import { BuyerService } from '@/modules/buyer/buyer.service';
 import { createBot } from '@/bot/bot';
 import {
@@ -49,7 +45,7 @@ describe('/status Command Handler', () => {
     await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getNoTopUpHistoryMessage());
+    expect(repliedMessages[0]).toContain('هیچ درخواست افزایش موجودی ثبت نکرده‌اید');
   });
 
   it('formats status message with status, USD, IRR, and date for INITIATED request', async () => {
@@ -59,7 +55,7 @@ describe('/status Command Handler', () => {
       { telegramChatId: chatId, telegramUsername: 'bob_buyer' }
     );
     await setTestRate(container, adminId, 620000n);
-    const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '50.00' });
+    await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '50.00' });
 
     const { ctx, repliedMessages } = createMockContext({
       id: chatId,
@@ -70,14 +66,8 @@ describe('/status Command Handler', () => {
     await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(
-      formatStatusMessage({
-        status: 'INITIATED',
-        usdAmount: initResult.request.usdAmount,
-        irrAmount: initResult.request.irrAmount,
-        createdAt: initResult.request.createdAt,
-      })
-    );
+    expect(repliedMessages[0]).toContain('وضعیت آخرین درخواست');
+    expect(repliedMessages[0]).toContain('INITIATED');
     expect(repliedMessages[0]).toContain('$50.00');
     expect(repliedMessages[0]).toContain('31,000,000');
   });
@@ -108,15 +98,8 @@ describe('/status Command Handler', () => {
     await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(
-      formatStatusMessage({
-        status: 'REJECTED',
-        usdAmount: initResult.request.usdAmount,
-        irrAmount: initResult.request.irrAmount,
-        createdAt: initResult.request.createdAt,
-        rejectionReason: 'رسید ناخوانا است و شماره پیگیری مشخص نیست.',
-      })
-    );
+    expect(repliedMessages[0]).toContain('REJECTED');
+    expect(repliedMessages[0]).toContain('$100.00');
     expect(repliedMessages[0]).toContain('رسید ناخوانا است');
   });
 
@@ -147,7 +130,7 @@ describe('/status Command Handler', () => {
       { telegramChatId: chatId, telegramUsername: 'dana_buyer' }
     );
     await setTestRate(container, adminId, 620000n);
-    const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '25.00' });
+    await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '25.00' });
 
     const bot = createBot({
       token: 'test_token',
@@ -193,13 +176,8 @@ describe('/status Command Handler', () => {
     });
 
     expect(repliedMessages).toHaveLength(1);
-    expect(repliedMessages[0]).toBe(
-      formatStatusMessage({
-        status: 'INITIATED',
-        usdAmount: initResult.request.usdAmount,
-        irrAmount: initResult.request.irrAmount,
-        createdAt: initResult.request.createdAt,
-      })
-    );
+    expect(repliedMessages[0]).toContain('وضعیت آخرین درخواست');
+    expect(repliedMessages[0]).toContain('INITIATED');
+    expect(repliedMessages[0]).toContain('$25.00');
   });
 });

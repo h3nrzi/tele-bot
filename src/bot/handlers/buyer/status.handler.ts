@@ -1,16 +1,23 @@
 import type { Context } from 'grammy';
 import type { TopUpService } from '@/modules/top-up/top-up.service';
 import type { BuyerService } from '@/modules/buyer/buyer.service';
-import {
-  getNoTopUpHistoryMessage,
-  formatStatusMessage,
-} from '@/bot/handlers/buyer/status.messages';
+import type { TopUpStatus } from '@/modules/top-up/top-up-request.entity';
+import { formatUsd, formatIrr } from '@/core/shared/currency.utils';
 import { getBuyerMainMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
 
 export interface StatusHandlerDependencies {
   buyerService: BuyerService;
   topUpService: TopUpService;
 }
+
+const STATUS_LABELS: Record<TopUpStatus, string> = {
+  INITIATED: 'در انتظار پرداخت (INITIATED)',
+  PENDING: 'در انتظار بررسی ادمین (PENDING)',
+  APPROVED: 'تایید شده (APPROVED)',
+  REJECTED: 'رد شده (REJECTED)',
+  EXPIRED: 'منقضی شده (EXPIRED)',
+  CANCELLED: 'لغو شده (CANCELLED)',
+};
 
 /**
  * Handles the /status command.
@@ -33,22 +40,27 @@ export async function handleStatusCommand(
 
   const latestRequest = await topUpService.getLatestTopUpRequest(buyer.id);
   if (!latestRequest) {
-    await ctx.reply(getNoTopUpHistoryMessage(), {
+    await ctx.reply('شما تاکنون هیچ درخواست افزایش موجودی ثبت نکرده‌اید.', {
       reply_markup: getBuyerMainMenuKeyboard(),
     });
     return;
   }
 
-  await ctx.reply(
-    formatStatusMessage({
-      status: latestRequest.status,
-      usdAmount: latestRequest.usdAmount,
-      irrAmount: latestRequest.irrAmount,
-      createdAt: latestRequest.createdAt,
-      rejectionReason: latestRequest.rejectionReason,
-    }),
-    {
-      reply_markup: getBuyerMainMenuKeyboard(),
-    }
-  );
+  const statusLabel = STATUS_LABELS[latestRequest.status];
+  const dateFormatted = latestRequest.createdAt.toISOString();
+
+  let message =
+    `📊 وضعیت آخرین درخواست افزایش موجودی:\n\n` +
+    `وضعیت: ${statusLabel}\n` +
+    `مبلغ: ${formatUsd(latestRequest.usdAmount)}\n` +
+    `مبلغ ریالی: ${formatIrr(latestRequest.irrAmount)} ریال\n` +
+    `تاریخ ثبت: ${dateFormatted}`;
+
+  if (latestRequest.status === 'REJECTED' && latestRequest.rejectionReason) {
+    message += `\nعلت رد درخواست: ${latestRequest.rejectionReason}`;
+  }
+
+  await ctx.reply(message, {
+    reply_markup: getBuyerMainMenuKeyboard(),
+  });
 }

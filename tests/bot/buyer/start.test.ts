@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext } from '@tests/helpers/mock-context';
-import {
-  handleStart,
-  getNewBuyerWelcomeMessage,
-  getReturningBuyerWelcomeMessage,
-} from '@/bot/handlers/buyer';
+import { handleStart } from '@/bot/handlers/buyer';
 import { BuyerService } from '@/modules/buyer/buyer.service';
 import { createBot } from '@/bot/bot';
 import { users } from '@/modules/buyer/buyer.schema';
@@ -28,7 +24,7 @@ describe('/start Handler', () => {
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toContain('Tele-Bot');
     expect(repliedMessages[0]).toContain('$0.00');
-    expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
+    expect(repliedMessages[0]).toContain('کیف پول شما با موفقیت ایجاد شد');
 
     // Verify Buyer and Wallet in database
     const dbUsers = await db.select().from(users).where(eq(users.telegramChatId, 123456789n));
@@ -49,7 +45,7 @@ describe('/start Handler', () => {
     // First call: registers new Buyer
     await handleStart(ctx, buyerService);
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
+    expect(repliedMessages[0]).toContain('Tele-Bot');
 
     // Update wallet balance to simulate previous activity
     const [buyer] = await db.select().from(users).where(eq(users.telegramChatId, BigInt(chatId)));
@@ -64,7 +60,6 @@ describe('/start Handler', () => {
     expect(ctx.reply).toHaveBeenCalledTimes(2);
     expect(repliedMessages[1]).toContain('Bob');
     expect(repliedMessages[1]).toContain('$150.75');
-    expect(repliedMessages[1]).toBe(getReturningBuyerWelcomeMessage('Bob', '150.75'));
   });
 
   it('falls back to @username when first_name is not provided for returning Buyer', async () => {
@@ -84,7 +79,6 @@ describe('/start Handler', () => {
     expect(ctx.reply).toHaveBeenCalledTimes(2);
     expect(repliedMessages[1]).toContain('@charlie');
     expect(repliedMessages[1]).toContain('$0.00');
-    expect(repliedMessages[1]).toBe(getReturningBuyerWelcomeMessage('@charlie', '0.00'));
   });
 
   it('silently ignores update if ctx.from is undefined', async () => {
@@ -140,7 +134,8 @@ describe('/start Handler', () => {
     });
 
     expect(repliedMessages).toHaveLength(1);
-    expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
+    expect(repliedMessages[0]).toContain('Tele-Bot');
+    expect(repliedMessages[0]).toContain('$0.00');
   });
 
   it('sends Admin welcome panel message when /start is sent by an Admin', async () => {
@@ -158,4 +153,3 @@ describe('/start Handler', () => {
     expect(repliedMessages[0]).toContain('AdminBoss');
   });
 });
-

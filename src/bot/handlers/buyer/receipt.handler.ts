@@ -6,16 +6,8 @@ import {
   NoInitiatedTopUpRequestError,
 } from '@/modules/top-up/top-up.errors';
 import { resolveAdminIds } from '@/bot/middleware/admin.middleware';
-import {
-  getReceiptSubmittedBuyerMessage,
-  getReceiptExpiredMessage,
-  getReceiptAlreadyPendingMessage,
-  getNoActiveTopUpRequestMessage,
-} from '@/bot/handlers/buyer/receipt.messages';
-import {
-  formatAdminReceiptNotification,
-  getAdminReceiptKeyboard,
-} from '@/bot/handlers/admin';
+import { formatUsd, formatIrr } from '@/core/shared/currency.utils';
+import { getAdminReceiptKeyboard } from '@/bot/handlers/admin';
 
 export interface PhotoHandlerDependencies {
   buyerService: BuyerService;
@@ -58,12 +50,16 @@ export async function handlePhotoMessage(
   const activeRequest = await topUpService.getActiveTopUpRequest(buyer.id);
 
   if (!activeRequest) {
-    await ctx.reply(getNoActiveTopUpRequestMessage());
+    await ctx.reply(
+      'شما در حال حاضر هیچ درخواست افزایش موجودی فعالی ندارید. برای شروع افزایش موجودی، دستور /topup را ارسال کنید.'
+    );
     return;
   }
 
   if (activeRequest.status === 'PENDING') {
-    await ctx.reply(getReceiptAlreadyPendingMessage());
+    await ctx.reply(
+      'شما قبلاً رسید پرداخت خود را ارسال کرده‌اید و درخواست شما در انتظار بررسی ادمین است.'
+    );
     return;
   }
 
@@ -78,18 +74,24 @@ export async function handlePhotoMessage(
     );
 
     // Reply to Buyer confirming receipt is under review
-    await ctx.reply(getReceiptSubmittedBuyerMessage());
+    await ctx.reply(
+      'رسید پرداخت شما با موفقیت ثبت شد و برای بررسی ارسال گردید. نتیجه از طریق همین پیام‌رسان به شما اعلام خواهد شد.'
+    );
 
     // Send push notification with receipt photo to all configured Admins
     const resolvedAdminIds = resolveAdminIds(adminIds);
 
-    const adminCaption = formatAdminReceiptNotification({
-      buyerUsername: sender.username ?? null,
-      buyerChatId: sender.id,
-      usdAmount: request.usdAmount,
-      irrAmount: request.irrAmount,
-      caption,
-    });
+    const buyerDisplay = sender.username
+      ? `@${sender.username} (شناسه: ${sender.id})`
+      : `شناسه: ${sender.id}`;
+    const captionLine = caption ? `\n\nتوضیحات خریدار:\n${caption}` : '';
+
+    const adminCaption =
+      `📥 رسید پرداخت جدید دریافت شد\n\n` +
+      `خریدار: ${buyerDisplay}\n` +
+      `مبلغ درخواستی: ${formatUsd(request.usdAmount)}\n` +
+      `مبلغ ریالی: ${formatIrr(request.irrAmount)} ریال` +
+      captionLine;
 
     const keyboard = getAdminReceiptKeyboard(request.id);
 
@@ -108,11 +110,15 @@ export async function handlePhotoMessage(
     }
   } catch (err: any) {
     if (err instanceof TopUpRequestExpiredError) {
-      await ctx.reply(getReceiptExpiredMessage());
+      await ctx.reply(
+        'مهلت پرداخت درخواست افزایش موجودی شما به پایان رسیده است. لطفاً با دستور /topup یک درخواست جدید ثبت کنید.'
+      );
       return;
     }
     if (err instanceof NoInitiatedTopUpRequestError) {
-      await ctx.reply(getNoActiveTopUpRequestMessage());
+      await ctx.reply(
+        'شما در حال حاضر هیچ درخواست افزایش موجودی فعالی ندارید. برای شروع افزایش موجودی، دستور /topup را ارسال کنید.'
+      );
       return;
     }
     throw err;

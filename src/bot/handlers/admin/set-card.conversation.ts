@@ -2,25 +2,35 @@ import type { Context } from 'grammy';
 import type { BotConversation } from '@/bot/context';
 import type { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import { isCancelCommand } from '@/core/shared/telegram.utils';
-import {
-  getSetCardPromptCardNumberMessage,
-  getSetCardInvalidCardNumberMessage,
-  getSetCardPromptHolderNameMessage,
-  getSetCardPromptBankNameMessage,
-  getSetCardPromptNotesMessage,
-  getSetCardCancelledMessage,
-  getSetCardSuccessMessage,
-  isSkipCommand,
-} from '@/bot/handlers/admin/bank-account.messages';
 
 export type SetCardConversation = BotConversation;
 export const SETCARD_CONVERSATION_ID = 'setcard';
 
 /**
+ * Cleans a card number string by removing whitespace and hyphens.
+ */
+export function cleanCardNumber(cardNumber: string): string {
+  return cardNumber.replace(/[\s-]/g, '');
+}
+
+/**
+ * Checks if input is a skip command for optional fields.
+ */
+export function isSkipCommand(text: string): boolean {
+  const trimmed = text.trim().toLowerCase();
+  return (
+    trimmed === '-' ||
+    trimmed === 'skip' ||
+    trimmed.startsWith('/skip') ||
+    trimmed === ''
+  );
+}
+
+/**
  * Validates 16-digit card number (digits only, length exactly 16).
  */
 export function isValidCardNumber(cardNumber: string): boolean {
-  const digitsOnly = cardNumber.replace(/[\s-]/g, '');
+  const digitsOnly = cleanCardNumber(cardNumber);
   return /^\d{16}$/.test(digitsOnly);
 }
 
@@ -33,7 +43,7 @@ export function createSetCardConversation(bankAccountService: BankAccountService
     ctx: Context
   ): Promise<void> {
     // Step 1: Prompt Card Number
-    await ctx.reply(getSetCardPromptCardNumberMessage());
+    await ctx.reply('لطفاً شماره کارت ۱۶ رقمی را وارد کنید (یا برای انصراف /cancel را ارسال کنید):');
 
     let cardNumber = '';
     while (true) {
@@ -41,28 +51,30 @@ export function createSetCardConversation(bankAccountService: BankAccountService
       const text = nextCtx.message?.text ?? '';
 
       if (isCancelCommand(text)) {
-        await nextCtx.reply(getSetCardCancelledMessage());
+        await nextCtx.reply('عملیات تنظیم کارت بانکی لغو شد.');
         return;
       }
 
-      const cleaned = text.replace(/[\s-]/g, '');
+      const cleaned = cleanCardNumber(text);
       if (isValidCardNumber(cleaned)) {
         cardNumber = cleaned;
         break;
       }
 
-      await nextCtx.reply(getSetCardInvalidCardNumberMessage());
+      await nextCtx.reply(
+        '❌ شماره کارت نامعتبر است. شماره کارت باید دقیقاً ۱۶ رقم باشد. لطفاً مجدداً وارد کنید (یا برای انصراف /cancel را ارسال کنید):'
+      );
     }
 
     // Step 2: Prompt Card Holder Name
-    await ctx.reply(getSetCardPromptHolderNameMessage());
+    await ctx.reply('لطفاً نام صاحب حساب / دارنده کارت را وارد کنید:');
     let cardHolderName = '';
     while (true) {
       const nextCtx = await conversation.wait();
       const text = nextCtx.message?.text ?? '';
 
       if (isCancelCommand(text)) {
-        await nextCtx.reply(getSetCardCancelledMessage());
+        await nextCtx.reply('عملیات تنظیم کارت بانکی لغو شد.');
         return;
       }
 
@@ -71,18 +83,18 @@ export function createSetCardConversation(bankAccountService: BankAccountService
         break;
       }
 
-      await nextCtx.reply(getSetCardPromptHolderNameMessage());
+      await nextCtx.reply('لطفاً نام صاحب حساب / دارنده کارت را وارد کنید:');
     }
 
     // Step 3: Prompt Bank Name
-    await ctx.reply(getSetCardPromptBankNameMessage());
+    await ctx.reply('لطفاً نام بانک را وارد کنید:');
     let bankName = '';
     while (true) {
       const nextCtx = await conversation.wait();
       const text = nextCtx.message?.text ?? '';
 
       if (isCancelCommand(text)) {
-        await nextCtx.reply(getSetCardCancelledMessage());
+        await nextCtx.reply('عملیات تنظیم کارت بانکی لغو شد.');
         return;
       }
 
@@ -91,16 +103,16 @@ export function createSetCardConversation(bankAccountService: BankAccountService
         break;
       }
 
-      await nextCtx.reply(getSetCardPromptBankNameMessage());
+      await nextCtx.reply('لطفاً نام بانک را وارد کنید:');
     }
 
     // Step 4: Prompt Optional Notes
-    await ctx.reply(getSetCardPromptNotesMessage());
+    await ctx.reply('توضیحات تکمیلی (اختیاری) را وارد کنید یا در صورت عدم نیاز عبارت - یا skip را ارسال کنید:');
     const notesCtx = await conversation.wait();
     const notesText = notesCtx.message?.text ?? '';
 
     if (isCancelCommand(notesText)) {
-      await notesCtx.reply(getSetCardCancelledMessage());
+      await notesCtx.reply('عملیات تنظیم کارت بانکی لغو شد.');
       return;
     }
 
@@ -116,6 +128,16 @@ export function createSetCardConversation(bankAccountService: BankAccountService
       });
     });
 
-    await ctx.reply(getSetCardSuccessMessage(updatedAccount));
+    const notesLine = updatedAccount.additionalNotes
+      ? `\nتوضیحات: ${updatedAccount.additionalNotes}`
+      : `\nتوضیحات: ندارد`;
+
+    await ctx.reply(
+      `✅ حساب بانکی فعال با موفقیت به‌روزرسانی شد!\n\n` +
+      `شماره کارت: ${updatedAccount.cardNumber}\n` +
+      `صاحب حساب: ${updatedAccount.cardHolderName}\n` +
+      `بانک: ${updatedAccount.bankName}` +
+      notesLine
+    );
   };
 }

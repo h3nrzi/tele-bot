@@ -5,18 +5,9 @@ import type { TopUpService } from '@/modules/top-up/top-up.service';
 import { TopUpRequestNotPendingError } from '@/modules/top-up/top-up.errors';
 import { isCancelCommand } from '@/core/shared/telegram.utils';
 import {
-  formatAdminRejectionOutcome,
-  formatBuyerRejectionMessage,
-  getRejectionReasonPromptMessage,
-  getCustomRejectionReasonPromptMessage,
-  getRejectionCancelledMessage,
-  getRejectionSuccessAdminMessage,
-} from '@/bot/handlers/admin/rejection.messages';
-import {
   PRESET_REJECTION_REASONS,
   getRejectionPresetsKeyboard,
 } from '@/bot/handlers/admin/rejection.keyboards';
-import { formatAdminAlreadyProcessedOutcome } from '@/bot/handlers/admin/approval.messages';
 
 export type RejectConversation = BotConversation;
 export const REJECT_CONVERSATION_ID = 'reject_topup';
@@ -89,9 +80,12 @@ export function createRejectConversation(topUpService: TopUpService) {
     }
 
     // 1. Present preset reasons inline keyboard
-    await ctx.reply(getRejectionReasonPromptMessage(), {
-      reply_markup: getRejectionPresetsKeyboard(),
-    });
+    await ctx.reply(
+      'لطفاً دلیل رد درخواست افزایش موجودی را انتخاب کنید یا گزینه دلیل دلخواه را بزنید:',
+      {
+        reply_markup: getRejectionPresetsKeyboard(),
+      }
+    );
 
     // 2. Wait for admin decision
     const nextCtx = await conversation.wait();
@@ -108,7 +102,7 @@ export function createRejectConversation(topUpService: TopUpService) {
           await nextCtx.answerCallbackQuery();
         } catch {}
       }
-      await nextCtx.reply(getRejectionCancelledMessage());
+      await nextCtx.reply('❌ عملیات رد درخواست لغو شد.');
       return;
     }
 
@@ -121,13 +115,15 @@ export function createRejectConversation(topUpService: TopUpService) {
         } catch {}
       }
 
-      await nextCtx.reply(getCustomRejectionReasonPromptMessage());
+      await nextCtx.reply(
+        'لطفاً توضیحات یا علت رد درخواست را به صورت پیام متنی ارسال کنید (یا برای انصراف /cancel را ارسال کنید):'
+      );
 
       const customNoteCtx = await conversation.wait();
       const customText = customNoteCtx.message?.text ?? '';
 
       if (isCancelCommand(customText) || !customText.trim()) {
-        await customNoteCtx.reply(getRejectionCancelledMessage());
+        await customNoteCtx.reply('❌ عملیات رد درخواست لغو شد.');
         return;
       }
 
@@ -143,7 +139,7 @@ export function createRejectConversation(topUpService: TopUpService) {
     } else if (actionText.trim()) {
       rejectionReason = actionText.trim();
     } else {
-      await nextCtx.reply(getRejectionCancelledMessage());
+      await nextCtx.reply('❌ عملیات رد درخواست لغو شد.');
       return;
     }
 
@@ -158,9 +154,11 @@ export function createRejectConversation(topUpService: TopUpService) {
           },
           {
             notifyBuyer: async (params) => {
-              const buyerMessage = formatBuyerRejectionMessage({
-                rejectionReason: params.rejectionReason,
-              });
+              const buyerMessage =
+                `❌ درخواست افزایش موجودی شما رد شد.\n\n` +
+                `علت رد درخواست:\n` +
+                `${params.rejectionReason}\n\n` +
+                `در صورت نیاز، لطفاً پس از رفع اشکال مجدداً با دستور /topup درخواست جدید ثبت کنید.`;
               await ctx.api.sendMessage(
                 params.buyerTelegramChatId.toString(),
                 buyerMessage
@@ -171,11 +169,7 @@ export function createRejectConversation(topUpService: TopUpService) {
       });
 
       // 4. Edit original Admin notification message
-      const newCaption = formatAdminRejectionOutcome(
-        originalCaption,
-        adminDisplay,
-        rejectionReason
-      );
+      const newCaption = `${originalCaption}\n\n❌ رد شد توسط: ${adminDisplay}\nعلت: ${rejectionReason}`;
       await editAdminNotificationMessage(
         ctx.api,
         originalChatId,
@@ -184,7 +178,7 @@ export function createRejectConversation(topUpService: TopUpService) {
         newCaption
       );
 
-      await nextCtx.reply(getRejectionSuccessAdminMessage(rejectionReason));
+      await nextCtx.reply(`✅ درخواست با موفقیت رد شد.\nعلت: ${rejectionReason}`);
     } catch (err: any) {
       if (
         err instanceof TopUpRequestNotPendingError ||
@@ -192,8 +186,7 @@ export function createRejectConversation(topUpService: TopUpService) {
         err?.name === 'TopUpRequestNotPendingError' ||
         err?.message?.includes('not pending approval')
       ) {
-        const alreadyProcessedCaption =
-          formatAdminAlreadyProcessedOutcome(originalCaption);
+        const alreadyProcessedCaption = `${originalCaption}\n\n⚠️ این درخواست قبلاً تعیین تکلیف شده است.`;
         await editAdminNotificationMessage(
           ctx.api,
           originalChatId,

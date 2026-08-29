@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext } from '@tests/helpers/mock-context';
-import {
-  handleCancelCommand,
-  getCancelSuccessMessage,
-  getCannotCancelPendingMessage,
-  getNoActiveRequestToCancelMessage,
-} from '@/bot/handlers/buyer';
+import { handleCancelCommand } from '@/bot/handlers/buyer';
 import { BuyerService } from '@/modules/buyer/buyer.service';
 import { createBot } from '@/bot/bot';
 import {
@@ -54,7 +49,7 @@ describe('/cancel Command Handler', () => {
     await handleCancelCommand(ctx, cancelDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getCancelSuccessMessage());
+    expect(repliedMessages[0]).toContain('لغو شد');
 
     // Verify DB status is CANCELLED
     const [row] = await db
@@ -84,7 +79,7 @@ describe('/cancel Command Handler', () => {
     await handleCancelCommand(ctx, cancelDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getCannotCancelPendingMessage());
+    expect(repliedMessages[0]).toContain('رسید پرداخت ارسال شده');
 
     // Verify DB status remains PENDING
     const [row] = await db
@@ -96,7 +91,7 @@ describe('/cancel Command Handler', () => {
 
   it('informs buyer when there is no active top-up request to cancel', async () => {
     const chatId = 333444555;
-    const { buyer } = await createTestBuyer(
+    await createTestBuyer(
       container,
       { telegramChatId: chatId, telegramUsername: 'charlie_buyer' }
     );
@@ -110,7 +105,7 @@ describe('/cancel Command Handler', () => {
     await handleCancelCommand(ctx, cancelDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toBe(getNoActiveRequestToCancelMessage());
+    expect(repliedMessages[0]).toContain('هیچ درخواست افزایش موجودی فعالی');
   });
 
   it('silently ignores /cancel for unregistered sender (no users row)', async () => {
@@ -186,6 +181,6 @@ describe('/cancel Command Handler', () => {
     });
 
     expect(repliedMessages).toHaveLength(1);
-    expect(repliedMessages[0]).toBe(getCancelSuccessMessage());
+    expect(repliedMessages[0]).toContain('لغو شد');
   });
 });

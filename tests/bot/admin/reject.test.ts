@@ -11,7 +11,6 @@ import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
-import { formatBuyerRejectionMessage } from '@/bot/handlers/admin';
 import { eq } from 'drizzle-orm';
 
 describe('Admin Rejection Conversation & Callback Handler', () => {
@@ -228,10 +227,11 @@ describe('Admin Rejection Conversation & Callback Handler', () => {
     expect(entryRows).toHaveLength(0);
 
     // 5. Verify Buyer push notification contains rejection reason
-    const buyerNotification = formatBuyerRejectionMessage({
-      rejectionReason: 'Wrong amount',
-    });
-    expect(repliedMessages).toContain(buyerNotification);
+    expect(
+      repliedMessages.some(
+        (msg) => msg.includes('رد شد') && msg.includes('Wrong amount')
+      )
+    ).toBe(true);
 
     // 6. Verify original admin message was edited to show rejection outcome
     const editedNotification = editedMessages.find((m) => m.message_id === 10);
@@ -286,10 +286,11 @@ describe('Admin Rejection Conversation & Callback Handler', () => {
     expect(rejectedReq?.rejectionReason).toBe(customNote);
 
     // 5. Buyer receives push notification containing custom note verbatim
-    const buyerNotification = formatBuyerRejectionMessage({
-      rejectionReason: customNote,
-    });
-    expect(repliedMessages).toContain(buyerNotification);
+    expect(
+      repliedMessages.some(
+        (msg) => msg.includes('رد شد') && msg.includes(customNote)
+      )
+    ).toBe(true);
 
     // 6. Original admin notification message edited with custom note
     const editedNotification = editedMessages.find((m) => m.message_id === 10);

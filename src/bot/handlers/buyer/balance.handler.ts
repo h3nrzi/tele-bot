@@ -1,9 +1,6 @@
 import type { Context } from 'grammy';
 import type { WalletService } from '@/modules/wallet/wallet.service';
-import {
-  getBuyerBalanceMessage,
-  getUnregisteredBalanceMessage,
-} from '@/bot/handlers/buyer/balance.messages';
+import { formatUsd } from '@/core/shared/currency.utils';
 
 /**
  * Handles the /balance command and menu button.
@@ -22,9 +19,11 @@ export async function handleBalance(
   });
 
   if (!result) {
-    await ctx.reply(getUnregisteredBalanceMessage());
+    await ctx.reply(
+      'شما هنوز در ربات ثبت نام نکرده‌اید. لطفاً با ارسال /start ثبت نام خود را انجام دهید.'
+    );
     return;
   }
 
-  await ctx.reply(getBuyerBalanceMessage(result.wallet.availableBalance));
+  await ctx.reply(`💰 موجودی کیف پول شما: ${formatUsd(result.wallet.availableBalance)}`);
 }

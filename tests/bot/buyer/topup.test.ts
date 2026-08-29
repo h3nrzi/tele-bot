@@ -4,17 +4,7 @@ import { createMockFetch } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
 import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
-import { users } from '@/modules/buyer/buyer.schema';
-import {
-  getTopUpPromptMessage,
-  getTopUpUnavailableMessage,
-  getTopUpActiveExistsMessage,
-  getTopUpCancelledMessage,
-  getTopUpSuccessMessage,
-  getAdminNoRateAlertMessage,
-} from '@/bot/handlers/buyer';
 import { eq, count } from 'drizzle-orm';
-import Decimal from 'decimal.js';
 
 describe('/topup Buyer Command & Conversation Flow', () => {
   const { db, container } = setupTestDatabase();
@@ -93,7 +83,7 @@ describe('/topup Buyer Command & Conversation Flow', () => {
   it('walks Buyer through happy path /topup flow and creates INITIATED request with card details', async () => {
     // Setup exchange rate and active card
     await setTestRate(container, BigInt(adminChatId), 620000n);
-    const activeCard = await setTestActiveAccount(
+    await setTestActiveAccount(
       container,
       {
         cardNumber: '6037991234567890',
@@ -109,9 +99,9 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, '/topup'));
 
     expect(repliedMessages).toHaveLength(1);
-    expect(repliedMessages[0]).toBe(
-      getTopUpPromptMessage(new Decimal('10.00'), new Decimal('1000.00'))
-    );
+    expect(repliedMessages[0]).toContain('لطفاً مبلغ مورد نظر برای افزایش موجودی');
+    expect(repliedMessages[0]).toContain('$10.00');
+    expect(repliedMessages[0]).toContain('$1000.00');
 
     // Step 2: Send USD amount $100
     await bot.handleUpdate(makeMessageUpdate(2, buyerChatId, '100'));
@@ -151,7 +141,7 @@ describe('/topup Buyer Command & Conversation Flow', () => {
 
     await bot.handleUpdate(makeMessageUpdate(2, buyerChatId, '/cancel'));
     expect(repliedMessages).toHaveLength(2);
-    expect(repliedMessages[1]).toBe(getTopUpCancelledMessage());
+    expect(repliedMessages[1]).toContain('لغو شد');
 
     const [countRes] = await db.select({ value: count() }).from(topUpRequests);
     expect(Number(countRes?.value ?? 0)).toBe(0);
@@ -214,11 +204,11 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, '/topup'));
 
     // Buyer receives unavailable message
-    expect(repliedMessages).toContain(getTopUpUnavailableMessage());
+    expect(repliedMessages.some((msg) => msg.includes('موقتاً در دسترس نیست'))).toBe(true);
 
     // Both admins receive urgent alert
     const adminAlerts = repliedMessages.filter((msg) =>
-      msg.includes(getAdminNoRateAlertMessage()) || msg.includes('/setrate')
+      msg.includes('فوری') && msg.includes('/setrate')
     );
     expect(adminAlerts).toHaveLength(2);
 
@@ -248,7 +238,7 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     // Second /topup attempt while first is still INITIATED
     await bot.handleUpdate(makeMessageUpdate(3, buyerChatId, '/topup'));
     expect(repliedMessages).toHaveLength(3);
-    expect(repliedMessages[2]).toBe(getTopUpActiveExistsMessage());
+    expect(repliedMessages[2]).toContain('یک درخواست افزایش موجودی فعال دارید');
 
     const allRequests = await db.select().from(topUpRequests);
     expect(allRequests).toHaveLength(1);
@@ -281,7 +271,7 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     // Attempt second /topup
     await bot.handleUpdate(makeMessageUpdate(3, buyerChatId, '/topup'));
     expect(repliedMessages).toHaveLength(3);
-    expect(repliedMessages[2]).toBe(getTopUpActiveExistsMessage());
+    expect(repliedMessages[2]).toContain('یک درخواست افزایش موجودی فعال دارید');
   });
 
   it('fails bot creation / startup when TOPUP_MIN_USD or TOPUP_MAX_USD is missing', () => {

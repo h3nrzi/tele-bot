@@ -11,9 +11,6 @@ import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
-import {
-  formatBuyerApprovalMessage,
-} from '@/bot/handlers/admin';
 import { eq } from 'drizzle-orm';
 
 describe('Admin Approval Callback Handler', () => {
@@ -202,11 +199,7 @@ describe('Admin Approval Callback Handler', () => {
     expect(entryRows).toHaveLength(2);
 
     // 5. Verify Buyer push notification
-    const buyerNotification = formatBuyerApprovalMessage({
-      usdAmount: '100.00',
-      availableBalance: '100.00',
-    });
-    expect(repliedMessages).toContain(buyerNotification);
+    expect(repliedMessages.some((msg) => msg.includes('تایید شد') && msg.includes('$100.00'))).toBe(true);
 
     // 6. Verify admin message was edited to show approved outcome and remove inline buttons
     expect(editedMessages).toHaveLength(1);

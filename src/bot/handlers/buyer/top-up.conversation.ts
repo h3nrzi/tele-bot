@@ -6,16 +6,9 @@ import type { BankAccountService } from '@/modules/bank-account/bank-account.ser
 import { ActiveTopUpRequestExistsError } from '@/modules/top-up/top-up.errors';
 import { NoExchangeRateError } from '@/modules/exchange-rate/exchange-rate.errors';
 import { NoActiveBankAccountError } from '@/modules/bank-account/bank-account.errors';
-import { validateTopUpAmount } from '@/core/shared/currency.utils';
+import { validateTopUpAmount, formatUsd, formatIrr } from '@/core/shared/currency.utils';
 import { TopUpLimits } from '@/modules/top-up/top-up.limits.vo';
 import { isCancelCommand } from '@/core/shared/telegram.utils';
-import {
-  getTopUpPromptMessage,
-  getTopUpUnavailableMessage,
-  getTopUpActiveExistsMessage,
-  getTopUpCancelledMessage,
-  getTopUpSuccessMessage,
-} from '@/bot/handlers/buyer/top-up.messages';
 
 export type TopUpConversation = BotConversation;
 export const TOPUP_CONVERSATION_ID = 'topup';
@@ -35,7 +28,9 @@ export function createTopUpConversation(
   ): Promise<void> {
     const limits = limitsSource ?? TopUpLimits.fromEnv();
 
-    await ctx.reply(getTopUpPromptMessage(limits.minUsd, limits.maxUsd));
+    await ctx.reply(
+      `لطفاً مبلغ مورد نظر برای افزایش موجودی به دلار را وارد کنید (حداقل: ${formatUsd(limits.minUsd)}، حداکثر: ${formatUsd(limits.maxUsd)})، یا برای انصراف /cancel را ارسال کنید:`
+    );
 
     let amountString = '';
     while (true) {
@@ -43,7 +38,7 @@ export function createTopUpConversation(
       const text = nextCtx.message?.text ?? '';
 
       if (isCancelCommand(text)) {
-        await nextCtx.reply(getTopUpCancelledMessage());
+        await nextCtx.reply('درخواست افزایش موجودی لغو شد.');
         return;
       }
 
@@ -96,21 +91,30 @@ export function createTopUpConversation(
         };
       });
 
+      const notesLine = activeAccount.additionalNotes
+        ? `توضیحات: ${activeAccount.additionalNotes}\n`
+        : '';
+
       await ctx.reply(
-        getTopUpSuccessMessage({
-          usdAmount: request.usdAmount,
-          irrAmount: request.irrAmount,
-          bankAccount: activeAccount,
-          expiresAt: request.expiresAt,
-        })
+        `درخواست افزایش موجودی ثبت شد!\n\n` +
+        `مبلغ: ${formatUsd(request.usdAmount)}\n` +
+        `مبلغ پرداختی به ریال: ${formatIrr(request.irrAmount)} ریال\n\n` +
+        `مشخصات حساب بانکی:\n` +
+        `شماره کارت: ${activeAccount.cardNumber}\n` +
+        `صاحب حساب: ${activeAccount.cardHolderName}\n` +
+        `بانک: ${activeAccount.bankName}\n` +
+        notesLine +
+        `\nلطفاً مبلغ دقیق ریالی را به حساب بانکی فوق واریز نمایید. پس از واریز، عکس رسید پرداخت خود را ارسال کنید.`
       );
     } catch (err: any) {
       if (err instanceof ActiveTopUpRequestExistsError) {
-        await ctx.reply(getTopUpActiveExistsMessage());
+        await ctx.reply(
+          'شما یک درخواست افزایش موجودی فعال دارید. لطفاً قبل از ثبت درخواست جدید، درخواست قبلی را تکمیل یا لغو کنید.'
+        );
         return;
       }
       if (err instanceof NoExchangeRateError || err instanceof NoActiveBankAccountError) {
-        await ctx.reply(getTopUpUnavailableMessage());
+        await ctx.reply('افزایش موجودی موقتاً در دسترس نیست. لطفاً بعداً تلاش کنید.');
         return;
       }
       throw err;
