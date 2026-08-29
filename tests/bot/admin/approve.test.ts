@@ -90,6 +90,7 @@ describe('Admin Approval Callback Handler', () => {
           date: Math.floor(Date.now() / 1000),
           chat: { id: chatId, type: 'private' },
           caption,
+          photo: [{ file_id: 'receipt_photo_123', width: 100, height: 100 }],
         },
         data,
       },

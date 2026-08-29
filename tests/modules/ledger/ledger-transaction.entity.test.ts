@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { LedgerTransaction } from '@/modules/ledger/ledger-transaction.entity';
 import { LedgerEntry } from '@/modules/ledger/ledger-entry.entity';
 import { UsdAmount } from '@/core/shared/money.vo';
+import {
+  LedgerInsufficientEntriesError,
+  LedgerUnbalancedEntriesError,
+} from '@/modules/ledger/ledger.errors';
 
 describe('Domain Entity: LedgerTransaction & LedgerEntry', () => {
   it('instantiates LedgerTransaction aggregate with props and entries', () => {
@@ -57,18 +61,18 @@ describe('Domain Entity: LedgerTransaction & LedgerEntry', () => {
     }).not.toThrow();
   });
 
-  it('throws error when entries are fewer than 2 or do not balance', () => {
+  it('throws domain error when entries are fewer than 2 or do not balance', () => {
     expect(() => {
       LedgerTransaction.validateDoubleEntryBalance([
         { direction: 'DEBIT', usdAmount: '50.00' },
       ]);
-    }).toThrow('Ledger transaction must have at least 2 entries');
+    }).toThrow(LedgerInsufficientEntriesError);
 
     expect(() => {
       LedgerTransaction.validateDoubleEntryBalance([
         { direction: 'DEBIT', usdAmount: '50.00' },
         { direction: 'CREDIT', usdAmount: '49.99' },
       ]);
-    }).toThrow('Ledger entries do not balance');
+    }).toThrow(LedgerUnbalancedEntriesError);
   });
 });

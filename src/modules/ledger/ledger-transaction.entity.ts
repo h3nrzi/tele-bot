@@ -1,5 +1,9 @@
 import { LedgerEntry } from '@/modules/ledger/ledger-entry.entity';
 import { UsdAmount } from '@/core/shared/money.vo';
+import {
+  LedgerInsufficientEntriesError,
+  LedgerUnbalancedEntriesError,
+} from '@/modules/ledger/ledger.errors';
 
 export interface LedgerTransactionProps {
   id: string;
@@ -35,7 +39,7 @@ export class LedgerTransaction {
     entries: Array<{ direction: 'DEBIT' | 'CREDIT'; usdAmount: UsdAmount | string }>
   ): void {
     if (entries.length < 2) {
-      throw new Error('Ledger transaction must have at least 2 entries');
+      throw new LedgerInsufficientEntriesError();
     }
 
     let totalDebit = UsdAmount.zero();
@@ -51,7 +55,7 @@ export class LedgerTransaction {
     }
 
     if (!totalDebit.equals(totalCredit)) {
-      throw new Error(
+      throw new LedgerUnbalancedEntriesError(
         `Ledger entries do not balance: totalDebit=${totalDebit.toString()}, totalCredit=${totalCredit.toString()}`
       );
     }

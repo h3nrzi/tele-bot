@@ -1,9 +1,8 @@
 import type { Context } from 'grammy';
-import type { IBuyerRepository } from '@/modules/buyer/buyer.repository.interface';
 import { TopUpService } from '@/modules/top-up/top-up.service';
+import { BuyerService } from '@/modules/buyer/buyer.service';
 import type { DbClient } from '@/core/database/client';
 import { createAppContainer } from '@/core/di/container';
-import { TOKENS } from '@/core/di/tokens';
 import {
   getNoTopUpHistoryMessage,
   formatStatusMessage,
@@ -11,8 +10,8 @@ import {
 import { getBuyerMainMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
 
 export interface StatusHandlerDependencies {
-  buyerRepo: IBuyerRepository;
-  topUpService: TopUpService;
+  buyerService?: BuyerService | undefined;
+  topUpService?: TopUpService | undefined;
 }
 
 /**
@@ -27,23 +26,20 @@ export async function handleStatusCommand(
     return;
   }
 
-  const isDeps = depsOrDb && 'topUpService' in depsOrDb;
+  const isDeps = depsOrDb && ('topUpService' in depsOrDb || 'buyerService' in depsOrDb);
   const container = isDeps
     ? null
     : createAppContainer({ dbClient: depsOrDb as DbClient, child: true });
 
-  const buyerRepo = isDeps
-    ? depsOrDb.buyerRepo
-    : container!.resolve<IBuyerRepository>(TOKENS.BuyerRepository);
+  const buyerService = isDeps
+    ? (depsOrDb as StatusHandlerDependencies).buyerService ?? createAppContainer({ child: true }).resolve(BuyerService)
+    : container!.resolve(BuyerService);
 
   const topUpService = isDeps
-    ? depsOrDb.topUpService
+    ? (depsOrDb as StatusHandlerDependencies).topUpService ?? createAppContainer({ child: true }).resolve(TopUpService)
     : container!.resolve(TopUpService);
 
-  const buyer = await buyerRepo.findByTelegramChatId(
-    BigInt(sender.id)
-  );
-
+  const buyer = await buyerService.findByTelegramChatId(sender.id);
   if (!buyer) {
     return;
   }

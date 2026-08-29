@@ -6,7 +6,8 @@ import type { LedgerTransaction } from '@/modules/ledger/ledger-transaction.enti
 import type { LedgerEntry } from '@/modules/ledger/ledger-entry.entity';
 
 export interface InitiateTopUpInput {
-  userId: string;
+  userId?: string;
+  telegramChatId?: bigint | number;
   usdAmount: string | Decimal;
 }
 
@@ -16,7 +17,8 @@ export interface InitiateTopUpResult {
 }
 
 export interface SubmitReceiptInput {
-  userId: string;
+  userId?: string;
+  telegramChatId?: bigint | number;
   fileId: string;
   caption?: string | null | undefined;
 }
@@ -69,7 +71,8 @@ export interface RejectTopUpResult {
 }
 
 export interface CancelTopUpInput {
-  userId: string;
+  userId?: string;
+  telegramChatId?: bigint | number;
 }
 
 export interface CancelTopUpOptions {

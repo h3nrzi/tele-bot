@@ -6,7 +6,7 @@ import type { ITopUpRequestRepository } from '@/modules/top-up/top-up.repository
 import type { IExchangeRateRepository } from '@/modules/exchange-rate/exchange-rate.repository.interface';
 import type { IBuyerRepository } from '@/modules/buyer/buyer.repository.interface';
 import type { IWalletRepository } from '@/modules/wallet/wallet.repository.interface';
-import type { ILedgerRepository } from '@/modules/ledger/ledger.repository.interface';
+import { LedgerService } from '@/modules/ledger/ledger.service';
 import { TopUpLimits } from '@/modules/top-up/top-up.limits.vo';
 import { TopUpRequest } from '@/modules/top-up/top-up-request.entity';
 import {
@@ -51,11 +51,29 @@ export class TopUpService {
     private readonly buyerRepo: IBuyerRepository<DbExecutor>,
     @inject(TOKENS.WalletRepository)
     private readonly walletRepo: IWalletRepository<DbExecutor>,
-    @inject(TOKENS.LedgerRepository)
-    private readonly ledgerRepo: ILedgerRepository<DbExecutor>,
+    @inject(TOKENS.LedgerService)
+    private readonly ledgerService: LedgerService,
     @inject(TOKENS.TopUpLimits)
     private readonly topUpLimits?: TopUpLimits
   ) {}
+
+  private async resolveUserId(
+    input: { userId?: string; telegramChatId?: bigint | number },
+    client: DbExecutor
+  ): Promise<string> {
+    if (input.userId) {
+      return input.userId;
+    }
+    if (input.telegramChatId !== undefined) {
+      const chatId = normalizeChatId(input.telegramChatId);
+      const buyer = await this.buyerRepo.findByTelegramChatId(chatId, client);
+      if (!buyer) {
+        throw new Error(`Buyer not found for telegram chat ID ${input.telegramChatId}`);
+      }
+      return buyer.id;
+    }
+    throw new Error('Either userId or telegramChatId must be provided.');
+  }
 
   /**
    * Initiates a new Top-Up Request for a Buyer.
@@ -66,7 +84,8 @@ export class TopUpService {
     executor?: DbExecutor
   ): Promise<InitiateTopUpResult> {
     const client = executor ?? this.db ?? getDefaultDb();
-    const limits = customLimits ?? this.topUpLimits ?? TopUpLimits.fromEnv();
+    const limits = customLimits ?? (process.env.TOPUP_MIN_USD ? TopUpLimits.fromEnv() : this.topUpLimits) ?? TopUpLimits.fromEnv();
+    const userId = await this.resolveUserId(input, client);
 
     // 1. Validate Amount
     const validation = limits.validateAmount(input.usdAmount);
@@ -92,7 +111,7 @@ export class TopUpService {
     try {
       const insertedRequest = await this.topUpRepo.insert(
         {
-          userId: input.userId,
+          userId,
           exchangeRateId: currentRate.id,
           usdAmount: validation.amount,
           irrAmount,
@@ -126,10 +145,23 @@ export class TopUpService {
    * Returns the currently active top-up request (INITIATED or PENDING) for a user, or null if none.
    */
   public async getActiveTopUpRequest(
-    userId: string,
+    userIdOrInput: string | { userId?: string; telegramChatId?: bigint | number },
     executor?: DbExecutor
   ): Promise<TopUpRequest | null> {
     const client = executor ?? this.db ?? getDefaultDb();
+    let userId: string;
+    if (typeof userIdOrInput === 'string') {
+      userId = userIdOrInput;
+    } else if (userIdOrInput.userId) {
+      userId = userIdOrInput.userId;
+    } else if (userIdOrInput.telegramChatId !== undefined) {
+      const chatId = normalizeChatId(userIdOrInput.telegramChatId);
+      const buyer = await this.buyerRepo.findByTelegramChatId(chatId, client);
+      if (!buyer) return null;
+      userId = buyer.id;
+    } else {
+      throw new Error('Either userId or telegramChatId must be provided.');
+    }
     return await this.topUpRepo.findActiveByUserId(userId, client);
   }
 
@@ -143,10 +175,11 @@ export class TopUpService {
   ): Promise<SubmitReceiptResult> {
     const client = executor ?? this.db ?? getDefaultDb();
     const now = options?.now ?? new Date();
+    const userId = await this.resolveUserId(input, client);
 
     // 1. Fetch active INITIATED request
     const initiatedRequest = await this.topUpRepo.findInitiatedByUserId(
-      input.userId,
+      userId,
       client
     );
 
@@ -237,26 +270,13 @@ export class TopUpService {
       // 5. Domain wallet credit
       wallet.credit(request.usdAmount);
 
-      // 6. Create Ledger Transaction and double-entry rows
+      // 6. Create Ledger Transaction and double-entry rows via LedgerService
       const { transaction: ledgerTx, entries } =
-        await this.ledgerRepo.createTransactionWithEntries(
+        await this.ledgerService.recordTopUpCredit(
           {
             topUpRequestId: request.id,
-            narrative: `Top-up approval for request ${request.id}`,
-            entries: [
-              {
-                accountType: 'SYSTEM_CASH',
-                direction: 'DEBIT',
-                usdAmount: request.usdAmount,
-                walletId: null,
-              },
-              {
-                accountType: 'BUYER_WALLET',
-                direction: 'CREDIT',
-                usdAmount: request.usdAmount,
-                walletId: wallet.id,
-              },
-            ],
+            walletId: wallet.id,
+            usdAmount: request.usdAmount,
           },
           tx
         );
@@ -413,10 +433,11 @@ export class TopUpService {
   ): Promise<CancelTopUpResult> {
     const client = executor ?? this.db ?? getDefaultDb();
     const now = options?.now ?? new Date();
+    const userId = await this.resolveUserId(input, client);
 
     // 1. Fetch active request
     const activeRequest = await this.topUpRepo.findActiveByUserId(
-      input.userId,
+      userId,
       client
     );
 
@@ -450,10 +471,23 @@ export class TopUpService {
    * Returns the most recent top-up request for a Buyer regardless of status, or null if none exists.
    */
   public async getLatestTopUpRequest(
-    userId: string,
+    userIdOrInput: string | { userId?: string; telegramChatId?: bigint | number },
     executor?: DbExecutor
   ): Promise<TopUpRequest | null> {
     const client = executor ?? this.db ?? getDefaultDb();
+    let userId: string;
+    if (typeof userIdOrInput === 'string') {
+      userId = userIdOrInput;
+    } else if (userIdOrInput.userId) {
+      userId = userIdOrInput.userId;
+    } else if (userIdOrInput.telegramChatId !== undefined) {
+      const chatId = normalizeChatId(userIdOrInput.telegramChatId);
+      const buyer = await this.buyerRepo.findByTelegramChatId(chatId, client);
+      if (!buyer) return null;
+      userId = buyer.id;
+    } else {
+      throw new Error('Either userId or telegramChatId must be provided.');
+    }
     return await this.topUpRepo.findLatestByUserId(userId, client);
   }
 

@@ -2,6 +2,7 @@ import { injectable, inject } from 'tsyringe';
 import type { DbClient } from '@/core/database/client';
 import { getDefaultDb } from '@/core/database/client';
 import type { DbExecutor } from '@/core/database/types';
+import type { Buyer } from '@/modules/buyer/buyer.entity';
 import type { IBuyerRepository } from '@/modules/buyer/buyer.repository.interface';
 import type { IWalletRepository } from '@/modules/wallet/wallet.repository.interface';
 import { normalizeChatId } from '@/core/shared/telegram.utils';
@@ -90,6 +91,29 @@ export class BuyerService {
       wallet,
       isNew: isInserted,
     };
+  }
+
+  /**
+   * Finds a Buyer domain entity by Telegram Chat ID, or returns null if not registered.
+   */
+  public async findByTelegramChatId(
+    telegramChatId: bigint | number,
+    executor?: DbExecutor
+  ): Promise<Buyer | null> {
+    const client = executor ?? this.db ?? getDefaultDb();
+    const chatId = normalizeChatId(telegramChatId);
+    return await this.buyerRepo.findByTelegramChatId(chatId, client);
+  }
+
+  /**
+   * Finds a Buyer domain entity by ID, or returns null if not found.
+   */
+  public async findById(
+    id: string,
+    executor?: DbExecutor
+  ): Promise<Buyer | null> {
+    const client = executor ?? this.db ?? getDefaultDb();
+    return await this.buyerRepo.findById(id, client);
   }
 
   /**
