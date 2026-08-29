@@ -1,7 +1,5 @@
 import type { Context } from 'grammy';
-import { WalletService } from '@/modules/wallet/wallet.service';
-import type { DbClient } from '@/core/database/client';
-import { createAppContainer } from '@/core/di/container';
+import type { WalletService } from '@/modules/wallet/wallet.service';
 import {
   getBuyerBalanceMessage,
   getUnregisteredBalanceMessage,
@@ -12,17 +10,12 @@ import {
  */
 export async function handleBalance(
   ctx: Context,
-  walletServiceOrDb?: WalletService | DbClient
+  walletService: WalletService
 ): Promise<void> {
   const sender = ctx.from;
   if (!sender) {
     return;
   }
-
-  const walletService =
-    walletServiceOrDb instanceof WalletService
-      ? walletServiceOrDb
-      : createAppContainer({ dbClient: walletServiceOrDb, child: true }).resolve(WalletService);
 
   const result = await walletService.getBuyerWallet({
     telegramChatId: sender.id,

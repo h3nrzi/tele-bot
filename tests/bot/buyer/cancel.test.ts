@@ -7,6 +7,7 @@ import {
   getCannotCancelPendingMessage,
   getNoActiveRequestToCancelMessage,
 } from '@/bot/handlers/buyer';
+import { BuyerService } from '@/modules/buyer/buyer.service';
 import { createBot } from '@/bot/bot';
 import {
   createTestBuyer,
@@ -19,6 +20,9 @@ import { eq } from 'drizzle-orm';
 
 describe('/cancel Command Handler', () => {
   const { db, container } = setupTestDatabase();
+  const buyerService = container.resolve(BuyerService);
+  const topUpService = container.resolve(TopUpService);
+  const cancelDeps = { buyerService, topUpService };
   const adminId = 123456789n;
   const originalEnv = { ...process.env };
 
@@ -47,7 +51,7 @@ describe('/cancel Command Handler', () => {
       username: 'alice_buyer',
     });
 
-    await handleCancelCommand(ctx, db);
+    await handleCancelCommand(ctx, cancelDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getCancelSuccessMessage());
@@ -77,7 +81,7 @@ describe('/cancel Command Handler', () => {
       username: 'bob_buyer',
     });
 
-    await handleCancelCommand(ctx, db);
+    await handleCancelCommand(ctx, cancelDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getCannotCancelPendingMessage());
@@ -92,7 +96,7 @@ describe('/cancel Command Handler', () => {
 
   it('informs buyer when there is no active top-up request to cancel', async () => {
     const chatId = 333444555;
-    await createTestBuyer(
+    const { buyer } = await createTestBuyer(
       container,
       { telegramChatId: chatId, telegramUsername: 'charlie_buyer' }
     );
@@ -103,7 +107,7 @@ describe('/cancel Command Handler', () => {
       username: 'charlie_buyer',
     });
 
-    await handleCancelCommand(ctx, db);
+    await handleCancelCommand(ctx, cancelDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getNoActiveRequestToCancelMessage());
@@ -116,7 +120,7 @@ describe('/cancel Command Handler', () => {
       username: 'unknown_user',
     });
 
-    await handleCancelCommand(ctx, db);
+    await handleCancelCommand(ctx, cancelDeps);
 
     expect(ctx.reply).not.toHaveBeenCalled();
   });
@@ -124,7 +128,7 @@ describe('/cancel Command Handler', () => {
   it('silently ignores update if ctx.from is undefined', async () => {
     const { ctx } = createMockContext(undefined);
 
-    await handleCancelCommand(ctx, db);
+    await handleCancelCommand(ctx, cancelDeps);
 
     expect(ctx.reply).not.toHaveBeenCalled();
   });

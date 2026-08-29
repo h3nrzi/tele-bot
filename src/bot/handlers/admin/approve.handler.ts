@@ -1,8 +1,6 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import { TopUpService } from '@/modules/top-up/top-up.service';
-import type { DbClient } from '@/core/database/client';
-import { createAppContainer } from '@/core/di/container';
+import type { TopUpService } from '@/modules/top-up/top-up.service';
 import { TopUpRequestNotPendingError } from '@/modules/top-up/top-up.errors';
 import {
   formatBuyerApprovalMessage,
@@ -11,7 +9,7 @@ import {
 } from '@/bot/handlers/admin/approval.messages';
 
 export interface ApproveHandlerDependencies {
-  topUpService?: TopUpService | undefined;
+  topUpService: TopUpService;
   adminIds?: string | Set<bigint> | undefined;
 }
 
@@ -41,8 +39,7 @@ async function editAdminMessageOutcome(
  */
 export async function handleApproveCallback(
   ctx: Context,
-  depsOrDb?: ApproveHandlerDependencies | DbClient,
-  options?: { adminIds?: string | Set<bigint> | undefined }
+  deps: ApproveHandlerDependencies
 ): Promise<void> {
   const sender = ctx.from;
   if (!sender) {
@@ -72,14 +69,7 @@ export async function handleApproveCallback(
         ? message.text ?? ''
         : '';
 
-  const isDeps = depsOrDb && 'topUpService' in depsOrDb;
-  const container = isDeps
-    ? null
-    : createAppContainer({ dbClient: depsOrDb as DbClient, child: true });
-
-  const topUpService = isDeps
-    ? (depsOrDb as ApproveHandlerDependencies).topUpService ?? createAppContainer({ child: true }).resolve(TopUpService)
-    : container!.resolve(TopUpService);
+  const { topUpService } = deps;
 
   try {
     await topUpService.approveTopUp(

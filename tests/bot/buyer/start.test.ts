@@ -6,13 +6,15 @@ import {
   getNewBuyerWelcomeMessage,
   getReturningBuyerWelcomeMessage,
 } from '@/bot/handlers/buyer';
+import { BuyerService } from '@/modules/buyer/buyer.service';
 import { createBot } from '@/bot/bot';
 import { users } from '@/modules/buyer/buyer.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { eq } from 'drizzle-orm';
 
 describe('/start Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
+  const buyerService = container.resolve(BuyerService);
 
   it('sends welcome message for a new Buyer confirming Wallet creation with $0.00 Available Balance', async () => {
     const { ctx, repliedMessages } = createMockContext({
@@ -21,7 +23,7 @@ describe('/start Handler', () => {
       username: 'alice_buyer',
     });
 
-    await handleStart(ctx, db);
+    await handleStart(ctx, buyerService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toContain('Tele-Bot');
@@ -45,7 +47,7 @@ describe('/start Handler', () => {
     });
 
     // First call: registers new Buyer
-    await handleStart(ctx, db);
+    await handleStart(ctx, buyerService);
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getNewBuyerWelcomeMessage());
 
@@ -57,7 +59,7 @@ describe('/start Handler', () => {
       .where(eq(wallets.userId, buyer!.id));
 
     // Second call: returning Buyer
-    await handleStart(ctx, db);
+    await handleStart(ctx, buyerService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(2);
     expect(repliedMessages[1]).toContain('Bob');
@@ -74,10 +76,10 @@ describe('/start Handler', () => {
     });
 
     // Initial registration
-    await handleStart(ctx, db);
+    await handleStart(ctx, buyerService);
 
     // Returning call
-    await handleStart(ctx, db);
+    await handleStart(ctx, buyerService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(2);
     expect(repliedMessages[1]).toContain('@charlie');
@@ -88,7 +90,7 @@ describe('/start Handler', () => {
   it('silently ignores update if ctx.from is undefined', async () => {
     const { ctx } = createMockContext(undefined);
 
-    await handleStart(ctx, db);
+    await handleStart(ctx, buyerService);
 
     expect(ctx.reply).not.toHaveBeenCalled();
   });
@@ -149,7 +151,7 @@ describe('/start Handler', () => {
       username: 'admin_boss',
     });
 
-    await handleStart(ctx, db, { adminIds: `${adminChatId}` });
+    await handleStart(ctx, buyerService, { adminIds: `${adminChatId}` });
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toContain('پنل مدیریت');

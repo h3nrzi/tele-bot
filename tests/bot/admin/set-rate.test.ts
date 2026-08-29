@@ -6,12 +6,14 @@ import {
   getSetRateSuccessMessage,
   getSetRateUsageErrorMessage,
 } from '@/bot/handlers/admin';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { createBot } from '@/bot/bot';
 import { exchangeRates } from '@/modules/exchange-rate/exchange-rate.schema';
 import { count } from 'drizzle-orm';
 
 describe('/setrate Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
+  const exchangeRateService = container.resolve(ExchangeRateService);
   const adminChatId = 123456789;
   const originalEnv = process.env.ADMIN_IDS;
 
@@ -29,7 +31,7 @@ describe('/setrate Handler', () => {
       { match: '620000' }
     );
 
-    await handleSetRate(ctx, db);
+    await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getSetRateSuccessMessage(620000n));
@@ -47,7 +49,7 @@ describe('/setrate Handler', () => {
       { match: '   650000   ' }
     );
 
-    await handleSetRate(ctx, db);
+    await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getSetRateSuccessMessage(650000n));
@@ -63,7 +65,7 @@ describe('/setrate Handler', () => {
       { text: '/setrate 700000' }
     );
 
-    await handleSetRate(ctx, db);
+    await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getSetRateSuccessMessage(700000n));
@@ -79,7 +81,7 @@ describe('/setrate Handler', () => {
       { match: '' }
     );
 
-    await handleSetRate(ctx, db);
+    await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getSetRateUsageErrorMessage());
@@ -94,7 +96,7 @@ describe('/setrate Handler', () => {
       { match: '0' }
     );
 
-    await handleSetRate(ctx, db);
+    await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getSetRateUsageErrorMessage());
@@ -109,7 +111,7 @@ describe('/setrate Handler', () => {
       { match: '-50000' }
     );
 
-    await handleSetRate(ctx, db);
+    await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getSetRateUsageErrorMessage());
@@ -123,14 +125,14 @@ describe('/setrate Handler', () => {
       { id: adminChatId, username: 'admin_user' },
       { match: 'abc' }
     );
-    await handleSetRate(ctxText, db);
+    await handleSetRate(ctxText, exchangeRateService);
     expect(messagesText[0]).toBe(getSetRateUsageErrorMessage());
 
     const { ctx: ctxFloat, repliedMessages: messagesFloat } = createMockContext(
       { id: adminChatId, username: 'admin_user' },
       { match: '620000.50' }
     );
-    await handleSetRate(ctxFloat, db);
+    await handleSetRate(ctxFloat, exchangeRateService);
     expect(messagesFloat[0]).toBe(getSetRateUsageErrorMessage());
 
     const [countResult] = await db.select({ value: count() }).from(exchangeRates);
@@ -140,7 +142,7 @@ describe('/setrate Handler', () => {
   it('silently ignores update if ctx.from is undefined', async () => {
     const { ctx } = createMockContext(undefined, { match: '620000' });
 
-    await handleSetRate(ctx, db);
+    await handleSetRate(ctx, exchangeRateService);
 
     expect(ctx.reply).not.toHaveBeenCalled();
     const [countResult] = await db.select({ value: count() }).from(exchangeRates);

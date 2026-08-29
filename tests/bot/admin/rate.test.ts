@@ -6,11 +6,13 @@ import {
   getCurrentRateMessage,
   getNoRateConfiguredMessage,
 } from '@/bot/handlers/admin';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { setTestRate } from '@tests/helpers/fixtures';
 import { createBot } from '@/bot/bot';
 
 describe('/rate Handler', () => {
   const { db, container } = setupTestDatabase();
+  const exchangeRateService = container.resolve(ExchangeRateService);
   const adminChatId = 123456789;
   const originalEnv = process.env.ADMIN_IDS;
 
@@ -28,7 +30,7 @@ describe('/rate Handler', () => {
       username: 'admin_user',
     });
 
-    await handleRate(ctx, db);
+    await handleRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getNoRateConfiguredMessage());
@@ -43,7 +45,7 @@ describe('/rate Handler', () => {
       username: 'admin_user',
     });
 
-    await handleRate(ctx, db);
+    await handleRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getCurrentRateMessage(createdRate));
@@ -60,7 +62,7 @@ describe('/rate Handler', () => {
       username: 'admin_user',
     });
 
-    await handleRate(ctx, db);
+    await handleRate(ctx, exchangeRateService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getCurrentRateMessage(secondRate));
@@ -71,7 +73,7 @@ describe('/rate Handler', () => {
   it('silently ignores update if ctx.from is undefined', async () => {
     const { ctx } = createMockContext(undefined);
 
-    await handleRate(ctx, db);
+    await handleRate(ctx, exchangeRateService);
 
     expect(ctx.reply).not.toHaveBeenCalled();
   });

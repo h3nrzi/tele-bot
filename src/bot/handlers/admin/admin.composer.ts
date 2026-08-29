@@ -41,23 +41,21 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   const container = options?.container;
 
   const exchangeRateService =
-    options?.exchangeRateService ??
-    (container ? container.resolve(ExchangeRateService) : undefined);
+    options?.exchangeRateService ?? container?.resolve(ExchangeRateService);
   const topUpService =
-    options?.topUpService ??
-    (container ? container.resolve(TopUpService) : undefined);
+    options?.topUpService ?? container?.resolve(TopUpService);
+
+  if (!exchangeRateService || !topUpService) {
+    throw new Error('All required services or a container must be provided to createAdminComposer');
+  }
 
   // Admin Commands
   composer.command('setrate', adminAuth, async (ctx) => {
-    if (exchangeRateService) {
-      await handleSetRate(ctx, exchangeRateService);
-    }
+    await handleSetRate(ctx, exchangeRateService);
   });
 
   composer.command('rate', adminAuth, async (ctx) => {
-    if (exchangeRateService) {
-      await handleRate(ctx, exchangeRateService);
-    }
+    await handleRate(ctx, exchangeRateService);
   });
 
   composer.command('setcard', adminAuth, async (ctx) => {
@@ -65,16 +63,12 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.command('pending', adminAuth, async (ctx) => {
-    if (topUpService) {
-      await handlePending(ctx, topUpService);
-    }
+    await handlePending(ctx, topUpService);
   });
 
   // Admin Menu Button Handlers (Hears)
   composer.hears(['⏳ درخواست‌های در انتظار', 'درخواست‌های در انتظار', 'صف انتظار'], adminAuth, async (ctx) => {
-    if (topUpService) {
-      await handlePending(ctx, topUpService);
-    }
+    await handlePending(ctx, topUpService);
   });
 
   composer.hears(['💳 تنظیم کارت بانکی', 'تنظیم کارت بانکی', 'تنظیم کارت'], adminAuth, async (ctx) => {
@@ -82,9 +76,7 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.hears(['💱 نرخ ارز فعلی', 'نرخ ارز فعلی', 'نرخ ارز'], adminAuth, async (ctx) => {
-    if (exchangeRateService) {
-      await handleRate(ctx, exchangeRateService);
-    }
+    await handleRate(ctx, exchangeRateService);
   });
 
   composer.hears(['✏️ تنظیم نرخ ارز', 'تنظیم نرخ ارز'], adminAuth, async (ctx) => {
@@ -93,24 +85,18 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
 
   // Admin Callback Queries
   composer.callbackQuery(/^pending_page:(\d+)$/, adminAuth, async (ctx) => {
-    if (topUpService) {
-      await handlePendingPage(ctx, topUpService);
-    }
+    await handlePendingPage(ctx, topUpService);
   });
 
   composer.callbackQuery(/^review:(.+)$/, adminAuth, async (ctx) => {
-    if (topUpService) {
-      await handleReviewCallback(ctx, topUpService);
-    }
+    await handleReviewCallback(ctx, topUpService);
   });
 
   composer.callbackQuery(/^approve:(.+)$/, adminAuth, async (ctx) => {
-    if (topUpService) {
-      await handleApproveCallback(ctx, {
-        topUpService,
-        adminIds: options?.adminIds,
-      });
-    }
+    await handleApproveCallback(ctx, {
+      topUpService,
+      adminIds: options?.adminIds,
+    });
   });
 
   composer.callbackQuery(/^reject:(.+)$/, adminAuth, async (ctx) => {

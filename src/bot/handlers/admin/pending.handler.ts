@@ -1,8 +1,6 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
-import { TopUpService } from '@/modules/top-up/top-up.service';
-import type { DbClient } from '@/core/database/client';
-import { createAppContainer } from '@/core/di/container';
+import type { TopUpService } from '@/modules/top-up/top-up.service';
 import {
   getEmptyPendingQueueMessage,
   formatPendingQueuePage,
@@ -60,18 +58,13 @@ function buildPendingQueueView(
  */
 export async function handlePending(
   ctx: Context,
-  serviceOrDb?: TopUpService | DbClient,
+  service: TopUpService,
   options?: PendingHandlerOptions
 ): Promise<void> {
   const sender = ctx.from;
   if (!sender) {
     return;
   }
-
-  const service =
-    serviceOrDb instanceof TopUpService
-      ? serviceOrDb
-      : createAppContainer({ dbClient: serviceOrDb, child: true }).resolve(TopUpService);
 
   const pendingRequests = await service.getPendingRequests();
 
@@ -96,7 +89,7 @@ export async function handlePending(
  */
 export async function handlePendingPage(
   ctx: Context,
-  serviceOrDb?: TopUpService | DbClient,
+  service: TopUpService,
   options?: PendingHandlerOptions
 ): Promise<void> {
   const sender = ctx.from;
@@ -111,11 +104,6 @@ export async function handlePendingPage(
   }
 
   const targetPage = parseInt(match[1], 10);
-
-  const service =
-    serviceOrDb instanceof TopUpService
-      ? serviceOrDb
-      : createAppContainer({ dbClient: serviceOrDb, child: true }).resolve(TopUpService);
 
   const pendingRequests = await service.getPendingRequests();
 
@@ -155,7 +143,7 @@ export async function handlePendingPage(
  */
 export async function handleReviewCallback(
   ctx: Context,
-  serviceOrDb?: TopUpService | DbClient
+  service: TopUpService
 ): Promise<void> {
   const sender = ctx.from;
   if (!sender) {
@@ -169,11 +157,6 @@ export async function handleReviewCallback(
   }
 
   const requestId = match[1];
-
-  const service =
-    serviceOrDb instanceof TopUpService
-      ? serviceOrDb
-      : createAppContainer({ dbClient: serviceOrDb, child: true }).resolve(TopUpService);
 
   const req = await service.getPendingRequestById(requestId);
 

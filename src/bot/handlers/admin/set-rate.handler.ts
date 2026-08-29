@@ -1,7 +1,5 @@
 import type { Context } from 'grammy';
-import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
-import type { DbClient } from '@/core/database/client';
-import { createAppContainer } from '@/core/di/container';
+import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import {
   getSetRateSuccessMessage,
   getSetRateUsageErrorMessage,
@@ -12,7 +10,7 @@ import {
  */
 export async function handleSetRate(
   ctx: Context,
-  serviceOrDb?: ExchangeRateService | DbClient
+  service: ExchangeRateService
 ): Promise<void> {
   const sender = ctx.from;
   if (!sender) {
@@ -39,11 +37,6 @@ export async function handleSetRate(
     await ctx.reply(getSetRateUsageErrorMessage());
     return;
   }
-
-  const service =
-    serviceOrDb instanceof ExchangeRateService
-      ? serviceOrDb
-      : createAppContainer({ dbClient: serviceOrDb, child: true }).resolve(ExchangeRateService);
 
   const updatedRate = await service.setRate(
     sender.id,

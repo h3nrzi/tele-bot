@@ -1,11 +1,9 @@
 import type { BotContext } from '@/bot/context';
 import { resolveAdminIds } from '@/bot/middleware/admin.middleware';
-import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
-import { BankAccountService } from '@/modules/bank-account/bank-account.service';
-import { BuyerService } from '@/modules/buyer/buyer.service';
-import { TopUpService } from '@/modules/top-up/top-up.service';
-import type { DbClient } from '@/core/database/client';
-import { createAppContainer } from '@/core/di/container';
+import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import type { BankAccountService } from '@/modules/bank-account/bank-account.service';
+import type { BuyerService } from '@/modules/buyer/buyer.service';
+import type { TopUpService } from '@/modules/top-up/top-up.service';
 import {
   getTopUpUnavailableMessage,
   getTopUpActiveExistsMessage,
@@ -26,36 +24,14 @@ export interface TopUpHandlerDependencies {
  */
 export async function handleTopUpCommand(
   ctx: BotContext,
-  depsOrDb?: TopUpHandlerDependencies | DbClient,
-  options?: { adminIds?: string | Set<bigint> | undefined }
+  deps: TopUpHandlerDependencies
 ): Promise<void> {
   const sender = ctx.from;
   if (!sender) {
     return;
   }
 
-  const isDeps = depsOrDb && 'topUpService' in depsOrDb;
-  const container = isDeps
-    ? null
-    : createAppContainer({ dbClient: depsOrDb as DbClient, child: true });
-
-  const exchangeRateService = isDeps
-    ? depsOrDb.exchangeRateService
-    : container!.resolve(ExchangeRateService);
-
-  const bankAccountService = isDeps
-    ? depsOrDb.bankAccountService
-    : container!.resolve(BankAccountService);
-
-  const buyerService = isDeps
-    ? depsOrDb.buyerService
-    : container!.resolve(BuyerService);
-
-  const topUpService = isDeps
-    ? depsOrDb.topUpService
-    : container!.resolve(TopUpService);
-
-  const adminIds = isDeps ? depsOrDb.adminIds : options?.adminIds;
+  const { exchangeRateService, bankAccountService, buyerService, topUpService, adminIds } = deps;
 
   // 1. Check if Exchange Rate is configured
   const currentRate = await exchangeRateService.getCurrentRate();

@@ -1,7 +1,5 @@
 import type { Context } from 'grammy';
-import { BuyerService } from '@/modules/buyer/buyer.service';
-import type { DbClient } from '@/core/database/client';
-import { createAppContainer } from '@/core/di/container';
+import type { BuyerService } from '@/modules/buyer/buyer.service';
 import { isAdmin } from '@/bot/middleware/admin.middleware';
 import {
   getNewBuyerWelcomeMessage,
@@ -22,17 +20,12 @@ export interface StartHandlerOptions {
  */
 export async function handleStart(
   ctx: Context,
-  buyerServiceOrDb?: BuyerService | DbClient,
+  buyerService: BuyerService,
   options?: StartHandlerOptions
 ): Promise<void> {
   if (!ctx.from) {
     return;
   }
-
-  const buyerService =
-    buyerServiceOrDb instanceof BuyerService
-      ? buyerServiceOrDb
-      : createAppContainer({ dbClient: buyerServiceOrDb, child: true }).resolve(BuyerService);
 
   const displayName =
     ctx.from.first_name?.trim() ||

@@ -6,6 +6,7 @@ import {
   getNoTopUpHistoryMessage,
   formatStatusMessage,
 } from '@/bot/handlers/buyer';
+import { BuyerService } from '@/modules/buyer/buyer.service';
 import { createBot } from '@/bot/bot';
 import {
   createTestBuyer,
@@ -16,6 +17,9 @@ import { TopUpService } from '@/modules/top-up/top-up.service';
 
 describe('/status Command Handler', () => {
   const { db, container } = setupTestDatabase();
+  const buyerService = container.resolve(BuyerService);
+  const topUpService = container.resolve(TopUpService);
+  const statusDeps = { buyerService, topUpService };
   const adminId = 123456789n;
   const originalEnv = { ...process.env };
 
@@ -42,7 +46,7 @@ describe('/status Command Handler', () => {
       username: 'alice_buyer',
     });
 
-    await handleStatusCommand(ctx, db);
+    await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getNoTopUpHistoryMessage());
@@ -63,7 +67,7 @@ describe('/status Command Handler', () => {
       username: 'bob_buyer',
     });
 
-    await handleStatusCommand(ctx, db);
+    await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(
@@ -86,7 +90,6 @@ describe('/status Command Handler', () => {
     );
     await setTestRate(container, adminId, 620000n);
     const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '100.00' });
-    const topUpService = container.resolve(TopUpService);
     await topUpService.submitReceipt({ userId: buyer.id, fileId: 'receipt_unclear' });
     await topUpService.rejectTopUp(
       {
@@ -102,7 +105,7 @@ describe('/status Command Handler', () => {
       username: 'charlie_buyer',
     });
 
-    await handleStatusCommand(ctx, db);
+    await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(
@@ -124,7 +127,7 @@ describe('/status Command Handler', () => {
       username: 'unknown_user',
     });
 
-    await handleStatusCommand(ctx, db);
+    await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).not.toHaveBeenCalled();
   });
@@ -132,7 +135,7 @@ describe('/status Command Handler', () => {
   it('silently ignores update if ctx.from is undefined', async () => {
     const { ctx } = createMockContext(undefined);
 
-    await handleStatusCommand(ctx, db);
+    await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).not.toHaveBeenCalled();
   });

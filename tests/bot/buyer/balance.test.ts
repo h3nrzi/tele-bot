@@ -6,6 +6,7 @@ import {
   getBalanceMessage,
   getUnregisteredBalanceMessage,
 } from '@/bot/handlers/buyer';
+import { WalletService } from '@/modules/wallet/wallet.service';
 import { createBot } from '@/bot/bot';
 import { createTestBuyer } from '@tests/helpers/fixtures';
 import { wallets } from '@/modules/wallet/wallet.schema';
@@ -13,6 +14,7 @@ import { eq } from 'drizzle-orm';
 
 describe('/balance Handler', () => {
   const { db, container } = setupTestDatabase();
+  const walletService = container.resolve(WalletService);
 
   it('returns Available Balance formatted as a USD string ($0.00) for a registered Buyer', async () => {
     const chatId = 123456789;
@@ -30,7 +32,7 @@ describe('/balance Handler', () => {
       username: 'alice_buyer',
     });
 
-    await handleBalance(ctx, db);
+    await handleBalance(ctx, walletService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getBalanceMessage('0.00'));
@@ -58,7 +60,7 @@ describe('/balance Handler', () => {
       username: 'bob_buyer',
     });
 
-    await handleBalance(ctx, db);
+    await handleBalance(ctx, walletService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getBalanceMessage('123.45'));
@@ -72,7 +74,7 @@ describe('/balance Handler', () => {
       username: 'unregistered_user',
     });
 
-    await handleBalance(ctx, db);
+    await handleBalance(ctx, walletService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toBe(getUnregisteredBalanceMessage());
@@ -82,7 +84,7 @@ describe('/balance Handler', () => {
   it('silently ignores update if ctx.from is undefined', async () => {
     const { ctx } = createMockContext(undefined);
 
-    await handleBalance(ctx, db);
+    await handleBalance(ctx, walletService);
 
     expect(ctx.reply).not.toHaveBeenCalled();
   });

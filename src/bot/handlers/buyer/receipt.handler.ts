@@ -1,8 +1,6 @@
 import type { Context } from 'grammy';
-import { TopUpService } from '@/modules/top-up/top-up.service';
-import { BuyerService } from '@/modules/buyer/buyer.service';
-import type { DbClient } from '@/core/database/client';
-import { createAppContainer } from '@/core/di/container';
+import type { TopUpService } from '@/modules/top-up/top-up.service';
+import type { BuyerService } from '@/modules/buyer/buyer.service';
 import {
   TopUpRequestExpiredError,
   NoInitiatedTopUpRequestError,
@@ -20,8 +18,8 @@ import {
 } from '@/bot/handlers/admin';
 
 export interface PhotoHandlerDependencies {
-  buyerService?: BuyerService | undefined;
-  topUpService?: TopUpService | undefined;
+  buyerService: BuyerService;
+  topUpService: TopUpService;
   adminIds?: string | Set<bigint> | undefined;
   now?: Date | undefined;
 }
@@ -31,8 +29,7 @@ export interface PhotoHandlerDependencies {
  */
 export async function handlePhotoMessage(
   ctx: Context,
-  depsOrDb?: PhotoHandlerDependencies | DbClient,
-  options?: { adminIds?: string | Set<bigint> | undefined; now?: Date | undefined }
+  deps: PhotoHandlerDependencies
 ): Promise<void> {
   const sender = ctx.from;
   if (!sender) {
@@ -44,26 +41,7 @@ export async function handlePhotoMessage(
     return;
   }
 
-  const isDeps = depsOrDb && ('buyerService' in depsOrDb || 'topUpService' in depsOrDb);
-  const container = isDeps
-    ? null
-    : createAppContainer({ dbClient: depsOrDb as DbClient, child: true });
-
-  const buyerService = isDeps
-    ? (depsOrDb as PhotoHandlerDependencies).buyerService ?? createAppContainer({ child: true }).resolve(BuyerService)
-    : container!.resolve(BuyerService);
-
-  const topUpService = isDeps
-    ? (depsOrDb as PhotoHandlerDependencies).topUpService ?? createAppContainer({ child: true }).resolve(TopUpService)
-    : container!.resolve(TopUpService);
-
-  const adminIds = isDeps
-    ? (depsOrDb as PhotoHandlerDependencies).adminIds
-    : options?.adminIds;
-
-  const now = isDeps
-    ? (depsOrDb as PhotoHandlerDependencies).now
-    : options?.now;
+  const { buyerService, topUpService, adminIds, now } = deps;
 
   // Use highest-resolution photo (last in array)
   const largestPhoto = photos[photos.length - 1]!;

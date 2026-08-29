@@ -31,104 +31,87 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
   const container = options?.container;
 
   const buyerService =
-    options?.buyerService ??
-    (container ? container.resolve(BuyerService) : undefined);
+    options?.buyerService ?? container?.resolve(BuyerService);
   const walletService =
-    options?.walletService ??
-    (container ? container.resolve(WalletService) : undefined);
+    options?.walletService ?? container?.resolve(WalletService);
   const topUpService =
-    options?.topUpService ??
-    (container ? container.resolve(TopUpService) : undefined);
+    options?.topUpService ?? container?.resolve(TopUpService);
   const exchangeRateService =
-    options?.exchangeRateService ??
-    (container ? container.resolve(ExchangeRateService) : undefined);
+    options?.exchangeRateService ?? container?.resolve(ExchangeRateService);
   const bankAccountService =
-    options?.bankAccountService ??
-    (container ? container.resolve(BankAccountService) : undefined);
+    options?.bankAccountService ?? container?.resolve(BankAccountService);
+
+  if (
+    !buyerService ||
+    !walletService ||
+    !topUpService ||
+    !exchangeRateService ||
+    !bankAccountService
+  ) {
+    throw new Error('All required services or a container must be provided to createBuyerComposer');
+  }
 
   // Commands
   composer.command('start', async (ctx) => {
-    if (buyerService) {
-      await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
-    }
+    await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
   });
 
   composer.command('balance', async (ctx) => {
-    if (walletService) {
-      await handleBalance(ctx, walletService);
-    }
+    await handleBalance(ctx, walletService);
   });
 
   composer.command('topup', async (ctx) => {
-    if (exchangeRateService && bankAccountService && buyerService && topUpService) {
-      await handleTopUpCommand(ctx, {
-        exchangeRateService,
-        bankAccountService,
-        buyerService,
-        topUpService,
-        adminIds: options?.adminIds,
-      });
-    }
+    await handleTopUpCommand(ctx, {
+      exchangeRateService,
+      bankAccountService,
+      buyerService,
+      topUpService,
+      adminIds: options?.adminIds,
+    });
   });
 
   composer.command('cancel', async (ctx) => {
-    if (buyerService && topUpService) {
-      await handleCancelCommand(ctx, { buyerService, topUpService });
-    }
+    await handleCancelCommand(ctx, { buyerService, topUpService });
   });
 
   composer.command('status', async (ctx) => {
-    if (buyerService && topUpService) {
-      await handleStatusCommand(ctx, { buyerService, topUpService });
-    }
+    await handleStatusCommand(ctx, { buyerService, topUpService });
   });
 
   // Menu Button Handlers (Hears)
   composer.hears(['💰 موجودی کیف پول', 'موجودی کیف پول', 'موجودی'], async (ctx) => {
-    if (walletService) {
-      await handleBalance(ctx, walletService);
-    }
+    await handleBalance(ctx, walletService);
   });
 
   composer.hears(['➕ افزایش موجودی', 'افزایش موجودی', 'شارژ کیف پول'], async (ctx) => {
-    if (exchangeRateService && bankAccountService && buyerService && topUpService) {
-      await handleTopUpCommand(ctx, {
-        exchangeRateService,
-        bankAccountService,
-        buyerService,
-        topUpService,
-        adminIds: options?.adminIds,
-      });
-    }
+    await handleTopUpCommand(ctx, {
+      exchangeRateService,
+      bankAccountService,
+      buyerService,
+      topUpService,
+      adminIds: options?.adminIds,
+    });
   });
 
   composer.hears(['📋 پیگیری وضعیت', 'پیگیری وضعیت', 'وضعیت درخواست'], async (ctx) => {
-    if (buyerService && topUpService) {
-      await handleStatusCommand(ctx, { buyerService, topUpService });
-    }
+    await handleStatusCommand(ctx, { buyerService, topUpService });
   });
 
   composer.hears(['❌ لغو درخواست', 'لغو درخواست'], async (ctx) => {
-    if (buyerService && topUpService) {
-      await handleCancelCommand(ctx, { buyerService, topUpService });
-    }
+    await handleCancelCommand(ctx, { buyerService, topUpService });
   });
 
   composer.hears(['🏠 منوی اصلی', 'منوی اصلی'], async (ctx) => {
-    if (buyerService) {
-      await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
-    }
+    await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
   });
 
   // Media
   composer.on('message:photo', async (ctx) => {
-    if (buyerService && topUpService) {
-      await handlePhotoMessage(ctx, {
-        buyerService,
-        topUpService,
-        adminIds: options?.adminIds,
-      });
-    }
+    await handlePhotoMessage(ctx, {
+      buyerService,
+      topUpService,
+      adminIds: options?.adminIds,
+    });
   });
 
   return composer;
