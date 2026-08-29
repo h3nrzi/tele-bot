@@ -4,13 +4,9 @@ import { users } from '@/modules/buyer/buyer.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
-import { registerBuyer } from '@/modules/buyer/buyer.service';
-import {
-  initiateTopUp,
-  submitReceipt,
-  approveTopUp,
-} from '@/modules/top-up/top-up.service';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { BuyerService } from '@/modules/buyer/buyer.service';
+import { TopUpService } from '@/modules/top-up/top-up.service';
 import {
   TopUpRequestNotFoundError,
   TopUpRequestNotPendingError,
@@ -19,7 +15,10 @@ import { eq, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 describe('Top-Up Approval Service', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
+  let buyerService: BuyerService;
+  let topUpService: TopUpService;
+  let exchangeRateService: ExchangeRateService;
   const adminId1 = 123456789n;
   const adminId2 = 987654321n;
   const buyerChatId = 555666777n;
@@ -29,6 +28,9 @@ describe('Top-Up Approval Service', () => {
     process.env.TOPUP_MIN_USD = '10.00';
     process.env.TOPUP_MAX_USD = '1000.00';
     process.env.TOPUP_INITIATED_EXPIRY_MINUTES = '30';
+    buyerService = container.resolve(BuyerService);
+    topUpService = container.resolve(TopUpService);
+    exchangeRateService = container.resolve(ExchangeRateService);
   });
 
   afterEach(() => {
@@ -36,15 +38,13 @@ describe('Top-Up Approval Service', () => {
   });
 
   async function seedPendingRequest(amount = '50.00') {
-    const { buyer, wallet } = await registerBuyer(
-      { telegramChatId: buyerChatId, telegramUsername: 'approval_buyer' },
-      db
+    const { buyer, wallet } = await buyerService.register(
+      { telegramChatId: buyerChatId, telegramUsername: 'approval_buyer' }
     );
-    await setRate({ adminTelegramId: adminId1, irrPerUsd: 600000n }, db);
-    const { request: initReq } = await initiateTopUp({ userId: buyer.id, usdAmount: amount }, db);
-    const { request: pendingReq } = await submitReceipt(
-      { userId: buyer.id, fileId: 'receipt_photo_123', caption: 'Payment receipt' },
-      db
+    await exchangeRateService.setRate({ adminTelegramId: adminId1, irrPerUsd: 600000n });
+    const { request: initReq } = await topUpService.initiateTopUp({ userId: buyer.id, usdAmount: amount });
+    const { request: pendingReq } = await topUpService.submitReceipt(
+      { userId: buyer.id, fileId: 'receipt_photo_123', caption: 'Payment receipt' }
     );
     return { buyer, wallet, request: pendingReq };
   }
@@ -54,12 +54,11 @@ describe('Top-Up Approval Service', () => {
 
     const notifyBuyerSpy = vi.fn().mockResolvedValue(undefined);
 
-    const result = await approveTopUp(
+    const result = await topUpService.approveTopUp(
       {
         topUpRequestId: request.id,
         adminTelegramId: adminId1,
       },
-      db,
       { notifyBuyer: notifyBuyerSpy }
     );
 
@@ -126,13 +125,13 @@ describe('Top-Up Approval Service', () => {
   it('accumulates wallet balance correctly on multiple top-ups', async () => {
     const { buyer, wallet, request: req1 } = await seedPendingRequest('50.00');
 
-    await approveTopUp({ topUpRequestId: req1.id, adminTelegramId: adminId1 }, db);
+    await topUpService.approveTopUp({ topUpRequestId: req1.id, adminTelegramId: adminId1 });
 
     // Second top-up for same buyer
-    const { request: init2 } = await initiateTopUp({ userId: buyer.id, usdAmount: '35.50' }, db);
-    const { request: req2 } = await submitReceipt({ userId: buyer.id, fileId: 'receipt_2' }, db);
+    const { request: init2 } = await topUpService.initiateTopUp({ userId: buyer.id, usdAmount: '35.50' });
+    const { request: req2 } = await topUpService.submitReceipt({ userId: buyer.id, fileId: 'receipt_2' });
 
-    const result2 = await approveTopUp({ topUpRequestId: req2.id, adminTelegramId: adminId2 }, db);
+    const result2 = await topUpService.approveTopUp({ topUpRequestId: req2.id, adminTelegramId: adminId2 });
     expect(result2.wallet.availableBalance).toBe('85.50');
 
     const [dbWallet] = await db
@@ -147,8 +146,8 @@ describe('Top-Up Approval Service', () => {
 
     // Fire 2 concurrent approval calls
     const results = await Promise.allSettled([
-      approveTopUp({ topUpRequestId: request.id, adminTelegramId: adminId1 }, db),
-      approveTopUp({ topUpRequestId: request.id, adminTelegramId: adminId2 }, db),
+      topUpService.approveTopUp({ topUpRequestId: request.id, adminTelegramId: adminId1 }),
+      topUpService.approveTopUp({ topUpRequestId: request.id, adminTelegramId: adminId2 }),
     ]);
 
     const fulfilled = results.filter((r) => r.status === 'fulfilled');
@@ -176,32 +175,31 @@ describe('Top-Up Approval Service', () => {
 
   it('throws TopUpRequestNotFoundError when topUpRequestId does not exist', async () => {
     await expect(
-      approveTopUp(
+      topUpService.approveTopUp(
         {
           topUpRequestId: '00000000-0000-0000-0000-000000000000',
           adminTelegramId: adminId1,
-        },
-        db
+        }
       )
     ).rejects.toThrow(TopUpRequestNotFoundError);
   });
 
   it('throws TopUpRequestNotPendingError when request is in INITIATED, APPROVED, REJECTED, CANCELLED, or EXPIRED state', async () => {
     // 1. INITIATED (no receipt submitted yet)
-    const { buyer } = await registerBuyer({ telegramChatId: 999111n, telegramUsername: 'b1' }, db);
-    await setRate({ adminTelegramId: adminId1, irrPerUsd: 600000n }, db);
-    const { request: initiatedReq } = await initiateTopUp({ userId: buyer.id, usdAmount: '20.00' }, db);
+    const { buyer } = await buyerService.register({ telegramChatId: 999111n, telegramUsername: 'b1' });
+    await exchangeRateService.setRate({ adminTelegramId: adminId1, irrPerUsd: 600000n });
+    const { request: initiatedReq } = await topUpService.initiateTopUp({ userId: buyer.id, usdAmount: '20.00' });
 
     await expect(
-      approveTopUp({ topUpRequestId: initiatedReq.id, adminTelegramId: adminId1 }, db)
+      topUpService.approveTopUp({ topUpRequestId: initiatedReq.id, adminTelegramId: adminId1 })
     ).rejects.toThrow(TopUpRequestNotPendingError);
 
     // 2. APPROVED (already approved)
-    const { request: pendingReq } = await submitReceipt({ userId: buyer.id, fileId: 'f1' }, db);
-    await approveTopUp({ topUpRequestId: pendingReq.id, adminTelegramId: adminId1 }, db);
+    const { request: pendingReq } = await topUpService.submitReceipt({ userId: buyer.id, fileId: 'f1' });
+    await topUpService.approveTopUp({ topUpRequestId: pendingReq.id, adminTelegramId: adminId1 });
 
     await expect(
-      approveTopUp({ topUpRequestId: pendingReq.id, adminTelegramId: adminId1 }, db)
+      topUpService.approveTopUp({ topUpRequestId: pendingReq.id, adminTelegramId: adminId1 })
     ).rejects.toThrow(TopUpRequestNotPendingError);
   });
 
@@ -212,12 +210,11 @@ describe('Top-Up Approval Service', () => {
     const failingNotifyBuyer = vi.fn().mockRejectedValue(new Error('Telegram network error'));
 
     // Should complete successfully without throwing
-    const result = await approveTopUp(
+    const result = await topUpService.approveTopUp(
       {
         topUpRequestId: request.id,
         adminTelegramId: adminId1,
       },
-      db,
       { notifyBuyer: failingNotifyBuyer }
     );
 

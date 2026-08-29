@@ -6,6 +6,7 @@ import type { IExchangeRateRepository } from '@/modules/exchange-rate/exchange-r
 import { normalizeChatId } from '@/core/shared/telegram.utils';
 import { ExchangeRate } from '@/modules/exchange-rate/exchange-rate.entity';
 import { InvalidExchangeRateError } from '@/modules/exchange-rate/exchange-rate.errors';
+import type { SetRateInput } from '@/modules/exchange-rate/dtos/set-rate.dto';
 import { TOKENS } from '@/core/di/tokens';
 
 @injectable()
@@ -21,10 +22,33 @@ export class ExchangeRateService {
    * Never modifies or deletes existing rows.
    */
   public async setRate(
-    adminTelegramId: bigint | number,
-    irrPerUsd: bigint | number,
+    input: SetRateInput,
     executor?: DbExecutor
+  ): Promise<ExchangeRate>;
+  public async setRate(
+    adminTelegramId: bigint | number,
+    irrPerUsd: bigint | number | string,
+    executor?: DbExecutor
+  ): Promise<ExchangeRate>;
+  public async setRate(
+    adminTelegramIdOrInput: bigint | number | SetRateInput,
+    irrPerUsdOrExecutor?: bigint | number | string | DbExecutor,
+    maybeExecutor?: DbExecutor
   ): Promise<ExchangeRate> {
+    let adminTelegramId: bigint | number;
+    let irrPerUsd: bigint | number | string;
+    let executor: DbExecutor | undefined;
+
+    if (typeof adminTelegramIdOrInput === 'object' && adminTelegramIdOrInput !== null) {
+      adminTelegramId = adminTelegramIdOrInput.adminTelegramId;
+      irrPerUsd = adminTelegramIdOrInput.irrPerUsd;
+      executor = irrPerUsdOrExecutor as DbExecutor | undefined;
+    } else {
+      adminTelegramId = adminTelegramIdOrInput;
+      irrPerUsd = irrPerUsdOrExecutor as bigint | number | string;
+      executor = maybeExecutor;
+    }
+
     const client = executor ?? this.db ?? getDefaultDb();
     const adminId = normalizeChatId(adminTelegramId);
     const rate = typeof irrPerUsd === 'bigint' ? irrPerUsd : BigInt(irrPerUsd);
@@ -53,42 +77,5 @@ export class ExchangeRateService {
     const client = executor ?? this.db ?? getDefaultDb();
     return await this.exchangeRateRepo.findLatest(client);
   }
-}
-
-import { ExchangeRateRepository } from '@/modules/exchange-rate/exchange-rate.repository';
-
-export async function setRate(
-  adminTelegramIdOrInput: bigint | number | { adminTelegramId: bigint | number; irrPerUsd: bigint | number | string },
-  irrPerUsdOrExecutor?: bigint | number | string | DbExecutor,
-  maybeExecutor?: DbExecutor
-): Promise<ExchangeRate> {
-  const executor = maybeExecutor ?? (typeof irrPerUsdOrExecutor === 'object' && irrPerUsdOrExecutor !== null ? irrPerUsdOrExecutor : undefined) as DbExecutor;
-  const service = new ExchangeRateService(
-    executor as DbClient,
-    new ExchangeRateRepository()
-  );
-  if (typeof adminTelegramIdOrInput === 'object' && 'adminTelegramId' in adminTelegramIdOrInput) {
-    return await service.setRate(
-      adminTelegramIdOrInput.adminTelegramId,
-      adminTelegramIdOrInput.irrPerUsd as any,
-      irrPerUsdOrExecutor as DbExecutor
-    );
-  }
-  return await service.setRate(
-    adminTelegramIdOrInput,
-    irrPerUsdOrExecutor as any,
-    maybeExecutor
-  );
-}
-
-
-export async function getCurrentRate(
-  executor?: DbExecutor
-): Promise<ExchangeRate | null> {
-  const service = new ExchangeRateService(
-    executor as DbClient,
-    new ExchangeRateRepository()
-  );
-  return await service.getCurrentRate(executor);
 }
 

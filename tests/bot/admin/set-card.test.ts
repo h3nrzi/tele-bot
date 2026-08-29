@@ -3,7 +3,7 @@ import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockFetch } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
 import { bankAccounts } from '@/modules/bank-account/bank-account.schema';
-import { setActiveAccount, getActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { setTestActiveAccount, getTestActiveAccount } from '@tests/helpers/fixtures';
 import {
   isValidCardNumber,
   cleanCardNumber,
@@ -22,7 +22,7 @@ import {
 import { count } from 'drizzle-orm';
 
 describe('/setcard Admin Command & Conversation', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminChatId = 123456789;
   const originalEnv = process.env.ADMIN_IDS;
 
@@ -192,7 +192,7 @@ describe('/setcard Admin Command & Conversation', () => {
         })
       );
 
-      const activeAccount = await getActiveAccount(db);
+      const activeAccount = await getTestActiveAccount(container);
       expect(activeAccount).not.toBeNull();
       expect(activeAccount?.cardNumber).toBe('6037991234567890');
       expect(activeAccount?.cardHolderName).toBe('Ali Reza');
@@ -203,14 +203,14 @@ describe('/setcard Admin Command & Conversation', () => {
 
     it('collects optional additional notes when provided and deactivates prior account', async () => {
       // Setup prior active account
-      await setActiveAccount(
+      await setTestActiveAccount(
+        container,
         {
           cardNumber: '1111222233334444',
           cardHolderName: 'Old Holder',
           bankName: 'Old Bank',
           additionalNotes: 'Old notes',
-        },
-        db
+        }
       );
 
       const { bot, repliedMessages } = createTestBot();
@@ -237,7 +237,7 @@ describe('/setcard Admin Command & Conversation', () => {
       const oldAccount = allRows.find((r) => r.cardNumber === '1111222233334444');
       expect(oldAccount?.isActive).toBe(false);
 
-      const activeAccount = await getActiveAccount(db);
+      const activeAccount = await getTestActiveAccount(container);
       expect(activeAccount?.cardNumber).toBe('5022291012345678');
       expect(activeAccount?.cardHolderName).toBe('Sara Smith');
       expect(activeAccount?.bankName).toBe('Pasargad');

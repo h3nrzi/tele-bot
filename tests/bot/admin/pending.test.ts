@@ -7,8 +7,7 @@ import {
   type MockAnsweredCallbackQuery,
 } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
@@ -19,7 +18,7 @@ import {
 import { eq } from 'drizzle-orm';
 
 describe('/pending Admin Queue and Review Callback', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminChatId = 111222333;
   const nonAdminChatId = 999888777;
   const buyerChatId = 987654321;
@@ -70,30 +69,23 @@ describe('/pending Admin Queue and Review Callback', () => {
 
   function makeCallbackQueryUpdate(
     updateId: number,
-    fromChatId: number,
+    chatId: number,
     data: string,
-    messageId = 20,
-    caption = ''
+    messageId = 10,
+    photoFileId = 'receipt_photo_xyz'
   ) {
     return {
       update_id: updateId,
       callback_query: {
-        id: `cb_query_${updateId}`,
-        from: {
-          id: fromChatId,
-          is_bot: false,
-          first_name: 'Admin',
-          username: 'admin_user',
-        },
+        id: `cq_${updateId}`,
+        from: { id: chatId, is_bot: false, first_name: 'Admin' },
+        data,
         message: {
           message_id: messageId,
           date: Math.floor(Date.now() / 1000),
-          chat: { id: fromChatId, type: 'private' },
-          caption,
-          text: caption,
+          chat: { id: chatId, type: 'private' },
+          photo: [{ file_id: photoFileId, width: 800, height: 800 }],
         },
-        data,
-        chat_instance: 'instance_queue_123',
       },
     } as any;
   }
@@ -103,6 +95,7 @@ describe('/pending Admin Queue and Review Callback', () => {
     const sentPhotos: MockSentPhoto[] = [];
     const editedMessages: MockEditedMessage[] = [];
     const answeredCallbackQueries: MockAnsweredCallbackQuery[] = [];
+
     const { fetch: mockFetch } = createMockFetch(
       repliedMessages,
       sentPhotos,
@@ -128,13 +121,7 @@ describe('/pending Admin Queue and Review Callback', () => {
       } as any,
     });
 
-    return {
-      bot,
-      repliedMessages,
-      sentPhotos,
-      editedMessages,
-      answeredCallbackQueries,
-    };
+    return { bot, repliedMessages, sentPhotos, editedMessages, answeredCallbackQueries };
   }
 
   it('/pending on empty queue replies with empty queue message', async () => {
@@ -147,14 +134,14 @@ describe('/pending Admin Queue and Review Callback', () => {
   });
 
   it('/pending with pending requests formats list with summary and Review button', async () => {
-    await setRate(BigInt(adminChatId), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages } = createTestBot();
@@ -188,14 +175,14 @@ describe('/pending Admin Queue and Review Callback', () => {
   });
 
   it('/pending pagination: >10 requests are paginated with Next and Prev buttons', async () => {
-    await setRate(BigInt(adminChatId), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages, editedMessages, answeredCallbackQueries } = createTestBot();
@@ -245,14 +232,14 @@ describe('/pending Admin Queue and Review Callback', () => {
   });
 
   it('Review button callback: re-sends receipt photo with Approve/Reject buttons, allowing admin approval directly', async () => {
-    await setRate(BigInt(adminChatId), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const {
@@ -341,14 +328,14 @@ describe('/pending Admin Queue and Review Callback', () => {
   });
 
   it('silently ignores /pending, review, and pending_page callbacks from non-Admins', async () => {
-    await setRate(BigInt(adminChatId), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages, sentPhotos, answeredCallbackQueries } = createTestBot();

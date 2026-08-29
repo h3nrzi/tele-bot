@@ -7,8 +7,7 @@ import {
   type MockAnsweredCallbackQuery,
 } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
@@ -18,7 +17,7 @@ import {
 import { eq } from 'drizzle-orm';
 
 describe('Admin Approval Callback Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminChatId1 = 111222333;
   const adminChatId2 = 444555666;
   const nonAdminChatId = 777888999;
@@ -70,31 +69,29 @@ describe('Admin Approval Callback Handler', () => {
 
   function makeCallbackQueryUpdate(
     updateId: number,
-    adminChatId: number,
+    chatId: number,
     data: string,
     messageId = 10,
-    caption = '📥 رسید پرداخت جدید دریافت شد\n\nمبلغ: $100.00',
-    adminUsername = 'admin_user'
+    caption = '',
+    username = 'admin_user'
   ) {
     return {
       update_id: updateId,
       callback_query: {
         id: `cb_query_${updateId}`,
         from: {
-          id: adminChatId,
+          id: chatId,
           is_bot: false,
           first_name: 'Admin',
-          username: adminUsername,
+          username,
         },
         message: {
           message_id: messageId,
           date: Math.floor(Date.now() / 1000),
-          chat: { id: adminChatId, type: 'private' },
+          chat: { id: chatId, type: 'private' },
           caption,
-          photo: [{ file_id: 'receipt_photo_123', width: 100, height: 100 }],
         },
         data,
-        chat_instance: 'instance_123',
       },
     } as any;
   }
@@ -104,6 +101,7 @@ describe('Admin Approval Callback Handler', () => {
     const sentPhotos: MockSentPhoto[] = [];
     const editedMessages: MockEditedMessage[] = [];
     const answeredCallbackQueries: MockAnsweredCallbackQuery[] = [];
+
     const { fetch: mockFetch } = createMockFetch(
       repliedMessages,
       sentPhotos,
@@ -116,7 +114,7 @@ describe('Admin Approval Callback Handler', () => {
       dbClient: db,
       adminIds: `${adminChatId1},${adminChatId2}`,
       client: {
-        fetch: customFetch ?? mockFetch,
+        fetch: customFetch || mockFetch,
       },
       botInfo: {
         id: 1000,
@@ -128,7 +126,6 @@ describe('Admin Approval Callback Handler', () => {
         supports_inline_queries: false,
       } as any,
     });
-
     return {
       bot,
       repliedMessages,
@@ -140,14 +137,14 @@ describe('Admin Approval Callback Handler', () => {
   }
 
   it('happy path: admin clicks Approve button -> updates request to APPROVED, writes ledger entries, credits buyer wallet, sends buyer push notification, and edits admin notification message', async () => {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages, editedMessages, answeredCallbackQueries } = createTestBot();
@@ -222,14 +219,14 @@ describe('Admin Approval Callback Handler', () => {
   });
 
   it('multi-admin race: second admin tap shows "already processed" and does not credit wallet again', async () => {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
@@ -280,14 +277,14 @@ describe('Admin Approval Callback Handler', () => {
   });
 
   it('silently ignores callback queries from non-Admins', async () => {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
@@ -325,14 +322,14 @@ describe('Admin Approval Callback Handler', () => {
   });
 
   it('buyer push notification failure does not roll back approval transaction', async () => {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const repliedMessages: string[] = [];

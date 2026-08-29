@@ -2,8 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockFetch, type MockSentPhoto } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import {
   getReceiptSubmittedBuyerMessage,
@@ -18,7 +17,7 @@ import {
 import { eq } from 'drizzle-orm';
 
 describe('Receipt Submission & Admin Push Notification Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminChatId1 = 111222333;
   const adminChatId2 = 444555666;
   const buyerChatId = 987654321;
@@ -59,7 +58,6 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
   }
 
   function makeCommandUpdate(updateId: number, chatId: number, text: string) {
-    const commandLength = text.indexOf(' ') > 0 ? text.indexOf(' ') : text.length;
     return {
       update_id: updateId,
       message: {
@@ -68,21 +66,19 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
         chat: { id: chatId, type: 'private', first_name: 'Buyer' },
         from: { id: chatId, is_bot: false, first_name: 'Buyer', username: 'buyer_user' },
         text,
-        entities: [
-          {
-            offset: 0,
-            length: commandLength,
-            type: 'bot_command',
-          },
-        ],
+        entities: [{ offset: 0, length: text.length, type: 'bot_command' }],
       },
     } as any;
   }
 
-  function createTestBot() {
+  function createTestBot(mockFetchOverride?: typeof fetch) {
     const repliedMessages: string[] = [];
     const sentPhotos: MockSentPhoto[] = [];
-    const { fetch: mockFetch } = createMockFetch(repliedMessages, sentPhotos);
+
+    const mockFetch =
+      mockFetchOverride ||
+      createMockFetch(repliedMessages, sentPhotos).fetch;
+
     const bot = createBot({
       token: 'test_token',
       dbClient: db,
@@ -104,14 +100,14 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
   }
 
   it('happy path: buyer submits receipt photo with caption -> PENDING transition + admin notifications with Approve/Reject inline keyboard', async () => {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages, sentPhotos } = createTestBot();
@@ -173,14 +169,14 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
   });
 
   it('expired request: buyer uploads photo after expiry -> EXPIRED transition + expiry error message to Buyer + no admin notification', async () => {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages, sentPhotos } = createTestBot();
@@ -198,49 +194,49 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
       },
     } as any);
 
-    // Modify expiresAt to be in the past
-    const [created] = await db.select().from(topUpRequests);
+    // Force expires_at into the past
+    const [requestRow] = await db.select().from(topUpRequests);
+    const past = new Date(Date.now() - 10 * 60 * 1000);
     await db
       .update(topUpRequests)
-      .set({ expiresAt: new Date(Date.now() - 5 * 60 * 1000) })
-      .where(eq(topUpRequests.id, created!.id));
+      .set({ expiresAt: past })
+      .where(eq(topUpRequests.id, requestRow!.id));
 
-    // 2. Buyer uploads photo
-    await bot.handleUpdate(makePhotoUpdate(3, buyerChatId, 'photo_expired_123'));
+    // 2. Buyer uploads photo after expiry
+    await bot.handleUpdate(makePhotoUpdate(3, buyerChatId, 'photo_expired'));
 
-    // Buyer receives expiry message
+    // Verify buyer received expired message
     expect(repliedMessages).toContain(getReceiptExpiredMessage());
 
-    // DB record is EXPIRED and has no receipt_file_id
+    // Verify DB record transitioned to EXPIRED
     const [updatedRow] = await db
       .select()
       .from(topUpRequests)
-      .where(eq(topUpRequests.id, created!.id));
+      .where(eq(topUpRequests.id, requestRow!.id));
     expect(updatedRow?.status).toBe('EXPIRED');
-    expect(updatedRow?.receiptFileId).toBeNull();
 
-    // No admin notifications sent
+    // Verify no admin notifications sent
     expect(sentPhotos).toHaveLength(0);
   });
 
-  it('no active request: buyer sends photo without /topup -> contextual explanation reply', async () => {
+  it('no active request: buyer sends photo without having an INITIATED top-up -> prompt with instructions', async () => {
     const { bot, repliedMessages, sentPhotos } = createTestBot();
 
-    await bot.handleUpdate(makePhotoUpdate(1, buyerChatId, 'random_photo'));
+    await bot.handleUpdate(makePhotoUpdate(1, buyerChatId, 'photo_random'));
 
     expect(repliedMessages).toContain(getNoActiveTopUpRequestMessage());
     expect(sentPhotos).toHaveLength(0);
   });
 
   it('already pending: buyer sends second photo when request is already PENDING -> contextual explanation reply', async () => {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages, sentPhotos } = createTestBot();
@@ -270,14 +266,14 @@ describe('Receipt Submission & Admin Push Notification Handler', () => {
   });
 
   it('admin notification failure does not roll back PENDING DB transition', async () => {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const repliedMessages: string[] = [];

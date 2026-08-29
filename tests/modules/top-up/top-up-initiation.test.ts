@@ -2,11 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { users } from '@/modules/buyer/buyer.schema';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
-import {
-  initiateTopUp,
-  getActiveTopUpRequest,
-} from '@/modules/top-up/top-up.service';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { TopUpService } from '@/modules/top-up/top-up.service';
 import {
   ActiveTopUpRequestExistsError,
   InvalidTopUpAmountError,
@@ -16,7 +13,9 @@ import { eq } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 describe('Top-Up Initiation Service', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
+  let topUpService: TopUpService;
+  let exchangeRateService: ExchangeRateService;
   const adminId = 123456789n;
   const originalEnv = { ...process.env };
 
@@ -24,6 +23,8 @@ describe('Top-Up Initiation Service', () => {
     process.env.TOPUP_MIN_USD = '10.00';
     process.env.TOPUP_MAX_USD = '1000.00';
     process.env.TOPUP_INITIATED_EXPIRY_MINUTES = '30';
+    topUpService = container.resolve(TopUpService);
+    exchangeRateService = container.resolve(ExchangeRateService);
   });
 
   afterEach(() => {
@@ -39,7 +40,7 @@ describe('Top-Up Initiation Service', () => {
       })
       .returning();
 
-    const rate = await setRate({ adminTelegramId: adminId, irrPerUsd: 600000n }, db);
+    const rate = await exchangeRateService.setRate({ adminTelegramId: adminId, irrPerUsd: 600000n });
 
     return { user: user!, rate };
   }
@@ -47,12 +48,11 @@ describe('Top-Up Initiation Service', () => {
   it('initiates a top-up request with valid amount and calculates IRR amount accurately', async () => {
     const { user, rate } = await seedPrerequisites();
 
-    const result = await initiateTopUp(
+    const result = await topUpService.initiateTopUp(
       {
         userId: user.id,
         usdAmount: '50.00',
-      },
-      db
+      }
     );
 
     expect(result).toBeDefined();
@@ -78,10 +78,10 @@ describe('Top-Up Initiation Service', () => {
   it('rejects initiation if user already has an active INITIATED request', async () => {
     const { user } = await seedPrerequisites();
 
-    await initiateTopUp({ userId: user.id, usdAmount: '50.00' }, db);
+    await topUpService.initiateTopUp({ userId: user.id, usdAmount: '50.00' });
 
     await expect(
-      initiateTopUp({ userId: user.id, usdAmount: '100.00' }, db)
+      topUpService.initiateTopUp({ userId: user.id, usdAmount: '100.00' })
     ).rejects.toThrow(ActiveTopUpRequestExistsError);
   });
 
@@ -95,7 +95,7 @@ describe('Top-Up Initiation Service', () => {
       .returning();
 
     await expect(
-      initiateTopUp({ userId: user!.id, usdAmount: '50.00' }, db)
+      topUpService.initiateTopUp({ userId: user!.id, usdAmount: '50.00' })
     ).rejects.toThrow(NoExchangeRateError);
   });
 
@@ -103,7 +103,7 @@ describe('Top-Up Initiation Service', () => {
     const { user } = await seedPrerequisites();
 
     await expect(
-      initiateTopUp({ userId: user.id, usdAmount: '5.00' }, db)
+      topUpService.initiateTopUp({ userId: user.id, usdAmount: '5.00' })
     ).rejects.toThrow(InvalidTopUpAmountError);
   });
 
@@ -111,7 +111,7 @@ describe('Top-Up Initiation Service', () => {
     const { user } = await seedPrerequisites();
 
     await expect(
-      initiateTopUp({ userId: user.id, usdAmount: '1500.00' }, db)
+      topUpService.initiateTopUp({ userId: user.id, usdAmount: '1500.00' })
     ).rejects.toThrow(InvalidTopUpAmountError);
   });
 
@@ -119,11 +119,11 @@ describe('Top-Up Initiation Service', () => {
     const { user } = await seedPrerequisites();
 
     await expect(
-      initiateTopUp({ userId: user.id, usdAmount: '-10.00' }, db)
+      topUpService.initiateTopUp({ userId: user.id, usdAmount: '-10.00' })
     ).rejects.toThrow(InvalidTopUpAmountError);
 
     await expect(
-      initiateTopUp({ userId: user.id, usdAmount: 'invalid' }, db)
+      topUpService.initiateTopUp({ userId: user.id, usdAmount: 'invalid' })
     ).rejects.toThrow(InvalidTopUpAmountError);
   });
 
@@ -132,9 +132,8 @@ describe('Top-Up Initiation Service', () => {
     process.env.TOPUP_INITIATED_EXPIRY_MINUTES = '45';
 
     const before = Date.now();
-    const { request } = await initiateTopUp(
-      { userId: user.id, usdAmount: '50.00' },
-      db
+    const { request } = await topUpService.initiateTopUp(
+      { userId: user.id, usdAmount: '50.00' }
     );
     const after = Date.now();
 
@@ -148,15 +147,14 @@ describe('Top-Up Initiation Service', () => {
   it('returns active top-up request with getActiveTopUpRequest', async () => {
     const { user } = await seedPrerequisites();
 
-    const notFound = await getActiveTopUpRequest(user.id, db);
+    const notFound = await topUpService.getActiveTopUpRequest(user.id);
     expect(notFound).toBeNull();
 
-    const created = await initiateTopUp(
-      { userId: user.id, usdAmount: '75.00' },
-      db
+    const created = await topUpService.initiateTopUp(
+      { userId: user.id, usdAmount: '75.00' }
     );
 
-    const active = await getActiveTopUpRequest(user.id, db);
+    const active = await topUpService.getActiveTopUpRequest(user.id);
     expect(active).toBeDefined();
     expect(active!.id).toBe(created.request.id);
     expect(active!.status).toBe('INITIATED');

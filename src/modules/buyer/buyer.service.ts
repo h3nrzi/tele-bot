@@ -91,20 +91,15 @@ export class BuyerService {
       isNew: isInserted,
     };
   }
-}
 
-import { BuyerRepository } from '@/modules/buyer/buyer.repository';
-import { WalletRepository } from '@/modules/wallet/wallet.repository';
-
-export async function registerBuyer(
-  input: RegisterBuyerInput,
-  executor?: DbExecutor
-): Promise<RegisterBuyerResult> {
-  const service = new BuyerService(
-    executor as DbClient,
-    new BuyerRepository(),
-    new WalletRepository()
-  );
-  return await service.register(input, executor);
+  /**
+   * Alias for register to satisfy callers expecting registerBuyer.
+   */
+  public async registerBuyer(
+    input: RegisterBuyerInput,
+    executor?: DbExecutor
+  ): Promise<RegisterBuyerResult> {
+    return await this.register(input, executor);
+  }
 }
 

@@ -6,11 +6,11 @@ import {
   getCurrentRateMessage,
   getNoRateConfiguredMessage,
 } from '@/bot/handlers/admin';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
+import { setTestRate } from '@tests/helpers/fixtures';
 import { createBot } from '@/bot/bot';
 
 describe('/rate Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminChatId = 123456789;
   const originalEnv = process.env.ADMIN_IDS;
 
@@ -36,7 +36,7 @@ describe('/rate Handler', () => {
   });
 
   it('replies with current rate and when it was set if rate exists', async () => {
-    const createdRate = await setRate(adminChatId, 620000n, db);
+    const createdRate = await setTestRate(container, adminChatId, 620000n);
 
     const { ctx, repliedMessages } = createMockContext({
       id: adminChatId,
@@ -52,8 +52,8 @@ describe('/rate Handler', () => {
   });
 
   it('shows the latest rate and timestamp when multiple rates have been set', async () => {
-    await setRate(adminChatId, 600000n, db);
-    const secondRate = await setRate(adminChatId, 650000n, db);
+    await setTestRate(container, adminChatId, 600000n);
+    const secondRate = await setTestRate(container, adminChatId, 650000n);
 
     const { ctx, repliedMessages } = createMockContext({
       id: adminChatId,
@@ -78,7 +78,7 @@ describe('/rate Handler', () => {
 
   describe('Bot integration with /rate', () => {
     it('executes /rate command for Admin and shows current rate via bot.handleUpdate', async () => {
-      const activeRate = await setRate(adminChatId, 630000n, db);
+      const activeRate = await setTestRate(container, adminChatId, 630000n);
 
       const bot = createBot({
         token: 'test_token',
@@ -150,7 +150,7 @@ describe('/rate Handler', () => {
 
     it('silently ignores /rate command when sent by a non-Admin', async () => {
       const nonAdminChatId = 999888777;
-      await setRate(adminChatId, 630000n, db);
+      await setTestRate(container, adminChatId, 630000n);
 
       const bot = createBot({
         token: 'test_token',

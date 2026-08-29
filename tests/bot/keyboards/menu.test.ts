@@ -2,8 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { captureBotReplies } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { registerBuyer } from '@/modules/buyer/buyer.service';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
+import { createTestBuyer, setTestRate } from '@tests/helpers/fixtures';
 import {
   getBuyerMainMenuKeyboard,
   getAdminMainMenuKeyboard,
@@ -17,7 +16,7 @@ import {
 } from '@/bot/handlers/admin/exchange-rate.messages';
 
 describe('Role-based Menus and Keyboards', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminChatId = 123456789;
   const buyerChatId = 987654321;
 
@@ -49,9 +48,9 @@ describe('Role-based Menus and Keyboards', () => {
     let repliedMessages: string[];
 
     beforeEach(async () => {
-      await registerBuyer(
-        { telegramChatId: buyerChatId, telegramUsername: 'buyer_user' },
-        db
+      await createTestBuyer(
+        container,
+        { telegramChatId: buyerChatId, telegramUsername: 'buyer_user' }
       );
 
       bot = createBot({
@@ -145,7 +144,7 @@ describe('Role-based Menus and Keyboards', () => {
     });
 
     it("triggers rate reply when sending '💱 نرخ ارز فعلی' as Admin", async () => {
-      await setRate({ adminTelegramId: BigInt(adminChatId), irrPerUsd: 630000n }, db);
+      await setTestRate(container, { adminTelegramId: BigInt(adminChatId), irrPerUsd: 630000n });
 
       await bot.handleUpdate({
         update_id: 10,

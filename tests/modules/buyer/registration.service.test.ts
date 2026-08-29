@@ -1,21 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { users } from '@/modules/buyer/buyer.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { BuyerService } from '@/modules/buyer/buyer.service';
-import { registerBuyer } from '@/modules/buyer/buyer.service';
 import { eq } from 'drizzle-orm';
 
 describe('Registration Service - Atomicity & Creation', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
+  let buyerService: BuyerService;
+
+  beforeEach(() => {
+    buyerService = container.resolve(BuyerService);
+  });
 
   it('creates a users row and a wallets row atomically in a single transaction with available_balance = 0.00', async () => {
-    const result = await registerBuyer(
+    const result = await buyerService.register(
       {
         telegramChatId: 987654321n,
         telegramUsername: 'newbuyer',
-      },
-      db
+      }
     );
 
     expect(result).toBeDefined();
@@ -39,21 +42,19 @@ describe('Registration Service - Atomicity & Creation', () => {
   });
 
   it('returns existing buyer and wallet if user already registered (idempotent)', async () => {
-    const firstResult = await registerBuyer(
+    const firstResult = await buyerService.register(
       {
         telegramChatId: 112233445n,
         telegramUsername: 'idempotent_user',
-      },
-      db
+      }
     );
     expect(firstResult.isNew).toBe(true);
 
-    const secondResult = await registerBuyer(
+    const secondResult = await buyerService.register(
       {
         telegramChatId: 112233445n,
         telegramUsername: 'idempotent_user_updated',
-      },
-      db
+      }
     );
 
     expect(secondResult.isNew).toBe(false);
@@ -77,12 +78,11 @@ describe('Registration Service - Atomicity & Creation', () => {
   });
 
   it('handles null telegram_username safely', async () => {
-    const result = await registerBuyer(
+    const result = await buyerService.register(
       {
         telegramChatId: 999888777n,
         telegramUsername: null,
-      },
-      db
+      }
     );
 
     expect(result.buyer.telegramUsername).toBeNull();
@@ -95,21 +95,19 @@ describe('Registration Service - Atomicity & Creation', () => {
   });
 
   it('updates existing buyer username if it changes on re-registration', async () => {
-    const initial = await registerBuyer(
+    const initial = await buyerService.register(
       {
         telegramChatId: 444555666n,
         telegramUsername: 'old_username',
-      },
-      db
+      }
     );
     expect(initial.buyer.telegramUsername).toBe('old_username');
 
-    const updated = await registerBuyer(
+    const updated = await buyerService.register(
       {
         telegramChatId: 444555666n,
         telegramUsername: 'new_username',
-      },
-      db
+      }
     );
     expect(updated.isNew).toBe(false);
     expect(updated.buyer.telegramUsername).toBe('new_username');
@@ -122,12 +120,11 @@ describe('Registration Service - Atomicity & Creation', () => {
   });
 
   it('converts number telegramChatId to bigint correctly', async () => {
-    const result = await registerBuyer(
+    const result = await buyerService.register(
       {
         telegramChatId: 123456789,
         telegramUsername: 'number_id_user',
-      },
-      db
+      }
     );
     expect(result.buyer.telegramChatId).toBe(123456789n);
   });

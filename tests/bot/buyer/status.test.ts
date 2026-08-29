@@ -7,16 +7,15 @@ import {
   formatStatusMessage,
 } from '@/bot/handlers/buyer';
 import { createBot } from '@/bot/bot';
-import { registerBuyer } from '@/modules/buyer/buyer.service';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
 import {
-  initiateTopUp,
-  submitReceipt,
-  rejectTopUp,
-} from '@/modules/top-up/top-up.service';
+  createTestBuyer,
+  setTestRate,
+  initiateTestTopUp,
+} from '@tests/helpers/fixtures';
+import { TopUpService } from '@/modules/top-up/top-up.service';
 
 describe('/status Command Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminId = 123456789n;
   const originalEnv = { ...process.env };
 
@@ -32,9 +31,9 @@ describe('/status Command Handler', () => {
 
   it('replies with no top-up history message when buyer has no requests', async () => {
     const chatId = 111222333;
-    await registerBuyer(
-      { telegramChatId: chatId, telegramUsername: 'alice_buyer' },
-      db
+    await createTestBuyer(
+      container,
+      { telegramChatId: chatId, telegramUsername: 'alice_buyer' }
     );
 
     const { ctx, repliedMessages } = createMockContext({
@@ -51,12 +50,12 @@ describe('/status Command Handler', () => {
 
   it('formats status message with status, USD, IRR, and date for INITIATED request', async () => {
     const chatId = 222333444;
-    const { buyer } = await registerBuyer(
-      { telegramChatId: chatId, telegramUsername: 'bob_buyer' },
-      db
+    const { buyer } = await createTestBuyer(
+      container,
+      { telegramChatId: chatId, telegramUsername: 'bob_buyer' }
     );
-    await setRate(adminId, 620000n, db);
-    const initResult = await initiateTopUp({ userId: buyer.id, usdAmount: '50.00' }, db);
+    await setTestRate(container, adminId, 620000n);
+    const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '50.00' });
 
     const { ctx, repliedMessages } = createMockContext({
       id: chatId,
@@ -81,20 +80,20 @@ describe('/status Command Handler', () => {
 
   it('formats status message including rejection reason when most recent request is REJECTED', async () => {
     const chatId = 333444555;
-    const { buyer } = await registerBuyer(
-      { telegramChatId: chatId, telegramUsername: 'charlie_buyer' },
-      db
+    const { buyer } = await createTestBuyer(
+      container,
+      { telegramChatId: chatId, telegramUsername: 'charlie_buyer' }
     );
-    await setRate(adminId, 620000n, db);
-    const initResult = await initiateTopUp({ userId: buyer.id, usdAmount: '100.00' }, db);
-    await submitReceipt({ userId: buyer.id, fileId: 'receipt_unclear' }, db);
-    await rejectTopUp(
+    await setTestRate(container, adminId, 620000n);
+    const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '100.00' });
+    const topUpService = container.resolve(TopUpService);
+    await topUpService.submitReceipt({ userId: buyer.id, fileId: 'receipt_unclear' });
+    await topUpService.rejectTopUp(
       {
         topUpRequestId: initResult.request.id,
         adminTelegramId: adminId,
         rejectionReason: 'رسید ناخوانا است و شماره پیگیری مشخص نیست.',
-      },
-      db
+      }
     );
 
     const { ctx, repliedMessages } = createMockContext({
@@ -140,12 +139,12 @@ describe('/status Command Handler', () => {
 
   it('handles /status command via createBot and bot.handleUpdate', async () => {
     const chatId = 444555666;
-    const { buyer } = await registerBuyer(
-      { telegramChatId: chatId, telegramUsername: 'dana_buyer' },
-      db
+    const { buyer } = await createTestBuyer(
+      container,
+      { telegramChatId: chatId, telegramUsername: 'dana_buyer' }
     );
-    await setRate(adminId, 620000n, db);
-    const initResult = await initiateTopUp({ userId: buyer.id, usdAmount: '25.00' }, db);
+    await setTestRate(container, adminId, 620000n);
+    const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '25.00' });
 
     const bot = createBot({
       token: 'test_token',

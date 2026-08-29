@@ -4,14 +4,9 @@ import { users } from '@/modules/buyer/buyer.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
-import { registerBuyer } from '@/modules/buyer/buyer.service';
-import {
-  initiateTopUp,
-  submitReceipt,
-  approveTopUp,
-  rejectTopUp,
-} from '@/modules/top-up/top-up.service';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { BuyerService } from '@/modules/buyer/buyer.service';
+import { TopUpService } from '@/modules/top-up/top-up.service';
 import {
   TopUpRequestNotFoundError,
   TopUpRequestNotPendingError,
@@ -19,7 +14,10 @@ import {
 import { eq } from 'drizzle-orm';
 
 describe('Top-Up Rejection Service', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
+  let buyerService: BuyerService;
+  let topUpService: TopUpService;
+  let exchangeRateService: ExchangeRateService;
   const adminId1 = 123456789n;
   const adminId2 = 987654321n;
   const buyerChatId = 555666777n;
@@ -29,6 +27,9 @@ describe('Top-Up Rejection Service', () => {
     process.env.TOPUP_MIN_USD = '10.00';
     process.env.TOPUP_MAX_USD = '1000.00';
     process.env.TOPUP_INITIATED_EXPIRY_MINUTES = '30';
+    buyerService = container.resolve(BuyerService);
+    topUpService = container.resolve(TopUpService);
+    exchangeRateService = container.resolve(ExchangeRateService);
   });
 
   afterEach(() => {
@@ -36,15 +37,13 @@ describe('Top-Up Rejection Service', () => {
   });
 
   async function seedPendingRequest(amount = '50.00') {
-    const { buyer, wallet } = await registerBuyer(
-      { telegramChatId: buyerChatId, telegramUsername: 'rejection_buyer' },
-      db
+    const { buyer, wallet } = await buyerService.register(
+      { telegramChatId: buyerChatId, telegramUsername: 'rejection_buyer' }
     );
-    await setRate({ adminTelegramId: adminId1, irrPerUsd: 600000n }, db);
-    const { request: initReq } = await initiateTopUp({ userId: buyer.id, usdAmount: amount }, db);
-    const { request: pendingReq } = await submitReceipt(
-      { userId: buyer.id, fileId: 'receipt_photo_123', caption: 'Payment receipt' },
-      db
+    await exchangeRateService.setRate({ adminTelegramId: adminId1, irrPerUsd: 600000n });
+    const { request: initReq } = await topUpService.initiateTopUp({ userId: buyer.id, usdAmount: amount });
+    const { request: pendingReq } = await topUpService.submitReceipt(
+      { userId: buyer.id, fileId: 'receipt_photo_123', caption: 'Payment receipt' }
     );
     return { buyer, wallet, request: pendingReq };
   }
@@ -54,13 +53,12 @@ describe('Top-Up Rejection Service', () => {
 
     const notifyBuyerSpy = vi.fn().mockResolvedValue(undefined);
 
-    const result = await rejectTopUp(
+    const result = await topUpService.rejectTopUp(
       {
         topUpRequestId: request.id,
         adminTelegramId: adminId1,
         rejectionReason: 'Invalid transaction tracking code',
       },
-      db,
       { notifyBuyer: notifyBuyerSpy }
     );
 
@@ -105,13 +103,12 @@ describe('Top-Up Rejection Service', () => {
     const { request } = await seedPendingRequest('50.00');
 
     const customReason = 'Receipt timestamp does not match transaction time';
-    const result = await rejectTopUp(
+    const result = await topUpService.rejectTopUp(
       {
         topUpRequestId: request.id,
         adminTelegramId: adminId1,
         rejectionReason: customReason,
-      },
-      db
+      }
     );
 
     expect(result.request.rejectionReason).toBe(customReason);
@@ -121,19 +118,17 @@ describe('Top-Up Rejection Service', () => {
     const { buyer, request } = await seedPendingRequest('50.00');
 
     // Reject first request
-    await rejectTopUp(
+    await topUpService.rejectTopUp(
       {
         topUpRequestId: request.id,
         adminTelegramId: adminId1,
         rejectionReason: 'Wrong amount',
-      },
-      db
+      }
     );
 
     // New initiation must now succeed without ActiveTopUpRequestExistsError
-    const newResult = await initiateTopUp(
-      { userId: buyer.id, usdAmount: '60.00' },
-      db
+    const newResult = await topUpService.initiateTopUp(
+      { userId: buyer.id, usdAmount: '60.00' }
     );
     expect(newResult.request.status).toBe('INITIATED');
     expect(newResult.request.usdAmount).toBe('60.00');
@@ -144,11 +139,10 @@ describe('Top-Up Rejection Service', () => {
 
     // Fire 1 reject and 1 approve concurrently
     const results = await Promise.allSettled([
-      rejectTopUp(
-        { topUpRequestId: request.id, adminTelegramId: adminId1, rejectionReason: 'Reason A' },
-        db
+      topUpService.rejectTopUp(
+        { topUpRequestId: request.id, adminTelegramId: adminId1, rejectionReason: 'Reason A' }
       ),
-      approveTopUp({ topUpRequestId: request.id, adminTelegramId: adminId2 }, db),
+      topUpService.approveTopUp({ topUpRequestId: request.id, adminTelegramId: adminId2 }),
     ]);
 
     const fulfilled = results.filter((r) => r.status === 'fulfilled');
@@ -162,41 +156,37 @@ describe('Top-Up Rejection Service', () => {
 
   it('throws TopUpRequestNotFoundError when topUpRequestId does not exist', async () => {
     await expect(
-      rejectTopUp(
+      topUpService.rejectTopUp(
         {
           topUpRequestId: '00000000-0000-0000-0000-000000000000',
           adminTelegramId: adminId1,
           rejectionReason: 'Reason',
-        },
-        db
+        }
       )
     ).rejects.toThrow(TopUpRequestNotFoundError);
   });
 
   it('throws TopUpRequestNotPendingError when request is in INITIATED, APPROVED, REJECTED, CANCELLED, or EXPIRED state', async () => {
     // 1. INITIATED
-    const { buyer } = await registerBuyer({ telegramChatId: 999222n, telegramUsername: 'b2' }, db);
-    await setRate({ adminTelegramId: adminId1, irrPerUsd: 600000n }, db);
-    const { request: initiatedReq } = await initiateTopUp({ userId: buyer.id, usdAmount: '20.00' }, db);
+    const { buyer } = await buyerService.register({ telegramChatId: 999222n, telegramUsername: 'b2' });
+    await exchangeRateService.setRate({ adminTelegramId: adminId1, irrPerUsd: 600000n });
+    const { request: initiatedReq } = await topUpService.initiateTopUp({ userId: buyer.id, usdAmount: '20.00' });
 
     await expect(
-      rejectTopUp(
-        { topUpRequestId: initiatedReq.id, adminTelegramId: adminId1, rejectionReason: 'Reason' },
-        db
+      topUpService.rejectTopUp(
+        { topUpRequestId: initiatedReq.id, adminTelegramId: adminId1, rejectionReason: 'Reason' }
       )
     ).rejects.toThrow(TopUpRequestNotPendingError);
 
     // 2. Already rejected
-    const { request: pendingReq } = await submitReceipt({ userId: buyer.id, fileId: 'f2' }, db);
-    await rejectTopUp(
-      { topUpRequestId: pendingReq.id, adminTelegramId: adminId1, rejectionReason: 'First Reject' },
-      db
+    const { request: pendingReq } = await topUpService.submitReceipt({ userId: buyer.id, fileId: 'f2' });
+    await topUpService.rejectTopUp(
+      { topUpRequestId: pendingReq.id, adminTelegramId: adminId1, rejectionReason: 'First Reject' }
     );
 
     await expect(
-      rejectTopUp(
-        { topUpRequestId: pendingReq.id, adminTelegramId: adminId1, rejectionReason: 'Second Reject' },
-        db
+      topUpService.rejectTopUp(
+        { topUpRequestId: pendingReq.id, adminTelegramId: adminId1, rejectionReason: 'Second Reject' }
       )
     ).rejects.toThrow(TopUpRequestNotPendingError);
   });
@@ -206,13 +196,12 @@ describe('Top-Up Rejection Service', () => {
 
     const failingNotifyBuyer = vi.fn().mockRejectedValue(new Error('Telegram network error'));
 
-    const result = await rejectTopUp(
+    const result = await topUpService.rejectTopUp(
       {
         topUpRequestId: request.id,
         adminTelegramId: adminId1,
         rejectionReason: 'Invalid receipt image',
       },
-      db,
       { notifyBuyer: failingNotifyBuyer }
     );
 

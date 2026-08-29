@@ -8,17 +8,17 @@ import {
   getNoActiveRequestToCancelMessage,
 } from '@/bot/handlers/buyer';
 import { createBot } from '@/bot/bot';
-import { registerBuyer } from '@/modules/buyer/buyer.service';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
 import {
-  initiateTopUp,
-  submitReceipt,
-} from '@/modules/top-up/top-up.service';
+  createTestBuyer,
+  setTestRate,
+  initiateTestTopUp,
+} from '@tests/helpers/fixtures';
+import { TopUpService } from '@/modules/top-up/top-up.service';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { eq } from 'drizzle-orm';
 
 describe('/cancel Command Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminId = 123456789n;
   const originalEnv = { ...process.env };
 
@@ -34,12 +34,12 @@ describe('/cancel Command Handler', () => {
 
   it('cancels INITIATED top-up request and replies with cancellation confirmation message', async () => {
     const chatId = 111222333;
-    const { buyer } = await registerBuyer(
-      { telegramChatId: chatId, telegramUsername: 'alice_buyer' },
-      db
+    const { buyer } = await createTestBuyer(
+      container,
+      { telegramChatId: chatId, telegramUsername: 'alice_buyer' }
     );
-    await setRate(adminId, 620000n, db);
-    const initResult = await initiateTopUp({ userId: buyer.id, usdAmount: '50.00' }, db);
+    await setTestRate(container, adminId, 620000n);
+    const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '50.00' });
 
     const { ctx, repliedMessages } = createMockContext({
       id: chatId,
@@ -62,13 +62,14 @@ describe('/cancel Command Handler', () => {
 
   it('informs buyer that cancellation is not possible when request is PENDING', async () => {
     const chatId = 222333444;
-    const { buyer } = await registerBuyer(
-      { telegramChatId: chatId, telegramUsername: 'bob_buyer' },
-      db
+    const { buyer } = await createTestBuyer(
+      container,
+      { telegramChatId: chatId, telegramUsername: 'bob_buyer' }
     );
-    await setRate(adminId, 620000n, db);
-    const initResult = await initiateTopUp({ userId: buyer.id, usdAmount: '100.00' }, db);
-    await submitReceipt({ userId: buyer.id, fileId: 'receipt_photo_1' }, db);
+    await setTestRate(container, adminId, 620000n);
+    const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '100.00' });
+    const topUpService = container.resolve(TopUpService);
+    await topUpService.submitReceipt({ userId: buyer.id, fileId: 'receipt_photo_1' });
 
     const { ctx, repliedMessages } = createMockContext({
       id: chatId,
@@ -91,9 +92,9 @@ describe('/cancel Command Handler', () => {
 
   it('informs buyer when there is no active top-up request to cancel', async () => {
     const chatId = 333444555;
-    await registerBuyer(
-      { telegramChatId: chatId, telegramUsername: 'charlie_buyer' },
-      db
+    await createTestBuyer(
+      container,
+      { telegramChatId: chatId, telegramUsername: 'charlie_buyer' }
     );
 
     const { ctx, repliedMessages } = createMockContext({
@@ -130,12 +131,12 @@ describe('/cancel Command Handler', () => {
 
   it('handles /cancel command via createBot and bot.handleUpdate', async () => {
     const chatId = 444555666;
-    const { buyer } = await registerBuyer(
-      { telegramChatId: chatId, telegramUsername: 'dana_buyer' },
-      db
+    const { buyer } = await createTestBuyer(
+      container,
+      { telegramChatId: chatId, telegramUsername: 'dana_buyer' }
     );
-    await setRate(adminId, 620000n, db);
-    await initiateTopUp({ userId: buyer.id, usdAmount: '75.00' }, db);
+    await setTestRate(container, adminId, 620000n);
+    await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '75.00' });
 
     const bot = createBot({
       token: 'test_token',

@@ -7,8 +7,7 @@ import {
   type MockAnsweredCallbackQuery,
 } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
@@ -16,7 +15,7 @@ import { formatBuyerRejectionMessage } from '@/bot/handlers/admin';
 import { eq } from 'drizzle-orm';
 
 describe('Admin Rejection Conversation & Callback Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminChatId1 = 111222333;
   const adminChatId2 = 444555666;
   const nonAdminChatId = 777888999;
@@ -151,14 +150,14 @@ describe('Admin Rejection Conversation & Callback Handler', () => {
   }
 
   async function setupPendingTopUpFlow(bot: ReturnType<typeof createTestBot>['bot']) {
-    await setRate(BigInt(adminChatId1), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     await bot.handleUpdate(makeCommandUpdate(1, buyerChatId, '/topup'));

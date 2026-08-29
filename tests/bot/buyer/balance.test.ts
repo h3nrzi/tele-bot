@@ -7,21 +7,21 @@ import {
   getUnregisteredBalanceMessage,
 } from '@/bot/handlers/buyer';
 import { createBot } from '@/bot/bot';
-import { registerBuyer } from '@/modules/buyer/buyer.service';
+import { createTestBuyer } from '@tests/helpers/fixtures';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { eq } from 'drizzle-orm';
 
 describe('/balance Handler', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
 
   it('returns Available Balance formatted as a USD string ($0.00) for a registered Buyer', async () => {
     const chatId = 123456789;
-    await registerBuyer(
+    await createTestBuyer(
+      container,
       {
         telegramChatId: chatId,
         telegramUsername: 'alice_buyer',
-      },
-      db
+      }
     );
 
     const { ctx, repliedMessages } = createMockContext({
@@ -39,12 +39,12 @@ describe('/balance Handler', () => {
 
   it('returns non-zero Available Balance formatted as a USD string for a registered Buyer', async () => {
     const chatId = 987654321;
-    const { buyer } = await registerBuyer(
+    const { buyer } = await createTestBuyer(
+      container,
       {
         telegramChatId: chatId,
         telegramUsername: 'bob_buyer',
-      },
-      db
+      }
     );
 
     await db
@@ -89,12 +89,12 @@ describe('/balance Handler', () => {
 
   it('handles /balance command via createBot and bot.handleUpdate', async () => {
     const chatId = 777888999;
-    await registerBuyer(
+    await createTestBuyer(
+      container,
       {
         telegramChatId: chatId,
         telegramUsername: 'dana_buyer',
-      },
-      db
+      }
     );
 
     const bot = createBot({

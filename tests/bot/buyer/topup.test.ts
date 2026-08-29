@@ -2,8 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockFetch } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { setRate } from '@/modules/exchange-rate/exchange-rate.service';
-import { setActiveAccount } from '@/modules/bank-account/bank-account.service';
+import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { users } from '@/modules/buyer/buyer.schema';
 import {
@@ -18,7 +17,7 @@ import { eq, count } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 describe('/topup Buyer Command & Conversation Flow', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
   const adminChatId = 111222333;
   const adminChatId2 = 444555666;
   const buyerChatId = 987654321;
@@ -93,15 +92,15 @@ describe('/topup Buyer Command & Conversation Flow', () => {
 
   it('walks Buyer through happy path /topup flow and creates INITIATED request with card details', async () => {
     // Setup exchange rate and active card
-    await setRate(BigInt(adminChatId), 620000n, db);
-    const activeCard = await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    const activeCard = await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
         additionalNotes: 'Transfer only from your personal card',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages } = createTestBot();
@@ -135,14 +134,14 @@ describe('/topup Buyer Command & Conversation Flow', () => {
   });
 
   it('cancels the topup flow when Buyer sends /cancel', async () => {
-    await setRate(BigInt(adminChatId), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages } = createTestBot();
@@ -159,14 +158,14 @@ describe('/topup Buyer Command & Conversation Flow', () => {
   });
 
   it('re-prompts on invalid string, below min amount, and above max amount', async () => {
-    await setRate(BigInt(adminChatId), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages } = createTestBot();
@@ -201,13 +200,13 @@ describe('/topup Buyer Command & Conversation Flow', () => {
   });
 
   it('handles no exchange rate configured: replies unavailable to Buyer and pushes urgent alert to all Admins', async () => {
-    await setActiveAccount(
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages } = createTestBot();
@@ -229,14 +228,14 @@ describe('/topup Buyer Command & Conversation Flow', () => {
   });
 
   it('refuses /topup if Buyer already has an active INITIATED request', async () => {
-    await setRate(BigInt(adminChatId), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages } = createTestBot();
@@ -256,14 +255,14 @@ describe('/topup Buyer Command & Conversation Flow', () => {
   });
 
   it('refuses /topup if Buyer already has an active PENDING request', async () => {
-    await setRate(BigInt(adminChatId), 620000n, db);
-    await setActiveAccount(
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
       {
         cardNumber: '6037991234567890',
         cardHolderName: 'Ali Reza',
         bankName: 'Mellat Bank',
-      },
-      db
+      }
     );
 
     const { bot, repliedMessages } = createTestBot();

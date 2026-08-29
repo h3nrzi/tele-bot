@@ -88,26 +88,3 @@ export class BankAccountService {
   }
 }
 
-import { BankAccountRepository } from '@/modules/bank-account/bank-account.repository';
-
-export async function setActiveAccount(
-  input: SetActiveAccountInput,
-  executor?: DbExecutor
-): Promise<BankAccount> {
-  const service = new BankAccountService(
-    executor as DbClient,
-    new BankAccountRepository()
-  );
-  return await service.setActiveAccount(input, executor);
-}
-
-export async function getActiveAccount(
-  executor?: DbExecutor
-): Promise<BankAccount | null> {
-  const service = new BankAccountService(
-    executor as DbClient,
-    new BankAccountRepository()
-  );
-  return await service.getActiveAccount(executor);
-}
-

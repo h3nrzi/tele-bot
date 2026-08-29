@@ -1,11 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { bankAccounts } from '@/modules/bank-account/bank-account.schema';
-import {
-  setActiveAccount,
-  getActiveAccount,
-  BankAccountService,
-} from '@/modules/bank-account/bank-account.service';
+import { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import {
   InvalidCardNumberError,
   InvalidCardHolderNameError,
@@ -15,17 +11,21 @@ import { BankAccountRepository } from '@/modules/bank-account/bank-account.repos
 import { eq } from 'drizzle-orm';
 
 describe('Bank Account Application Service', () => {
-  const { db } = setupTestDatabase();
+  const { db, container } = setupTestDatabase();
+  let bankAccountService: BankAccountService;
+
+  beforeEach(() => {
+    bankAccountService = container.resolve(BankAccountService);
+  });
 
   it('inserts and activates a new bank account when no account exists', async () => {
-    const account = await setActiveAccount(
+    const account = await bankAccountService.setActiveAccount(
       {
         cardNumber: '6037991122334455',
         cardHolderName: 'Ali Rezaei',
         bankName: 'Mellat',
         additionalNotes: 'Card to card only',
-      },
-      db
+      }
     );
 
     expect(account).toBeDefined();
@@ -36,29 +36,23 @@ describe('Bank Account Application Service', () => {
     expect(account.additionalNotes).toBe('Card to card only');
     expect(account.isActive).toBe(true);
 
-    const active = await getActiveAccount(db);
+    const active = await bankAccountService.getActiveAccount();
     expect(active).toBeDefined();
     expect(active!.id).toBe(account.id);
   });
 
   it('deactivates previously active bank account atomically in a single transaction when setting a new one', async () => {
-    const first = await setActiveAccount(
-      {
-        cardNumber: '6037991111111111',
-        cardHolderName: 'First Holder',
-        bankName: 'Melli',
-      },
-      db
-    );
+    const first = await bankAccountService.setActiveAccount({
+      cardNumber: '6037991111111111',
+      cardHolderName: 'First Holder',
+      bankName: 'Melli',
+    });
 
-    const second = await setActiveAccount(
-      {
-        cardNumber: '5022291122223333',
-        cardHolderName: 'Second Holder',
-        bankName: 'Pasargad',
-      },
-      db
-    );
+    const second = await bankAccountService.setActiveAccount({
+      cardNumber: '5022291122223333',
+      cardHolderName: 'Second Holder',
+      bankName: 'Pasargad',
+    });
 
     // Verify first is now deactivated
     const [firstInDb] = await db
@@ -84,93 +78,72 @@ describe('Bank Account Application Service', () => {
   });
 
   it('returns null when no bank account has been configured', async () => {
-    const active = await getActiveAccount(db);
+    const active = await bankAccountService.getActiveAccount();
     expect(active).toBeNull();
   });
 
   it('cleans card number with spaces or dashes automatically', async () => {
-    const account = await setActiveAccount(
-      {
-        cardNumber: '6037-9911-2233-4455',
-        cardHolderName: 'Cleaned Number Holder',
-        bankName: 'Saderat',
-      },
-      db
-    );
+    const account = await bankAccountService.setActiveAccount({
+      cardNumber: '6037-9911-2233-4455',
+      cardHolderName: 'Cleaned Number Holder',
+      bankName: 'Saderat',
+    });
 
     expect(account.cardNumber).toBe('6037991122334455');
   });
 
   it('throws InvalidCardNumberError on non-16-digit card number', async () => {
     await expect(
-      setActiveAccount(
-        {
-          cardNumber: '12345',
-          cardHolderName: 'Holder',
-          bankName: 'Bank',
-        },
-        db
-      )
+      bankAccountService.setActiveAccount({
+        cardNumber: '12345',
+        cardHolderName: 'Holder',
+        bankName: 'Bank',
+      })
     ).rejects.toThrow(InvalidCardNumberError);
 
     await expect(
-      setActiveAccount(
-        {
-          cardNumber: '603799112233445566', // 18 digits
-          cardHolderName: 'Holder',
-          bankName: 'Bank',
-        },
-        db
-      )
+      bankAccountService.setActiveAccount({
+        cardNumber: '603799112233445566', // 18 digits
+        cardHolderName: 'Holder',
+        bankName: 'Bank',
+      })
     ).rejects.toThrow(InvalidCardNumberError);
 
     await expect(
-      setActiveAccount(
-        {
-          cardNumber: '60379911abcd4455',
-          cardHolderName: 'Holder',
-          bankName: 'Bank',
-        },
-        db
-      )
+      bankAccountService.setActiveAccount({
+        cardNumber: '60379911abcd4455',
+        cardHolderName: 'Holder',
+        bankName: 'Bank',
+      })
     ).rejects.toThrow(InvalidCardNumberError);
   });
 
   it('throws InvalidCardHolderNameError on empty card holder name', async () => {
     await expect(
-      setActiveAccount(
-        {
-          cardNumber: '6037991122334455',
-          cardHolderName: '   ',
-          bankName: 'Bank',
-        },
-        db
-      )
+      bankAccountService.setActiveAccount({
+        cardNumber: '6037991122334455',
+        cardHolderName: '   ',
+        bankName: 'Bank',
+      })
     ).rejects.toThrow(InvalidCardHolderNameError);
   });
 
   it('throws InvalidBankNameError on empty bank name', async () => {
     await expect(
-      setActiveAccount(
-        {
-          cardNumber: '6037991122334455',
-          cardHolderName: 'Holder',
-          bankName: '',
-        },
-        db
-      )
+      bankAccountService.setActiveAccount({
+        cardNumber: '6037991122334455',
+        cardHolderName: 'Holder',
+        bankName: '',
+      })
     ).rejects.toThrow(InvalidBankNameError);
   });
 
   it('handles optional additionalNotes correctly', async () => {
-    const accountWithoutNotes = await setActiveAccount(
-      {
-        cardNumber: '6037991122334455',
-        cardHolderName: 'Holder',
-        bankName: 'Bank',
-      },
-      db
-    );
+    const accountWithoutNotes = await bankAccountService.setActiveAccount({
+      cardNumber: '6037991122334455',
+      cardHolderName: 'Holder',
+      bankName: 'Bank',
+    });
     expect(accountWithoutNotes.additionalNotes).toBeNull();
   });
 
