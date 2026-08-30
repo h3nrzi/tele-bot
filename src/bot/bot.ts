@@ -9,6 +9,7 @@ import { createAppContainer } from '@/core/di/container';
 import { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { BuyerService } from '@/modules/buyer/buyer.service';
+import { CatalogService } from '@/modules/catalog/catalog.service';
 import {
   createSetCardConversation,
   SETCARD_CONVERSATION_ID,
@@ -21,6 +22,12 @@ import {
   createRejectConversation,
   REJECT_CONVERSATION_ID,
 } from '@/bot/handlers/admin/reject.conversation';
+import {
+  createAddCatalogItemConversation,
+  ADD_CATALOG_ITEM_CONVERSATION_ID,
+  createEditCatalogItemConversation,
+  EDIT_CATALOG_ITEM_CONVERSATION_ID,
+} from '@/bot/handlers/admin/catalog.conversation';
 import { createBuyerComposer } from '@/bot/handlers/buyer/buyer.composer';
 import { createAdminComposer } from '@/bot/handlers/admin/admin.composer';
 
@@ -64,6 +71,7 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   const bankAccountService = appContainer.resolve(BankAccountService);
   const topUpService = appContainer.resolve(TopUpService);
   const buyerService = appContainer.resolve(BuyerService);
+  const catalogService = appContainer.resolve(CatalogService);
 
   const botConfig: BotConfig<BotContext> = {};
   if (options?.botInfo) {
@@ -98,6 +106,22 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
       createRejectConversation(topUpService),
       {
         id: REJECT_CONVERSATION_ID,
+      }
+    )
+  );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createAddCatalogItemConversation(catalogService),
+      {
+        id: ADD_CATALOG_ITEM_CONVERSATION_ID,
+      }
+    )
+  );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createEditCatalogItemConversation(catalogService),
+      {
+        id: EDIT_CATALOG_ITEM_CONVERSATION_ID,
       }
     )
   );

@@ -14,6 +14,9 @@ import type {
   InitiateTopUpInput,
   InitiateTopUpResult,
 } from '@/modules/top-up/dtos/top-up.dto';
+import { CatalogService } from '@/modules/catalog/catalog.service';
+import type { CreateCatalogItemInput } from '@/modules/catalog/dtos/create-catalog-item.dto';
+import type { CatalogItem } from '@/modules/catalog/catalog.entity';
 import type { DbClient } from '@/core/database/client';
 import { createAppContainer } from '@/core/di/container';
 
@@ -88,3 +91,21 @@ export async function initiateTestTopUp(
   const service = container.resolve(TopUpService);
   return await service.initiateTopUp(input);
 }
+
+export async function createTestCatalogItem(
+  containerOrDb: DependencyContainer | DbClient,
+  input: CreateCatalogItemInput
+): Promise<CatalogItem> {
+  const container = getContainer(containerOrDb);
+  const service = container.resolve(CatalogService);
+  return await service.createCatalogItem(input);
+}
+
+export async function listTestCatalogItems(
+  containerOrDb: DependencyContainer | DbClient
+): Promise<CatalogItem[]> {
+  const container = getContainer(containerOrDb);
+  const service = container.resolve(CatalogService);
+  return await service.listAll();
+}
+

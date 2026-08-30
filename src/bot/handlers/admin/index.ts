@@ -9,5 +9,18 @@ export * from '@/bot/handlers/admin/reject.conversation';
 export * from '@/bot/handlers/admin/reject.handler';
 export * from '@/bot/handlers/admin/pending.keyboards';
 export * from '@/bot/handlers/admin/pending.handler';
+export * from '@/bot/handlers/admin/catalog.keyboards';
+export {
+  ADD_CATALOG_ITEM_CONVERSATION_ID,
+  EDIT_CATALOG_ITEM_CONVERSATION_ID,
+  createAddCatalogItemConversation,
+  createEditCatalogItemConversation,
+  buildCatalogDashboardView,
+  isKeepCommand,
+  isConfirmCommand,
+  type AddCatalogItemConversation,
+  type EditCatalogItemConversation,
+} from '@/bot/handlers/admin/catalog.conversation';
+export * from '@/bot/handlers/admin/catalog.handler';
 export * from '@/bot/handlers/admin/admin.composer';
 export { isCancelCommand } from '@/core/shared/telegram.utils';

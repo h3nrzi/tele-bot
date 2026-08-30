@@ -12,6 +12,7 @@ export function getBuyerMainMenuKeyboard(): Keyboard {
 
 export function getAdminMainMenuKeyboard(): Keyboard {
   return new Keyboard()
+    .text('📦 کاتالوگ خدمات')
     .text('⏳ درخواست‌های در انتظار')
     .row()
     .text('💳 تنظیم کارت بانکی')

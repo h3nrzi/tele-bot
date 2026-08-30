@@ -15,11 +15,11 @@
 
 ## Acceptance criteria
 
-- [ ] `/catalog` is restricted to Admin users; non-Admins receive an access-denied message.
-- [ ] The dashboard renders all Catalog Items with correct active/inactive indicators.
-- [ ] `[+ Add New]` completes the guided conversation and the new item appears in the dashboard.
-- [ ] `[Edit]` updates the selected fields and leaves unedited fields unchanged.
-- [ ] `[Deactivate]` sets `is_active = false`; the item no longer appears in `listActive` results.
-- [ ] `[Reactivate]` sets `is_active = true`; the item reappears in `listActive` results.
-- [ ] All catalog service unit tests pass.
-- [ ] TypeScript compiles without errors.
+- [x] `/catalog` is restricted to Admin users; non-Admins receive an access-denied message.
+- [x] The dashboard renders all Catalog Items with correct active/inactive indicators.
+- [x] `[+ Add New]` completes the guided conversation and the new item appears in the dashboard.
+- [x] `[Edit]` updates the selected fields and leaves unedited fields unchanged.
+- [x] `[Deactivate]` sets `is_active = false`; the item no longer appears in `listActive` results.
+- [x] `[Reactivate]` sets `is_active = true`; the item reappears in `listActive` results.
+- [x] All catalog service unit tests pass.
+- [x] TypeScript compiles without errors.
