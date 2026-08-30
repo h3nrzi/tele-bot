@@ -51,5 +51,31 @@ A single immutable row in the append-only ledger, belonging to a Ledger Transact
 _Avoid_: Line, Row, Movement
 
 **SYSTEM_CASH**:
-A virtual contra account debited whenever a Buyer Wallet is credited on Top-Up approval. Has no real-world counterpart; exists solely to balance the double-entry ledger.
+A virtual contra account debited whenever a Buyer Wallet is credited on Top-Up approval, and credited whenever a Buyer Wallet is debited on Order placement or refunded on Order cancellation/rejection. Has no real-world counterpart; exists solely to balance the double-entry ledger.
 _Avoid_: Escrow, Float, Reserve
+
+### Service Catalog & Ordering
+
+**Catalog Item**:
+A named, Admin-configured purchasable item with a fixed USD price and an optional description. The canonical record of what Buyers can buy. Active Catalog Items appear in the Buyer's `/shop` view; inactive ones do not, but their history is preserved.
+_Avoid_: SKU, Product, Service, Listing
+
+**Order**:
+A Buyer's purchase of exactly one unit of one Catalog Item. Created atomically with a wallet debit and a Ledger Transaction at the moment the Buyer confirms. Progresses through the states: `PLACED → PROCESSING → FULFILLED | REJECTED | CANCELLED`.
+_Avoid_: Purchase, Transaction, Request
+
+**Price Snapshot**:
+The USD price of a Catalog Item copied onto the Order row at the moment of placement and never subsequently updated. Guarantees the financial record of an Order is immutable regardless of future Catalog Item price changes.
+_Avoid_: Locked price, Historical price
+
+**Claim**:
+The act of an Admin transitioning an Order from `PLACED` to `PROCESSING` by tapping `[▶ Start Processing]`. Claiming is instantaneous, requires no conversation, and locks Buyer cancellation. Only one Admin may claim a given Order.
+_Avoid_: Assignment, Pickup, Take
+
+**Delivery Content**:
+The plain-text credentials, keys, or access information typed by the claiming Admin during the fulfilment conversation and forwarded to the Buyer upon Order fulfilment. Stored permanently in `orders.delivery_content` for audit purposes.
+_Avoid_: Credentials, Payload, Fulfilment data
+
+**Order Admin Notification**:
+The Telegram push message sent to each Admin when an Order is placed. Its `chat_id` and `message_id` are stored in `order_admin_notifications` so that claim, cancellation, rejection, and fulfilment services can edit the message's inline buttons to reflect the current Order state.
+_Avoid_: Alert, Broadcast, Push
