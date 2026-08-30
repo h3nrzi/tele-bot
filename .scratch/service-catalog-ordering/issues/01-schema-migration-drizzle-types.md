@@ -15,9 +15,10 @@
 
 ## Acceptance criteria
 
-- [ ] `catalog_items`, `orders`, and `order_admin_notifications` tables exist in the database after running migrations.
-- [ ] `ledger_transactions` has `order_id` and `reversed_by_ledger_transaction_id` columns; the XOR CHECK constraint is present.
-- [ ] Drizzle schema files compile without TypeScript errors.
-- [ ] `schema.ts` re-exports the new schema files.
-- [ ] `drizzle-kit generate` produces no additional migrations (schema is in sync).
-- [ ] Existing RFP #1 migrations and tests continue to pass.
+- [x] `catalog_items`, `orders`, and `order_admin_notifications` tables exist in the database after running migrations.
+- [x] `ledger_transactions` has `order_id` and `reversed_by_ledger_transaction_id` columns; the XOR CHECK constraint is present.
+- [x] Drizzle schema files compile without TypeScript errors.
+- [x] `schema.ts` re-exports the new schema files.
+- [x] `drizzle-kit generate` produces no additional migrations (schema is in sync).
+- [x] Existing RFP #1 migrations and tests continue to pass.
+

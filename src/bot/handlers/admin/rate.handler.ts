@@ -22,7 +22,7 @@ export async function handleRate(
     return;
   }
 
-  const date = currentRate.updatedAt ?? currentRate.createdAt ?? new Date();
+  const date = currentRate.createdAt ?? new Date();
   await ctx.reply(
     `💱 نرخ فعلی تبدیل ارز:\n\n` +
     `هر ۱ دلار آمریکا = ${formatIrr(currentRate.irrPerUsd)} ریال\n` +
