@@ -1,6 +1,6 @@
 # 03: Buyer `/shop` + order confirmation prompt
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 02 — Catalog service + `/catalog` Admin dashboard
 
@@ -14,10 +14,11 @@
 
 ## Acceptance criteria
 
-- [ ] `/shop` shows only active Catalog Items; deactivated items do not appear.
-- [ ] Tapping an item shows name, description (if present), price, and current Available Balance.
-- [ ] When balance ≥ price, the `[✓ Confirm]` button is present.
-- [ ] When balance < price, a clear error message is shown and the `[✓ Confirm]` button is absent.
-- [ ] `[✗ Cancel]` dismisses the prompt without any side effects.
-- [ ] `/shop` with no active items shows a graceful empty-state message.
-- [ ] TypeScript compiles without errors.
+- [x] `/shop` shows only active Catalog Items; deactivated items do not appear.
+- [x] Tapping an item shows name, description (if present), price, and current Available Balance.
+- [x] When balance ≥ price, the `[✓ Confirm]` button is present.
+- [x] When balance < price, a clear error message is shown and the `[✓ Confirm]` button is absent.
+- [x] `[✗ Cancel]` dismisses the prompt without any side effects.
+- [x] `/shop` with no active items shows a graceful empty-state message.
+- [x] TypeScript compiles without errors.
+

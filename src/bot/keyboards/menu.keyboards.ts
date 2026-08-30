@@ -2,6 +2,8 @@ import { Keyboard } from 'grammy';
 
 export function getBuyerMainMenuKeyboard(): Keyboard {
   return new Keyboard()
+    .text('🛍️ فروشگاه خدمات')
+    .row()
     .text('💰 موجودی کیف پول')
     .text('➕ افزایش موجودی')
     .row()

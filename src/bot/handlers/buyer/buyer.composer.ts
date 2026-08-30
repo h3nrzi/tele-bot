@@ -7,11 +7,18 @@ import { handleTopUpCommand } from '@/bot/handlers/buyer/top-up.handler';
 import { handleCancelCommand } from '@/bot/handlers/buyer/cancel.handler';
 import { handleStatusCommand } from '@/bot/handlers/buyer/status.handler';
 import { handlePhotoMessage } from '@/bot/handlers/buyer/receipt.handler';
+import {
+  handleShopCommand,
+  handleShopItemCallback,
+  handleShopCancelCallback,
+  handleShopConfirmCallback,
+} from '@/bot/handlers/buyer/shop.handler';
 import { BuyerService } from '@/modules/buyer/buyer.service';
 import { WalletService } from '@/modules/wallet/wallet.service';
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { BankAccountService } from '@/modules/bank-account/bank-account.service';
+import { CatalogService } from '@/modules/catalog/catalog.service';
 
 export interface BuyerComposerOptions {
   container?: DependencyContainer | undefined;
@@ -20,6 +27,7 @@ export interface BuyerComposerOptions {
   topUpService?: TopUpService | undefined;
   exchangeRateService?: ExchangeRateService | undefined;
   bankAccountService?: BankAccountService | undefined;
+  catalogService?: CatalogService | undefined;
   adminIds?: string | Set<bigint> | undefined;
 }
 
@@ -40,13 +48,16 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     options?.exchangeRateService ?? container?.resolve(ExchangeRateService);
   const bankAccountService =
     options?.bankAccountService ?? container?.resolve(BankAccountService);
+  const catalogService =
+    options?.catalogService ?? container?.resolve(CatalogService);
 
   if (
     !buyerService ||
     !walletService ||
     !topUpService ||
     !exchangeRateService ||
-    !bankAccountService
+    !bankAccountService ||
+    !catalogService
   ) {
     throw new Error('All required services or a container must be provided to createBuyerComposer');
   }
@@ -54,6 +65,10 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
   // Commands
   composer.command('start', async (ctx) => {
     await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
+  });
+
+  composer.command('shop', async (ctx) => {
+    await handleShopCommand(ctx, catalogService);
   });
 
   composer.command('balance', async (ctx) => {
@@ -79,6 +94,10 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
   });
 
   // Menu Button Handlers (Hears)
+  composer.hears(['🛍️ فروشگاه خدمات', 'فروشگاه خدمات', 'فروشگاه', 'خرید خدمات'], async (ctx) => {
+    await handleShopCommand(ctx, catalogService);
+  });
+
   composer.hears(['💰 موجودی کیف پول', 'موجودی کیف پول', 'موجودی'], async (ctx) => {
     await handleBalance(ctx, walletService);
   });
@@ -105,6 +124,19 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
   });
 
+  // Callback Queries
+  composer.callbackQuery(/^shop:item:(.+)$/, async (ctx) => {
+    await handleShopItemCallback(ctx, { catalogService, buyerService });
+  });
+
+  composer.callbackQuery('shop:cancel', async (ctx) => {
+    await handleShopCancelCallback(ctx);
+  });
+
+  composer.callbackQuery(/^shop:confirm:(.+)$/, async (ctx) => {
+    await handleShopConfirmCallback(ctx);
+  });
+
   // Media
   composer.on('message:photo', async (ctx) => {
     await handlePhotoMessage(ctx, {
@@ -116,3 +148,4 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 
   return composer;
 }
+

@@ -19,6 +19,7 @@ describe('Role-based Menus and Keyboards', () => {
     // Verify keyboard buttons contain the expected texts
     const flatButtons = keyboard.build().flat();
     const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
+    expect(buttonTexts).toContain('🛍️ فروشگاه خدمات');
     expect(buttonTexts).toContain('💰 موجودی کیف پول');
     expect(buttonTexts).toContain('➕ افزایش موجودی');
     expect(buttonTexts).toContain('📋 پیگیری وضعیت');
@@ -64,11 +65,27 @@ describe('Role-based Menus and Keyboards', () => {
       repliedMessages = captureBotReplies(bot);
     });
 
-    it("triggers balance reply when sending '💰 موجودی کیف پول'", async () => {
+    it("triggers shop reply when sending '🛍️ فروشگاه خدمات'", async () => {
       await bot.handleUpdate({
         update_id: 1,
         message: {
           message_id: 1,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
+          from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
+          text: '🛍️ فروشگاه خدمات',
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(1);
+      expect(repliedMessages[0]).toContain('فروشگاه خدمات');
+    });
+
+    it("triggers balance reply when sending '💰 موجودی کیف پول'", async () => {
+      await bot.handleUpdate({
+        update_id: 2,
+        message: {
+          message_id: 2,
           date: Math.floor(Date.now() / 1000),
           chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
           from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
