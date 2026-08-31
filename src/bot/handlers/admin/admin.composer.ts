@@ -142,5 +142,24 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     await handleCatalogEditCallback(ctx);
   });
 
+  // Order Processing & Rejection Stubs (Activated in Tickets 05 & 07)
+  composer.callbackQuery(/^order:process:(.+)$/, adminAuth, async (ctx) => {
+    try {
+      await ctx.answerCallbackQuery({
+        text: 'عملیات شروع پردازش سفارش در فاز بعدی فعال می‌شود.',
+        show_alert: true,
+      });
+    } catch {}
+  });
+
+  composer.callbackQuery(/^order:reject:(.+)$/, adminAuth, async (ctx) => {
+    try {
+      await ctx.answerCallbackQuery({
+        text: 'عملیات رد سفارش در فاز بعدی فعال می‌شود.',
+        show_alert: true,
+      });
+    } catch {}
+  });
+
   return composer;
 }

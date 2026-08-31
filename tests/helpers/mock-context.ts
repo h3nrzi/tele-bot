@@ -54,6 +54,12 @@ export function createMockContext(
   return { ctx, repliedMessages };
 }
 
+export interface MockSentMessage {
+  chat_id: number | string;
+  text: string;
+  reply_markup?: any;
+}
+
 export interface MockSentPhoto {
   chat_id: number | string;
   photo: string;
@@ -83,13 +89,15 @@ export function createMockFetch(
   repliedMessages: string[] = [],
   sentPhotos: MockSentPhoto[] = [],
   editedMessages: MockEditedMessage[] = [],
-  answeredCallbackQueries: MockAnsweredCallbackQuery[] = []
+  answeredCallbackQueries: MockAnsweredCallbackQuery[] = [],
+  sentMessages: MockSentMessage[] = []
 ): {
   fetch: typeof fetch;
   repliedMessages: string[];
   sentPhotos: MockSentPhoto[];
   editedMessages: MockEditedMessage[];
   answeredCallbackQueries: MockAnsweredCallbackQuery[];
+  sentMessages: MockSentMessage[];
 } {
   let messageId = 1;
   const mockFetch: typeof fetch = async (url: any, init?: any) => {
@@ -105,6 +113,11 @@ export function createMockFetch(
       if (body.text) {
         repliedMessages.push(body.text);
       }
+      sentMessages.push({
+        chat_id: body.chat_id,
+        text: body.text,
+        reply_markup: body.reply_markup,
+      });
       return new Response(
         JSON.stringify({
           ok: true,
@@ -208,7 +221,14 @@ export function createMockFetch(
     });
   };
 
-  return { fetch: mockFetch, repliedMessages, sentPhotos, editedMessages, answeredCallbackQueries };
+  return {
+    fetch: mockFetch,
+    repliedMessages,
+    sentPhotos,
+    editedMessages,
+    answeredCallbackQueries,
+    sentMessages,
+  };
 }
 
 /**

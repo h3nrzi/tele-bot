@@ -7,7 +7,9 @@ import {
 
 export interface LedgerTransactionProps {
   id: string;
-  topUpRequestId: string | null;
+  topUpRequestId?: string | null;
+  orderId?: string | null;
+  reversedByLedgerTransactionId?: string | null;
   narrative: string;
   createdAt: Date;
   entries?: LedgerEntry[];
@@ -20,13 +22,17 @@ export interface LedgerTransactionProps {
 export class LedgerTransaction {
   public readonly id: string;
   public readonly topUpRequestId: string | null;
+  public readonly orderId: string | null;
+  public readonly reversedByLedgerTransactionId: string | null;
   public readonly narrative: string;
   public readonly createdAt: Date;
   public readonly entries: LedgerEntry[];
 
   constructor(props: LedgerTransactionProps) {
     this.id = props.id;
-    this.topUpRequestId = props.topUpRequestId;
+    this.topUpRequestId = props.topUpRequestId ?? null;
+    this.orderId = props.orderId ?? null;
+    this.reversedByLedgerTransactionId = props.reversedByLedgerTransactionId ?? null;
     this.narrative = props.narrative;
     this.createdAt = props.createdAt;
     this.entries = props.entries ?? [];

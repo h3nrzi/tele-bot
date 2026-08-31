@@ -19,6 +19,7 @@ import { TopUpService } from '@/modules/top-up/top-up.service';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
+import { OrderService } from '@/modules/order/order.service';
 
 export interface BuyerComposerOptions {
   container?: DependencyContainer | undefined;
@@ -28,6 +29,7 @@ export interface BuyerComposerOptions {
   exchangeRateService?: ExchangeRateService | undefined;
   bankAccountService?: BankAccountService | undefined;
   catalogService?: CatalogService | undefined;
+  orderService?: OrderService | undefined;
   adminIds?: string | Set<bigint> | undefined;
 }
 
@@ -50,6 +52,8 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     options?.bankAccountService ?? container?.resolve(BankAccountService);
   const catalogService =
     options?.catalogService ?? container?.resolve(CatalogService);
+  const orderService =
+    options?.orderService ?? container?.resolve(OrderService);
 
   if (
     !buyerService ||
@@ -57,7 +61,8 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     !topUpService ||
     !exchangeRateService ||
     !bankAccountService ||
-    !catalogService
+    !catalogService ||
+    !orderService
   ) {
     throw new Error('All required services or a container must be provided to createBuyerComposer');
   }
@@ -134,7 +139,11 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
   });
 
   composer.callbackQuery(/^shop:confirm:(.+)$/, async (ctx) => {
-    await handleShopConfirmCallback(ctx);
+    await handleShopConfirmCallback(ctx, {
+      orderService,
+      buyerService,
+      adminIds: options?.adminIds,
+    });
   });
 
   // Media

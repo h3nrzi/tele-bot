@@ -4,7 +4,12 @@ import { createMockFetch } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
 import { createTestBuyer, createTestCatalogItem } from '@tests/helpers/fixtures';
 import { wallets } from '@/modules/wallet/wallet.schema';
-import { orders } from '@/core/database/schema';
+import {
+  orders,
+  ledgerTransactions,
+  ledgerEntries,
+  orderAdminNotifications,
+} from '@/core/database/schema';
 import { count, eq } from 'drizzle-orm';
 import {
   buildShopView,
@@ -88,11 +93,13 @@ describe('Buyer /shop Command & Order Confirmation Prompt (Ticket 03)', () => {
     const repliedMessages: string[] = [];
     const editedMessages: any[] = [];
     const answeredCallbackQueries: any[] = [];
+    const sentMessages: any[] = [];
     const { fetch: mockFetch } = createMockFetch(
       repliedMessages,
       [],
       editedMessages,
-      answeredCallbackQueries
+      answeredCallbackQueries,
+      sentMessages
     );
     const bot = createBot({
       token: 'test_token',
@@ -111,7 +118,13 @@ describe('Buyer /shop Command & Order Confirmation Prompt (Ticket 03)', () => {
         supports_inline_queries: false,
       } as any,
     });
-    return { bot, repliedMessages, editedMessages, answeredCallbackQueries };
+    return {
+      bot,
+      repliedMessages,
+      editedMessages,
+      answeredCallbackQueries,
+      sentMessages,
+    };
   }
 
   describe('Shop View & Confirmation Keyboards Unit Logic', () => {
@@ -410,11 +423,182 @@ describe('Buyer /shop Command & Order Confirmation Prompt (Ticket 03)', () => {
     });
   });
 
-  describe('Stub Confirm Button (shop:confirm:<id>)', () => {
-    it('acknowledges stub confirm callback without placing an order (ticket 04 placeholder)', async () => {
+  describe('Order Confirmation Flow & Placement Handler (shop:confirm:<id>) (Ticket 04)', () => {
+    it('places order, debits wallet, writes ledger, replies to buyer, and dispatches push notification to admins with action buttons', async () => {
+      const { buyer, wallet } = await createTestBuyer(container, {
+        telegramChatId: buyerChatId,
+        telegramUsername: 'buyer_user',
+      });
+
+      // Credit wallet with $40.00
+      await db
+        .update(wallets)
+        .set({ availableBalance: '40.00' })
+        .where(eq(wallets.id, wallet.id));
+
       const item = await createTestCatalogItem(container, {
-        name: 'Test Service',
+        name: 'Telegram Premium 1 Year',
+        description: 'Annual discounted subscription',
+        usdPrice: '28.99',
+        isActive: true,
+      });
+
+      const {
+        bot,
+        editedMessages,
+        answeredCallbackQueries,
+        sentMessages,
+      } = createTestBot();
+
+      await bot.handleUpdate(
+        makeCallbackQueryUpdate(
+          1,
+          buyerChatId,
+          `shop:confirm:${item.id}`,
+          1,
+          'Buyer',
+          'buyer_user'
+        )
+      );
+
+      // 1. Assert buyer answered query and edited message
+      expect(answeredCallbackQueries).toHaveLength(1);
+      expect(answeredCallbackQueries[0]?.text).toContain('موفقیت ثبت شد');
+
+      expect(editedMessages).toHaveLength(1);
+      const buyerConfirmationText = editedMessages[0]?.text;
+      expect(buyerConfirmationText).toContain('با موفقیت ثبت شد');
+      expect(buyerConfirmationText).toContain('Telegram Premium 1 Year');
+      expect(buyerConfirmationText).toContain('$28.99');
+      expect(buyerConfirmationText).toContain('$11.01');
+
+      // 2. Assert Order row created in DB
+      const [dbOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.userId, buyer.id));
+
+      expect(dbOrder).toBeDefined();
+      expect(dbOrder?.status).toBe('PLACED');
+      expect(dbOrder?.usdPriceSnapshot).toBe('28.99');
+      expect(dbOrder?.catalogItemId).toBe(item.id);
+
+      // 3. Assert Wallet row debited in DB
+      const [dbWallet] = await db
+        .select()
+        .from(wallets)
+        .where(eq(wallets.id, wallet.id));
+
+      expect(dbWallet?.availableBalance).toBe('11.01');
+
+      // 4. Assert Ledger Transaction & Entries in DB
+      const [dbTx] = await db
+        .select()
+        .from(ledgerTransactions)
+        .where(eq(ledgerTransactions.orderId, dbOrder!.id));
+
+      expect(dbTx).toBeDefined();
+
+      const dbEntries = await db
+        .select()
+        .from(ledgerEntries)
+        .where(eq(ledgerEntries.ledgerTransactionId, dbTx!.id));
+
+      expect(dbEntries).toHaveLength(2);
+      expect(dbEntries.some((e) => e.direction === 'DEBIT' && e.accountType === 'BUYER_WALLET')).toBe(true);
+      expect(dbEntries.some((e) => e.direction === 'CREDIT' && e.accountType === 'SYSTEM_CASH')).toBe(true);
+
+      // 5. Assert Admin notification sent via mock API
+      const adminPush = sentMessages.find((m) => Number(m.chat_id) === adminChatId);
+      expect(adminPush).toBeDefined();
+      expect(adminPush?.text).toContain('سفارش جدید ثبت شد');
+      expect(adminPush?.text).toContain('Telegram Premium 1 Year');
+      expect(adminPush?.text).toContain('$28.99');
+      expect(adminPush?.text).toContain('$11.01');
+      expect(adminPush?.text).toContain('@buyer_user');
+
+      // Check inline buttons on admin notification
+      const flatAdminButtons = adminPush?.reply_markup?.inline_keyboard?.flat() ?? [];
+      const processButton = flatAdminButtons.find((btn: any) =>
+        btn.callback_data === `order:process:${dbOrder!.id}`
+      );
+      const rejectButton = flatAdminButtons.find((btn: any) =>
+        btn.callback_data === `order:reject:${dbOrder!.id}`
+      );
+
+      expect(processButton).toBeDefined();
+      expect(processButton?.text).toContain('شروع پردازش');
+      expect(rejectButton).toBeDefined();
+      expect(rejectButton?.text).toContain('رد سفارش');
+
+      // 6. Assert order_admin_notifications table has saved record
+      const dbNotifications = await db
+        .select()
+        .from(orderAdminNotifications)
+        .where(eq(orderAdminNotifications.orderId, dbOrder!.id));
+
+      expect(dbNotifications).toHaveLength(1);
+      expect(Number(dbNotifications[0]?.adminTelegramId)).toBe(adminChatId);
+    });
+
+    it('surfaces error alert when buyer has insufficient balance at confirm time (race condition)', async () => {
+      const { buyer, wallet } = await createTestBuyer(container, {
+        telegramChatId: buyerChatId,
+        telegramUsername: 'buyer_user',
+      });
+
+      // Wallet has only $5.00
+      await db
+        .update(wallets)
+        .set({ availableBalance: '5.00' })
+        .where(eq(wallets.id, wallet.id));
+
+      const item = await createTestCatalogItem(container, {
+        name: 'Item 15 USD',
+        usdPrice: '15.00',
+        isActive: true,
+      });
+
+      const { bot, answeredCallbackQueries, sentMessages } = createTestBot();
+
+      await bot.handleUpdate(
+        makeCallbackQueryUpdate(
+          1,
+          buyerChatId,
+          `shop:confirm:${item.id}`,
+          1,
+          'Buyer',
+          'buyer_user'
+        )
+      );
+
+      expect(answeredCallbackQueries).toHaveLength(1);
+      expect(answeredCallbackQueries[0]?.show_alert).toBe(true);
+      expect(answeredCallbackQueries[0]?.text).toContain('موجودی کیف پول شما برای ثبت این سفارش کافی نیست');
+
+      // Assert no orders created
+      const [orderCount] = await db.select({ value: count() }).from(orders);
+      expect(Number(orderCount?.value ?? 0)).toBe(0);
+
+      // Assert no admin notifications sent
+      expect(sentMessages).toHaveLength(0);
+    });
+
+    it('surfaces error alert when selected item was deactivated prior to confirmation', async () => {
+      const { buyer, wallet } = await createTestBuyer(container, {
+        telegramChatId: buyerChatId,
+        telegramUsername: 'buyer_user',
+      });
+
+      await db
+        .update(wallets)
+        .set({ availableBalance: '50.00' })
+        .where(eq(wallets.id, wallet.id));
+
+      const item = await createTestCatalogItem(container, {
+        name: 'Deactivated Item',
         usdPrice: '10.00',
+        isActive: false,
       });
 
       const { bot, answeredCallbackQueries } = createTestBot();
@@ -424,10 +608,32 @@ describe('Buyer /shop Command & Order Confirmation Prompt (Ticket 03)', () => {
       );
 
       expect(answeredCallbackQueries).toHaveLength(1);
+      expect(answeredCallbackQueries[0]?.show_alert).toBe(true);
+      expect(answeredCallbackQueries[0]?.text).toContain('در دسترس نیست');
+    });
+  });
 
-      // Verify no order placed in ticket 03
-      const [orderCountResult] = await db.select({ value: count() }).from(orders);
-      expect(Number(orderCountResult?.value ?? 0)).toBe(0);
+  describe('Admin Order Action Stubs (Tickets 05 & 07 Placeholders)', () => {
+    it('answers order:process callback query as stub', async () => {
+      const { bot, answeredCallbackQueries } = createTestBot();
+
+      await bot.handleUpdate(
+        makeCallbackQueryUpdate(1, adminChatId, 'order:process:test-order-id', 1, 'Admin', 'admin_user')
+      );
+
+      expect(answeredCallbackQueries).toHaveLength(1);
+      expect(answeredCallbackQueries[0]?.text).toContain('شروع پردازش');
+    });
+
+    it('answers order:reject callback query as stub', async () => {
+      const { bot, answeredCallbackQueries } = createTestBot();
+
+      await bot.handleUpdate(
+        makeCallbackQueryUpdate(1, adminChatId, 'order:reject:test-order-id', 1, 'Admin', 'admin_user')
+      );
+
+      expect(answeredCallbackQueries).toHaveLength(1);
+      expect(answeredCallbackQueries[0]?.text).toContain('رد سفارش');
     });
   });
 });

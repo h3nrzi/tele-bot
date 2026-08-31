@@ -26,6 +26,9 @@ export class DrizzleLedgerRepository
       .insert(ledgerTransactions)
       .values({
         topUpRequestId: params.topUpRequestId ?? null,
+        orderId: params.orderId ?? null,
+        reversedByLedgerTransactionId:
+          params.reversedByLedgerTransactionId ?? null,
         narrative: params.narrative,
       })
       .returning();
@@ -71,6 +74,8 @@ export class DrizzleLedgerRepository
     const domainTx = new LedgerTransaction({
       id: txRow.id,
       topUpRequestId: txRow.topUpRequestId,
+      orderId: txRow.orderId,
+      reversedByLedgerTransactionId: txRow.reversedByLedgerTransactionId,
       narrative: txRow.narrative,
       createdAt: txRow.createdAt,
       entries: domainEntries,

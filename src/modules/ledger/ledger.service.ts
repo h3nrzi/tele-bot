@@ -13,6 +13,12 @@ export interface RecordTopUpCreditParams {
   usdAmount: UsdAmount | string;
 }
 
+export interface RecordOrderSpendParams {
+  orderId: string;
+  walletId: string;
+  usdAmount: UsdAmount | string;
+}
+
 @injectable()
 export class LedgerService {
   constructor(
@@ -45,6 +51,38 @@ export class LedgerService {
             direction: 'CREDIT',
             usdAmount: params.usdAmount,
             walletId: params.walletId,
+          },
+        ],
+      },
+      executor
+    );
+  }
+
+  /**
+   * Records a double-entry ledger transaction debiting a buyer wallet upon order placement:
+   * - DEBIT BUYER_WALLET
+   * - CREDIT SYSTEM_CASH
+   */
+  public async recordOrderSpend(
+    params: RecordOrderSpendParams,
+    executor: DbExecutor
+  ): Promise<CreateLedgerTransactionResult> {
+    return await this.ledgerRepo.createTransactionWithEntries(
+      {
+        orderId: params.orderId,
+        narrative: `Order placement spend for order ${params.orderId}`,
+        entries: [
+          {
+            accountType: 'BUYER_WALLET',
+            direction: 'DEBIT',
+            usdAmount: params.usdAmount,
+            walletId: params.walletId,
+          },
+          {
+            accountType: 'SYSTEM_CASH',
+            direction: 'CREDIT',
+            usdAmount: params.usdAmount,
+            walletId: null,
           },
         ],
       },

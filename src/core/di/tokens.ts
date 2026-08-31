@@ -19,6 +19,7 @@ export const TOKENS = {
   LedgerRepository: Symbol('LedgerRepository'),
   TopUpRepository: Symbol('TopUpRepository'),
   CatalogRepository: Symbol('CatalogRepository'),
+  OrderRepository: Symbol('OrderRepository'),
 
   // Services
   BuyerService: Symbol('BuyerService'),
@@ -28,4 +29,5 @@ export const TOKENS = {
   LedgerService: Symbol('LedgerService'),
   TopUpService: Symbol('TopUpService'),
   CatalogService: Symbol('CatalogService'),
+  OrderService: Symbol('OrderService'),
 } as const;

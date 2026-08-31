@@ -11,6 +11,8 @@ export interface CreateLedgerEntryParams {
 
 export interface CreateLedgerTransactionParams {
   topUpRequestId?: string | null;
+  orderId?: string | null;
+  reversedByLedgerTransactionId?: string | null;
   narrative: string;
   entries: CreateLedgerEntryParams[];
 }

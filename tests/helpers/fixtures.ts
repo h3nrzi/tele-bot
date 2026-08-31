@@ -20,6 +20,13 @@ import type { CatalogItem } from '@/modules/catalog/catalog.entity';
 import type { DbClient } from '@/core/database/client';
 import { createAppContainer } from '@/core/di/container';
 
+import { OrderService } from '@/modules/order/order.service';
+import type {
+  PlaceOrderInput,
+  PlaceOrderDependencies,
+  PlaceOrderResult,
+} from '@/modules/order/dtos/order.dto';
+
 function getContainer(containerOrDb: DependencyContainer | DbClient): DependencyContainer {
   if ('resolve' in containerOrDb && typeof containerOrDb.resolve === 'function') {
     return containerOrDb as DependencyContainer;
@@ -107,5 +114,15 @@ export async function listTestCatalogItems(
   const container = getContainer(containerOrDb);
   const service = container.resolve(CatalogService);
   return await service.listAll();
+}
+
+export async function placeTestOrder(
+  containerOrDb: DependencyContainer | DbClient,
+  input: PlaceOrderInput,
+  dependencies?: PlaceOrderDependencies
+): Promise<PlaceOrderResult> {
+  const container = getContainer(containerOrDb);
+  const service = container.resolve(OrderService);
+  return await service.placeOrder(input, dependencies);
 }
 
