@@ -1,6 +1,6 @@
 # 05: Order claim service + `[▶ Start Processing]` handler
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 04 — Order placement service + Confirm handler
 

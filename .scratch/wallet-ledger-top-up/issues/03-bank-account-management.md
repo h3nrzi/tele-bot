@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Project scaffold + Buyer registration + /balance
 
-**Status:** resolved
+**Status:** done
 
 - [x] Drizzle migration creates the `bank_accounts` table (`id` UUID PK, `card_number` VARCHAR(16) NOT NULL, `card_holder_name` VARCHAR NOT NULL, `bank_name` VARCHAR NOT NULL, `additional_notes` TEXT nullable, `is_active` BOOLEAN NOT NULL DEFAULT false, `created_at` TIMESTAMPTZ NOT NULL).
 - [x] Bank account service: `setActiveAccount(fields)` wraps the following in a single transaction — sets `is_active = false` on all existing rows, then inserts a new row with `is_active = true`. At commit, exactly one row has `is_active = true`.

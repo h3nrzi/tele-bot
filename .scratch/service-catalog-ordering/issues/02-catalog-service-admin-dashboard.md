@@ -1,6 +1,6 @@
 # 02: Catalog service + `/catalog` Admin dashboard
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 01 — Schema migration & Drizzle types
 

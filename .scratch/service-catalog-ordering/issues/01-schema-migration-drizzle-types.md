@@ -1,6 +1,6 @@
 # 01: Schema migration & Drizzle types
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** None (can start immediately)
 

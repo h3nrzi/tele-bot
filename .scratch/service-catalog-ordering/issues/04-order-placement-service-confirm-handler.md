@@ -1,6 +1,6 @@
 # 04: Order placement service + Confirm handler
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 01 — Schema migration & Drizzle types, 03 — Buyer `/shop` + order confirmation prompt
 
@@ -22,11 +22,11 @@
 
 ## Acceptance criteria
 
-- [ ] Tapping `[✓ Confirm]` creates one `orders` row at `PLACED` with `usd_price_snapshot` matching the Catalog Item price at the moment of placement.
-- [ ] One `ledger_transactions` row and two `ledger_entries` rows (DEBIT BUYER_WALLET + CREDIT SYSTEM_CASH) are written inside the same transaction.
-- [ ] The Buyer's Available Balance is reduced by exactly `usd_price_snapshot`.
-- [ ] Admin notification messages are sent with the correct context and buttons.
-- [ ] A second concurrent placement from the same Buyer does not produce a negative Available Balance.
-- [ ] Insufficient-balance at transaction lock time surfaces a clear error to the Buyer.
-- [ ] All placement service unit tests pass.
-- [ ] TypeScript compiles without errors.
+- [x] Tapping `[✓ Confirm]` creates one `orders` row at `PLACED` with `usd_price_snapshot` matching the Catalog Item price at the moment of placement.
+- [x] One `ledger_transactions` row and two `ledger_entries` rows (DEBIT BUYER_WALLET + CREDIT SYSTEM_CASH) are written inside the same transaction.
+- [x] The Buyer's Available Balance is reduced by exactly `usd_price_snapshot`.
+- [x] Admin notification messages are sent with the correct context and buttons.
+- [x] A second concurrent placement from the same Buyer does not produce a negative Available Balance.
+- [x] Insufficient-balance at transaction lock time surfaces a clear error to the Buyer.
+- [x] All placement service unit tests pass.
+- [x] TypeScript compiles without errors.

@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 — Receipt submission + Admin push notification
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] Admin queue service: `getPendingRequests()` returns all `top_up_requests` rows where `status = 'PENDING'`, ordered by `created_at` ascending (oldest first), joined with the `users` table to include `telegram_chat_id` and `telegram_username`.
 - [x] `/pending` Admin command: calls `getPendingRequests()`. If the result is empty, replies with a "queue is empty" message. If results exist, formats each as a summary line (Buyer identifier, USD amount, IRR amount, time since submission) with an inline **Review** button. The **Review** button callback re-sends the full receipt details (photo, amounts, inline Approve/Reject buttons) for that specific request to the Admin in a new message.
