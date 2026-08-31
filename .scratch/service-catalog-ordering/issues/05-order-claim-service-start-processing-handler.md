@@ -19,9 +19,9 @@
 
 ## Acceptance criteria
 
-- [ ] Tapping `[▶ Start Processing]` transitions the Order to `PROCESSING` and sets `claimed_by_admin_telegram_id` and `claimed_at`.
-- [ ] All `order_admin_notifications` messages are edited to show the claimer's identity and the new button set.
-- [ ] A second Admin tapping the button after the race receives a clear error and sees the updated notification.
-- [ ] Tapping on an Order that is already terminal (FULFILLED, REJECTED, CANCELLED) returns an appropriate error.
-- [ ] All claim service unit tests pass.
-- [ ] TypeScript compiles without errors.
+- [x] Tapping `[▶ Start Processing]` transitions the Order to `PROCESSING` and sets `claimed_by_admin_telegram_id` and `claimed_at`.
+- [x] All `order_admin_notifications` messages are edited to show the claimer's identity and the new button set.
+- [x] A second Admin tapping the button after the race receives a clear error and sees the updated notification.
+- [x] Tapping on an Order that is already terminal (FULFILLED, REJECTED, CANCELLED) returns an appropriate error.
+- [x] All claim service unit tests pass.
+- [x] TypeScript compiles without errors.
