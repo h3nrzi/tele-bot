@@ -9,7 +9,6 @@ import {
 
 export interface ClaimHandlerDependencies {
   orderService: OrderService;
-  adminIds?: string | Set<bigint> | undefined;
 }
 
 /**
@@ -38,7 +37,9 @@ export async function handleClaimOrderCallback(
 
   const orderId = match[1];
   const { orderService } = deps;
-  const adminUsername = sender.username ?? sender.first_name ?? String(sender.id);
+  const adminUsername = sender.username
+    ? `@${sender.username}`
+    : sender.first_name || String(sender.id);
 
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -91,7 +92,7 @@ export async function handleClaimOrderCallback(
 
     // Answer callback query with confirmation
     await ctx.answerCallbackQuery({
-      text: '✅ سفارش برای پردازش به شما اختصاص یافت.',
+      text: '✅ شروع پردازش سفارش با موفقیت ثبت شد.',
     });
   } catch (err: any) {
     if (err instanceof OrderAlreadyClaimedError) {

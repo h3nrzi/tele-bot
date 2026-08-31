@@ -647,7 +647,7 @@ describe('Buyer /shop Command & Order Confirmation Prompt (Ticket 03)', () => {
       );
 
       expect(answeredCallbackQueries).toHaveLength(1);
-      expect(answeredCallbackQueries[0]?.text).toContain('اختصاص یافت');
+      expect(answeredCallbackQueries[0]?.text).toContain('شروع پردازش');
     });
 
     it('answers order:reject callback query as stub', async () => {

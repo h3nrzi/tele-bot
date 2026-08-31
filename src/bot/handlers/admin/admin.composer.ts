@@ -152,7 +152,6 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     if (orderService) {
       await handleClaimOrderCallback(ctx, {
         orderService,
-        adminIds: options?.adminIds,
       });
     }
   });

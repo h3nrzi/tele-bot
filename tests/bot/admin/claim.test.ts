@@ -179,7 +179,7 @@ describe('Admin Order Claim & Start Processing Callback Handler (Ticket 05)', ()
     // 2. Verify callback query answered with confirmation
     expect(answeredCallbackQueries).toHaveLength(1);
     expect(answeredCallbackQueries[0]?.callback_query_id).toBe('cb_query_1');
-    expect(answeredCallbackQueries[0]?.text).toContain('اختصاص یافت');
+    expect(answeredCallbackQueries[0]?.text).toContain('شروع پردازش');
 
     // 3. Verify all admin notifications were edited via editMessageReplyMarkup
     expect(editedMessages).toHaveLength(2);
