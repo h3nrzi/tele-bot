@@ -204,6 +204,25 @@ export function createMockFetch(
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
+    if (method === 'editMessageReplyMarkup') {
+      editedMessages.push({
+        chat_id: body.chat_id,
+        message_id: body.message_id,
+        reply_markup: body.reply_markup,
+      });
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          result: {
+            message_id: body.message_id ?? 1,
+            date: Math.floor(Date.now() / 1000),
+            chat: { id: body.chat_id ?? 1, type: 'private' },
+            reply_markup: body.reply_markup,
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     if (method === 'answerCallbackQuery') {
       answeredCallbackQueries.push({
         callback_query_id: body.callback_query_id,

@@ -39,3 +39,28 @@ export interface PlaceOrderResult {
   buyer: Buyer;
   adminNotifications: OrderAdminNotification[];
 }
+
+export interface ClaimOrderInput {
+  orderId: string;
+  adminTelegramId: bigint | number | string;
+  adminUsername?: string | null | undefined;
+}
+
+export interface ClaimOrderNotificationContext {
+  order: Order;
+  notifications: OrderAdminNotification[];
+  claimedByAdminTelegramId: bigint;
+  claimedByAdminUsername?: string | null | undefined;
+}
+
+export interface ClaimOrderDependencies {
+  updateAdminNotifications?: (
+    context: ClaimOrderNotificationContext
+  ) => Promise<void>;
+}
+
+export interface ClaimOrderResult {
+  order: Order;
+  adminNotifications: OrderAdminNotification[];
+}
+

@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockFetch } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
-import { createTestBuyer, createTestCatalogItem } from '@tests/helpers/fixtures';
+import {
+  createTestBuyer,
+  createTestCatalogItem,
+  placeTestOrder,
+} from '@tests/helpers/fixtures';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import {
   orders,
@@ -613,16 +617,37 @@ describe('Buyer /shop Command & Order Confirmation Prompt (Ticket 03)', () => {
     });
   });
 
-  describe('Admin Order Action Stubs (Tickets 05 & 07 Placeholders)', () => {
-    it('answers order:process callback query as stub', async () => {
+  describe('Admin Order Actions (Ticket 05 Process & Ticket 07 Reject Placeholder)', () => {
+    it('handles order:process callback query on placed order', async () => {
+      const { buyer } = await createTestBuyer(container, {
+        telegramChatId: buyerChatId,
+        telegramUsername: 'buyer_user',
+      });
+
+      await db
+        .update(wallets)
+        .set({ availableBalance: '50.00' })
+        .where(eq(wallets.userId, buyer.id));
+
+      const item = await createTestCatalogItem(container, {
+        name: 'VPN Test',
+        usdPrice: '5.00',
+        isActive: true,
+      });
+
+      const { order } = await placeTestOrder(container, {
+        userId: buyer.id,
+        catalogItemId: item.id,
+      });
+
       const { bot, answeredCallbackQueries } = createTestBot();
 
       await bot.handleUpdate(
-        makeCallbackQueryUpdate(1, adminChatId, 'order:process:test-order-id', 1, 'Admin', 'admin_user')
+        makeCallbackQueryUpdate(1, adminChatId, `order:process:${order.id}`, 1, 'Admin', 'admin_user')
       );
 
       expect(answeredCallbackQueries).toHaveLength(1);
-      expect(answeredCallbackQueries[0]?.text).toContain('شروع پردازش');
+      expect(answeredCallbackQueries[0]?.text).toContain('اختصاص یافت');
     });
 
     it('answers order:reject callback query as stub', async () => {

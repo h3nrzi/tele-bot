@@ -12,6 +12,8 @@ import {
   InsufficientBalanceForOrderError,
   CatalogItemUnavailableError,
   OrderNotFoundError,
+  OrderAlreadyClaimedError,
+  InvalidOrderStatusError,
 } from '@/modules/order/order.errors';
 import { WalletNotFoundError } from '@/modules/wallet/wallet.errors';
 import { BuyerNotFoundError } from '@/modules/buyer/buyer.errors';
@@ -21,6 +23,10 @@ import type {
   PlaceOrderDependencies,
   PlaceOrderResult,
   OrderAdminNotificationContext,
+  ClaimOrderInput,
+  ClaimOrderDependencies,
+  ClaimOrderResult,
+  ClaimOrderNotificationContext,
 } from '@/modules/order/dtos/order.dto';
 import { TOKENS } from '@/core/di/tokens';
 import type { Buyer } from '@/modules/buyer/buyer.entity';
@@ -39,7 +45,7 @@ export class OrderService {
     private readonly walletRepo: IWalletRepository<DbExecutor>,
     @inject(TOKENS.LedgerService)
     private readonly ledgerService: LedgerService
-  ) {}
+  ) { }
 
   private async resolveBuyer(
     input: { userId?: string | undefined; telegramChatId?: bigint | number | undefined },
@@ -203,6 +209,105 @@ export class OrderService {
     return {
       ...txResult,
       adminNotifications: savedNotifications,
+    };
+  }
+
+  /**
+   * Executes the atomic Order Claim sequence:
+   * 1. Inside transaction:
+   *    - SELECT order FOR UPDATE
+   *    - Asserts status = 'PLACED'; returns error if already claimed or closed
+   *    - UPDATE orders SET status = 'PROCESSING', claimed_by_admin_telegram_id = ?, claimed_at = now(), updated_at = now()
+   * 2. Commit transaction
+   * 3. Outside transaction:
+   *    - Reads all order_admin_notifications for this order
+   *    - Dispatches editMessageReplyMarkup updates (fire-and-forget)
+   */
+  public async claimOrder(
+    input: ClaimOrderInput,
+    dependencies?: ClaimOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<ClaimOrderResult> {
+    const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
+
+    const executeClaim = async (tx: DbExecutor): Promise<Order> => {
+      // 1a. Lock order row
+      const order = await this.orderRepo.findByIdForUpdate(input.orderId, tx);
+      if (!order) {
+        throw new OrderNotFoundError(
+          `Order with ID ${input.orderId} not found.`
+        );
+      }
+
+      // 1b. Assert status is PLACED
+      if (order.status === 'PROCESSING') {
+        throw new OrderAlreadyClaimedError(
+          `Order ${order.id} has already been claimed by another admin.`
+        );
+      }
+
+      if (order.status !== 'PLACED') {
+        throw new InvalidOrderStatusError(
+          `Order ${order.id} cannot be claimed because it is in status '${order.status}'.`
+        );
+      }
+
+      // 1c. Update to PROCESSING
+      const now = new Date();
+      const updatedOrder = await this.orderRepo.updateStatus(
+        order.id,
+        'PROCESSING',
+        {
+          claimedByAdminTelegramId: BigInt(input.adminTelegramId),
+          claimedAt: now,
+          updatedAt: now,
+        },
+        tx
+      );
+
+      if (!updatedOrder) {
+        throw new Error(`Failed to update order ${order.id} to PROCESSING`);
+      }
+
+      return updatedOrder;
+    };
+
+    let claimedOrder: Order;
+    if ('transaction' in client && typeof client.transaction === 'function') {
+      claimedOrder = await client.transaction(async (tx) => {
+        return await executeClaim(tx);
+      });
+    } else {
+      claimedOrder = await executeClaim(client);
+    }
+
+    // 2. Fetch admin notifications for this order
+    const notifications = await this.orderRepo.getAdminNotifications(
+      claimedOrder.id,
+      client
+    );
+
+    // 3. Dispatch admin notification updates (outside transaction, fire-and-forget)
+    if (dependencies?.updateAdminNotifications) {
+      try {
+        const context: ClaimOrderNotificationContext = {
+          order: claimedOrder,
+          notifications,
+          claimedByAdminTelegramId: BigInt(input.adminTelegramId),
+          claimedByAdminUsername: input.adminUsername,
+        };
+        await dependencies.updateAdminNotifications(context);
+      } catch (notifyErr) {
+        console.error(
+          `Failed to update admin notifications for claimed order ${claimedOrder.id}:`,
+          notifyErr
+        );
+      }
+    }
+
+    return {
+      order: claimedOrder,
+      adminNotifications: notifications,
     };
   }
 

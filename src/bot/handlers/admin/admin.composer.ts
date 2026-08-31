@@ -18,15 +18,18 @@ import {
   handleCatalogAddCallback,
   handleCatalogEditCallback,
 } from '@/bot/handlers/admin/catalog.handler';
+import { handleClaimOrderCallback } from '@/bot/handlers/admin/claim.handler';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
+import { OrderService } from '@/modules/order/order.service';
 
 export interface AdminComposerOptions {
   container?: DependencyContainer | undefined;
   exchangeRateService?: ExchangeRateService | undefined;
   topUpService?: TopUpService | undefined;
   catalogService?: CatalogService | undefined;
+  orderService?: OrderService | undefined;
   adminIds?: string | Set<bigint> | undefined;
 }
 
@@ -57,6 +60,8 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     options?.topUpService ?? container?.resolve(TopUpService);
   const catalogService =
     options?.catalogService ?? container?.resolve(CatalogService);
+  const orderService =
+    options?.orderService ?? container?.resolve(OrderService);
 
   if (!exchangeRateService || !topUpService || !catalogService) {
     throw new Error('All required services or a container must be provided to createAdminComposer');
@@ -142,11 +147,26 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     await handleCatalogEditCallback(ctx);
   });
 
-  // Order Processing & Rejection Stubs (Activated in Tickets 05 & 07)
+  // Order Processing, Fulfilment & Rejection Handlers (Tickets 05, 06 & 07)
   composer.callbackQuery(/^order:process:(.+)$/, adminAuth, async (ctx) => {
+    if (orderService) {
+      await handleClaimOrderCallback(ctx, {
+        orderService,
+        adminIds: options?.adminIds,
+      });
+    }
+  });
+
+  composer.callbackQuery('order:noop', adminAuth, async (ctx) => {
+    try {
+      await ctx.answerCallbackQuery();
+    } catch {}
+  });
+
+  composer.callbackQuery(/^order:fulfil:(.+)$/, adminAuth, async (ctx) => {
     try {
       await ctx.answerCallbackQuery({
-        text: 'عملیات شروع پردازش سفارش در فاز بعدی فعال می‌شود.',
+        text: 'عملیات تحویل سفارش در فاز بعدی فعال می‌شود.',
         show_alert: true,
       });
     } catch {}

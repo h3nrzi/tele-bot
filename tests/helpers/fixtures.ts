@@ -25,6 +25,9 @@ import type {
   PlaceOrderInput,
   PlaceOrderDependencies,
   PlaceOrderResult,
+  ClaimOrderInput,
+  ClaimOrderDependencies,
+  ClaimOrderResult,
 } from '@/modules/order/dtos/order.dto';
 
 function getContainer(containerOrDb: DependencyContainer | DbClient): DependencyContainer {
@@ -125,4 +128,15 @@ export async function placeTestOrder(
   const service = container.resolve(OrderService);
   return await service.placeOrder(input, dependencies);
 }
+
+export async function claimTestOrder(
+  containerOrDb: DependencyContainer | DbClient,
+  input: ClaimOrderInput,
+  dependencies?: ClaimOrderDependencies
+): Promise<ClaimOrderResult> {
+  const container = getContainer(containerOrDb);
+  const service = container.resolve(OrderService);
+  return await service.claimOrder(input, dependencies);
+}
+
 
