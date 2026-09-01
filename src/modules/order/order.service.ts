@@ -14,6 +14,7 @@ import {
   OrderNotFoundError,
   OrderAlreadyClaimedError,
   InvalidOrderStatusError,
+  OrderNotClaimedByAdminError,
 } from '@/modules/order/order.errors';
 import { WalletNotFoundError } from '@/modules/wallet/wallet.errors';
 import { BuyerNotFoundError } from '@/modules/buyer/buyer.errors';
@@ -27,6 +28,10 @@ import type {
   ClaimOrderDependencies,
   ClaimOrderResult,
   ClaimOrderNotificationContext,
+  FulfilOrderInput,
+  FulfilOrderDependencies,
+  FulfilOrderResult,
+  FulfilOrderNotificationContext,
 } from '@/modules/order/dtos/order.dto';
 import { TOKENS } from '@/core/di/tokens';
 import type { Buyer } from '@/modules/buyer/buyer.entity';
@@ -307,6 +312,142 @@ export class OrderService {
 
     return {
       order: claimedOrder,
+      adminNotifications: notifications,
+    };
+  }
+
+  /**
+   * Executes the atomic Order Fulfilment sequence:
+   * 1. Inside transaction:
+   *    - SELECT order FOR UPDATE
+   *    - Asserts caller is claimed_by_admin_telegram_id (throws OrderNotClaimedByAdminError)
+   *    - Asserts status = 'PROCESSING' (throws InvalidOrderStatusError)
+   *    - UPDATE orders SET status = 'FULFILLED', delivery_content = ?, fulfilled_at = now(), updated_at = now()
+   *    - Resolves Buyer for notification
+   * 2. Commit transaction
+   * 3. Outside transaction:
+   *    - Reads all order_admin_notifications for this order
+   *    - Forwards delivery content to the Buyer (fire-and-forget / try-catch resilient)
+   *    - Dispatches editMessageReplyMarkup updates to all Admins (fire-and-forget / try-catch resilient)
+   */
+  public async fulfilOrder(
+    input: FulfilOrderInput,
+    dependencies?: FulfilOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<FulfilOrderResult> {
+    const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
+    const adminTelegramId = BigInt(input.adminTelegramId);
+    const trimmedDeliveryContent = input.deliveryContent.trim();
+
+    const executeFulfilment = async (
+      tx: DbExecutor
+    ): Promise<{ order: Order; buyer: Buyer }> => {
+      // 1a. Lock order row
+      const order = await this.orderRepo.findByIdForUpdate(input.orderId, tx);
+      if (!order) {
+        throw new OrderNotFoundError(
+          `Order with ID ${input.orderId} not found.`
+        );
+      }
+
+      // 1b. Assert caller is claiming admin
+      if (
+        order.claimedByAdminTelegramId === null ||
+        order.claimedByAdminTelegramId !== adminTelegramId
+      ) {
+        throw new OrderNotClaimedByAdminError(
+          `Admin ${input.adminTelegramId} did not claim order ${order.id} and cannot fulfil it.`
+        );
+      }
+
+      // 1c. Assert status is PROCESSING
+      if (order.status !== 'PROCESSING') {
+        throw new InvalidOrderStatusError(
+          `Order ${order.id} cannot be fulfilled because it is in status '${order.status}'.`
+        );
+      }
+
+      // 1d. Update to FULFILLED
+      const now = new Date();
+      const updatedOrder = await this.orderRepo.updateStatus(
+        order.id,
+        'FULFILLED',
+        {
+          deliveryContent: trimmedDeliveryContent,
+          fulfilledAt: now,
+          updatedAt: now,
+        },
+        tx
+      );
+
+      if (!updatedOrder) {
+        throw new Error(`Failed to update order ${order.id} to FULFILLED`);
+      }
+
+      // 1e. Resolve Buyer
+      const buyer = await this.buyerRepo.findById(updatedOrder.userId, tx);
+      if (!buyer) {
+        throw new BuyerNotFoundError(
+          `Buyer with ID ${updatedOrder.userId} not found for order ${updatedOrder.id}`
+        );
+      }
+
+      return { order: updatedOrder, buyer };
+    };
+
+    let txResult: { order: Order; buyer: Buyer };
+    if ('transaction' in client && typeof client.transaction === 'function') {
+      txResult = await client.transaction(async (tx) => {
+        return await executeFulfilment(tx);
+      });
+    } else {
+      txResult = await executeFulfilment(client);
+    }
+
+    // 2. Fetch admin notifications for this order
+    const notifications = await this.orderRepo.getAdminNotifications(
+      txResult.order.id,
+      client
+    );
+
+    // 3. Notify Buyer (outside transaction, fire-and-forget)
+    if (dependencies?.notifyBuyer) {
+      try {
+        await dependencies.notifyBuyer({
+          order: txResult.order,
+          buyer: txResult.buyer,
+          deliveryContent: trimmedDeliveryContent,
+        });
+      } catch (buyerNotifyErr) {
+        console.error(
+          `Failed to send delivery content notification to buyer ${txResult.buyer.id} for order ${txResult.order.id}:`,
+          buyerNotifyErr
+        );
+      }
+    }
+
+    // 4. Update Admin notifications (outside transaction, fire-and-forget)
+    if (dependencies?.updateAdminNotifications) {
+      try {
+        const context: FulfilOrderNotificationContext = {
+          order: txResult.order,
+          buyer: txResult.buyer,
+          deliveryContent: trimmedDeliveryContent,
+          notifications,
+          adminTelegramId,
+        };
+        await dependencies.updateAdminNotifications(context);
+      } catch (adminNotifyErr) {
+        console.error(
+          `Failed to update admin notifications for fulfilled order ${txResult.order.id}:`,
+          adminNotifyErr
+        );
+      }
+    }
+
+    return {
+      order: txResult.order,
+      buyer: txResult.buyer,
       adminNotifications: notifications,
     };
   }

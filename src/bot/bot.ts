@@ -10,6 +10,7 @@ import { BankAccountService } from '@/modules/bank-account/bank-account.service'
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { BuyerService } from '@/modules/buyer/buyer.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
+import { OrderService } from '@/modules/order/order.service';
 import {
   createSetCardConversation,
   SETCARD_CONVERSATION_ID,
@@ -28,6 +29,10 @@ import {
   createEditCatalogItemConversation,
   EDIT_CATALOG_ITEM_CONVERSATION_ID,
 } from '@/bot/handlers/admin/catalog.conversation';
+import {
+  createFulfilOrderConversation,
+  FULFIL_ORDER_CONVERSATION_ID,
+} from '@/bot/handlers/admin/fulfil.conversation';
 import { createBuyerComposer } from '@/bot/handlers/buyer/buyer.composer';
 import { createAdminComposer } from '@/bot/handlers/admin/admin.composer';
 
@@ -72,6 +77,7 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   const topUpService = appContainer.resolve(TopUpService);
   const buyerService = appContainer.resolve(BuyerService);
   const catalogService = appContainer.resolve(CatalogService);
+  const orderService = appContainer.resolve(OrderService);
 
   const botConfig: BotConfig<BotContext> = {};
   if (options?.botInfo) {
@@ -122,6 +128,14 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
       createEditCatalogItemConversation(catalogService),
       {
         id: EDIT_CATALOG_ITEM_CONVERSATION_ID,
+      }
+    )
+  );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createFulfilOrderConversation(orderService),
+      {
+        id: FULFIL_ORDER_CONVERSATION_ID,
       }
     )
   );

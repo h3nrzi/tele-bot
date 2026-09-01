@@ -28,6 +28,9 @@ import type {
   ClaimOrderInput,
   ClaimOrderDependencies,
   ClaimOrderResult,
+  FulfilOrderInput,
+  FulfilOrderDependencies,
+  FulfilOrderResult,
 } from '@/modules/order/dtos/order.dto';
 
 function getContainer(containerOrDb: DependencyContainer | DbClient): DependencyContainer {
@@ -137,6 +140,16 @@ export async function claimTestOrder(
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
   return await service.claimOrder(input, dependencies);
+}
+
+export async function fulfilTestOrder(
+  containerOrDb: DependencyContainer | DbClient,
+  input: FulfilOrderInput,
+  dependencies?: FulfilOrderDependencies
+): Promise<FulfilOrderResult> {
+  const container = getContainer(containerOrDb);
+  const service = container.resolve(OrderService);
+  return await service.fulfilOrder(input, dependencies);
 }
 
 

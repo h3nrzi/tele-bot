@@ -64,3 +64,38 @@ export interface ClaimOrderResult {
   adminNotifications: OrderAdminNotification[];
 }
 
+export interface FulfilOrderInput {
+  orderId: string;
+  adminTelegramId: bigint | number | string;
+  deliveryContent: string;
+}
+
+export interface FulfilOrderBuyerNotificationContext {
+  order: Order;
+  buyer: Buyer;
+  deliveryContent: string;
+}
+
+export interface FulfilOrderNotificationContext {
+  order: Order;
+  buyer: Buyer;
+  deliveryContent: string;
+  notifications: OrderAdminNotification[];
+  adminTelegramId: bigint;
+}
+
+export interface FulfilOrderDependencies {
+  notifyBuyer?: (
+    context: FulfilOrderBuyerNotificationContext
+  ) => Promise<void>;
+  updateAdminNotifications?: (
+    context: FulfilOrderNotificationContext
+  ) => Promise<void>;
+}
+
+export interface FulfilOrderResult {
+  order: Order;
+  buyer: Buyer;
+  adminNotifications: OrderAdminNotification[];
+}
+

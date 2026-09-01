@@ -35,3 +35,11 @@ export class InvalidOrderStatusError extends DomainError {
     super(message, 'INVALID_ORDER_STATUS');
   }
 }
+
+export class OrderNotClaimedByAdminError extends DomainError {
+  constructor(
+    message = 'Only the admin who claimed this order can fulfil it.'
+  ) {
+    super(message, 'ORDER_NOT_CLAIMED_BY_ADMIN');
+  }
+}

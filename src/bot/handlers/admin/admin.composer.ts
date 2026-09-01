@@ -19,6 +19,7 @@ import {
   handleCatalogEditCallback,
 } from '@/bot/handlers/admin/catalog.handler';
 import { handleClaimOrderCallback } from '@/bot/handlers/admin/claim.handler';
+import { handleFulfilOrderCallback } from '@/bot/handlers/admin/fulfil.handler';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
@@ -163,12 +164,11 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.callbackQuery(/^order:fulfil:(.+)$/, adminAuth, async (ctx) => {
-    try {
-      await ctx.answerCallbackQuery({
-        text: 'عملیات تحویل سفارش در فاز بعدی فعال می‌شود.',
-        show_alert: true,
+    if (orderService) {
+      await handleFulfilOrderCallback(ctx, {
+        orderService,
       });
-    } catch {}
+    }
   });
 
   composer.callbackQuery(/^order:reject:(.+)$/, adminAuth, async (ctx) => {

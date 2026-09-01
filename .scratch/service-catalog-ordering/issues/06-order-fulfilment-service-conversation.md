@@ -1,6 +1,6 @@
 # 06: Order fulfilment service + `[📦 Fulfil Order]` conversation
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 05 — Order claim service + `[▶ Start Processing]` handler
 
@@ -21,11 +21,11 @@
 
 ## Acceptance criteria
 
-- [ ] Tapping `[📦 Fulfil Order]` always starts a fresh conversation, discarding any prior incomplete state.
-- [ ] Admin who did not claim the Order is rejected before the conversation begins.
-- [ ] On Confirm: `delivery_content` is written, Order status is `FULFILLED`, `fulfilled_at` is set.
-- [ ] The Buyer receives the Delivery Content as a Telegram message.
-- [ ] All Admin notifications are edited to reflect the `FULFILLED` state.
-- [ ] Re-enter loops back to Step 1 without submitting.
-- [ ] All fulfilment service unit tests pass.
-- [ ] TypeScript compiles without errors.
+- [x] Tapping `[📦 Fulfil Order]` always starts a fresh conversation, discarding any prior incomplete state.
+- [x] Admin who did not claim the Order is rejected before the conversation begins.
+- [x] On Confirm: `delivery_content` is written, Order status is `FULFILLED`, `fulfilled_at` is set.
+- [x] The Buyer receives the Delivery Content as a Telegram message.
+- [x] All Admin notifications are edited to reflect the `FULFILLED` state.
+- [x] Re-enter loops back to Step 1 without submitting.
+- [x] All fulfilment service unit tests pass.
+- [x] TypeScript compiles without errors.

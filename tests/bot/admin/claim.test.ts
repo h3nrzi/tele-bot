@@ -375,14 +375,14 @@ describe('Admin Order Claim & Start Processing Callback Handler (Ticket 05)', ()
     expect(answeredCallbackQueries[0]?.callback_query_id).toBe('cb_query_1');
   });
 
-  it('answers order:fulfil stub callback cleanly', async () => {
+  it('answers order:fulfil callback when order is not found', async () => {
     const { bot, answeredCallbackQueries } = createTestBot();
 
     await bot.handleUpdate(
       makeCallbackQueryUpdate(
         1,
         adminChatId1,
-        'order:fulfil:test-order-id',
+        'order:fulfil:00000000-0000-0000-0000-000000000000',
         801,
         'admin_user'
       )
@@ -390,6 +390,6 @@ describe('Admin Order Claim & Start Processing Callback Handler (Ticket 05)', ()
 
     expect(answeredCallbackQueries).toHaveLength(1);
     expect(answeredCallbackQueries[0]?.show_alert).toBe(true);
-    expect(answeredCallbackQueries[0]?.text).toContain('فاز بعدی');
+    expect(answeredCallbackQueries[0]?.text).toContain('سفارش مورد نظر یافت نشد');
   });
 });
