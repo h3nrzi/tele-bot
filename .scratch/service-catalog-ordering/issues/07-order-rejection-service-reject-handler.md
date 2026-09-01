@@ -1,6 +1,6 @@
 # 07: Order rejection service + `[✗ Reject]` inline keyboard flow
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 05 — Order claim service + `[▶ Start Processing]` handler
 
@@ -26,13 +26,14 @@
 
 ## Acceptance criteria
 
-- [ ] `[✗ Reject]` is actionable from both `PLACED` and `PROCESSING` states.
-- [ ] The 5 preset category buttons are shown; `OTHER` makes the note mandatory.
-- [ ] On rejection: Order status is `REJECTED`, `rejection_category` and `rejection_note` are set, `rejected_at` is populated.
-- [ ] The Buyer's Available Balance is restored by exactly `usd_price_snapshot`.
-- [ ] The original debit `ledger_transactions` row has `reversed_by_ledger_transaction_id` set to the refund transaction's id.
-- [ ] The Buyer receives a Telegram notification with rejection reason, refund amount, and updated balance.
-- [ ] All Admin notifications are edited to reflect the terminal state.
-- [ ] Attempting to reject an already-terminal Order returns an appropriate error.
-- [ ] All rejection service unit tests pass.
-- [ ] TypeScript compiles without errors.
+- [x] `[✗ Reject]` is actionable from both `PLACED` and `PROCESSING` states.
+- [x] The 5 preset category buttons are shown; `OTHER` makes the note mandatory.
+- [x] On rejection: Order status is `REJECTED`, `rejection_category` and `rejection_note` are set, `rejected_at` is populated.
+- [x] The Buyer's Available Balance is restored by exactly `usd_price_snapshot`.
+- [x] The original debit `ledger_transactions` row has `reversed_by_ledger_transaction_id` set to the refund transaction's id.
+- [x] The Buyer receives a Telegram notification with rejection reason, refund amount, and updated balance.
+- [x] All Admin notifications are edited to reflect the terminal state.
+- [x] Attempting to reject an already-terminal Order returns an appropriate error.
+- [x] All rejection service unit tests pass.
+- [x] TypeScript compiles without errors.
+

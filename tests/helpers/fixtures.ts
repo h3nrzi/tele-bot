@@ -31,7 +31,11 @@ import type {
   FulfilOrderInput,
   FulfilOrderDependencies,
   FulfilOrderResult,
+  RejectOrderInput,
+  RejectOrderDependencies,
+  RejectOrderResult,
 } from '@/modules/order/dtos/order.dto';
+
 
 function getContainer(containerOrDb: DependencyContainer | DbClient): DependencyContainer {
   if ('resolve' in containerOrDb && typeof containerOrDb.resolve === 'function') {
@@ -151,5 +155,16 @@ export async function fulfilTestOrder(
   const service = container.resolve(OrderService);
   return await service.fulfilOrder(input, dependencies);
 }
+
+export async function rejectTestOrder(
+  containerOrDb: DependencyContainer | DbClient,
+  input: RejectOrderInput,
+  dependencies?: RejectOrderDependencies
+): Promise<RejectOrderResult> {
+  const container = getContainer(containerOrDb);
+  const service = container.resolve(OrderService);
+  return await service.rejectOrder(input, dependencies);
+}
+
 
 

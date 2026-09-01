@@ -99,3 +99,46 @@ export interface FulfilOrderResult {
   adminNotifications: OrderAdminNotification[];
 }
 
+export interface RejectOrderInput {
+  orderId: string;
+  adminTelegramId?: bigint | number | string | undefined;
+  rejectionCategory: string;
+  rejectionNote?: string | null | undefined;
+}
+
+export interface RejectOrderBuyerNotificationContext {
+  order: Order;
+  buyer: Buyer;
+  rejectionCategory: string;
+  rejectionNote?: string | null | undefined;
+  refundAmount: string;
+  updatedBalance: string;
+}
+
+export interface RejectOrderNotificationContext {
+  order: Order;
+  buyer: Buyer;
+  rejectionCategory: string;
+  rejectionNote?: string | null | undefined;
+  notifications: OrderAdminNotification[];
+  adminTelegramId?: bigint | undefined;
+}
+
+export interface RejectOrderDependencies {
+  notifyBuyer?: (
+    context: RejectOrderBuyerNotificationContext
+  ) => Promise<void>;
+  updateAdminNotifications?: (
+    context: RejectOrderNotificationContext
+  ) => Promise<void>;
+}
+
+export interface RejectOrderResult {
+  order: Order;
+  wallet: Wallet;
+  buyer: Buyer;
+  refundLedgerTransaction: LedgerTransaction;
+  adminNotifications: OrderAdminNotification[];
+}
+
+

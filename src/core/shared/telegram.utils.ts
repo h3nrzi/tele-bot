@@ -24,3 +24,17 @@ export function isCancelCommand(raw: string): boolean {
     trimmed === 'لغو درخواست'
   );
 }
+
+/**
+ * Validates whether a string is a valid UUID v4 format.
+ */
+export function isValidUuid(id: string): boolean {
+  if (!id) {
+    return false;
+  }
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    id
+  );
+}
+
+

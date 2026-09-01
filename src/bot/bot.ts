@@ -33,7 +33,12 @@ import {
   createFulfilOrderConversation,
   FULFIL_ORDER_CONVERSATION_ID,
 } from '@/bot/handlers/admin/fulfil.conversation';
+import {
+  createRejectOrderConversation,
+  REJECT_ORDER_CONVERSATION_ID,
+} from '@/bot/handlers/admin/order-reject.conversation';
 import { createBuyerComposer } from '@/bot/handlers/buyer/buyer.composer';
+
 import { createAdminComposer } from '@/bot/handlers/admin/admin.composer';
 
 export interface CreateBotOptions {
@@ -139,8 +144,17 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
       }
     )
   );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createRejectOrderConversation(orderService),
+      {
+        id: REJECT_ORDER_CONVERSATION_ID,
+      }
+    )
+  );
 
   // 2. Domain Presentation Composers
+
   bot.use(
     createBuyerComposer({
       container: appContainer,

@@ -43,3 +43,12 @@ export class OrderNotClaimedByAdminError extends DomainError {
     super(message, 'ORDER_NOT_CLAIMED_BY_ADMIN');
   }
 }
+
+export class OrderRejectionNoteRequiredError extends DomainError {
+  constructor(
+    message = 'A rejection note is mandatory when selecting the OTHER category.'
+  ) {
+    super(message, 'ORDER_REJECTION_NOTE_REQUIRED');
+  }
+}
+

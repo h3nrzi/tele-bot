@@ -20,7 +20,9 @@ import {
 } from '@/bot/handlers/admin/catalog.handler';
 import { handleClaimOrderCallback } from '@/bot/handlers/admin/claim.handler';
 import { handleFulfilOrderCallback } from '@/bot/handlers/admin/fulfil.handler';
+import { handleRejectOrderCallback } from '@/bot/handlers/admin/order-reject.handler';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
 import { OrderService } from '@/modules/order/order.service';
@@ -172,13 +174,13 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.callbackQuery(/^order:reject:(.+)$/, adminAuth, async (ctx) => {
-    try {
-      await ctx.answerCallbackQuery({
-        text: 'عملیات رد سفارش در فاز بعدی فعال می‌شود.',
-        show_alert: true,
+    if (orderService) {
+      await handleRejectOrderCallback(ctx, {
+        orderService,
       });
-    } catch {}
+    }
   });
 
   return composer;
 }
+

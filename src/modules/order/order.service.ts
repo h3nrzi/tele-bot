@@ -15,6 +15,7 @@ import {
   OrderAlreadyClaimedError,
   InvalidOrderStatusError,
   OrderNotClaimedByAdminError,
+  OrderRejectionNoteRequiredError,
 } from '@/modules/order/order.errors';
 import { WalletNotFoundError } from '@/modules/wallet/wallet.errors';
 import { BuyerNotFoundError } from '@/modules/buyer/buyer.errors';
@@ -32,9 +33,17 @@ import type {
   FulfilOrderDependencies,
   FulfilOrderResult,
   FulfilOrderNotificationContext,
+  RejectOrderInput,
+  RejectOrderDependencies,
+  RejectOrderResult,
+  RejectOrderBuyerNotificationContext,
+  RejectOrderNotificationContext,
 } from '@/modules/order/dtos/order.dto';
 import { TOKENS } from '@/core/di/tokens';
 import type { Buyer } from '@/modules/buyer/buyer.entity';
+import type { Wallet } from '@/modules/wallet/wallet.entity';
+import type { LedgerTransaction } from '@/modules/ledger/ledger-transaction.entity';
+
 
 @injectable()
 export class OrderService {
@@ -453,8 +462,206 @@ export class OrderService {
   }
 
   /**
+   * Executes the atomic Order Rejection sequence:
+   * 1. Inside transaction:
+   *    - SELECT order FOR UPDATE
+   *    - Asserts status IN ('PLACED', 'PROCESSING') (throws InvalidOrderStatusError if terminal)
+   *    - Asserts rejection note is present if category is 'OTHER' (throws OrderRejectionNoteRequiredError)
+   *    - SELECT wallet FOR UPDATE
+   *    - Writes refund ledger transaction (CREDIT BUYER_WALLET + DEBIT SYSTEM_CASH)
+   *      and sets reversed_by_ledger_transaction_id on the original debit transaction
+   *    - Updates wallet available_balance (available_balance + usd_price_snapshot)
+   *    - Updates order: status = 'REJECTED', rejection_category = ?, rejection_note = ?, rejected_at = now()
+   *    - Resolves Buyer
+   * 2. Commit transaction
+   * 3. Outside transaction:
+   *    - Fetches order_admin_notifications
+   *    - Dispatches Buyer push notification (fire-and-forget / resilient)
+   *    - Dispatches Admin notification edits (fire-and-forget / resilient)
+   */
+  public async rejectOrder(
+    input: RejectOrderInput,
+    dependencies?: RejectOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<RejectOrderResult> {
+    const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
+    const rejectionCategory = input.rejectionCategory.trim();
+    const rejectionNote = input.rejectionNote?.trim() || null;
+    const adminTelegramId =
+      input.adminTelegramId !== undefined
+        ? BigInt(input.adminTelegramId)
+        : undefined;
+
+    // Validate category requirement: if OTHER, note is mandatory
+    if (rejectionCategory === 'OTHER' && !rejectionNote) {
+      throw new OrderRejectionNoteRequiredError(
+        'A rejection note is mandatory when selecting the OTHER category.'
+      );
+    }
+
+    const executeRejection = async (
+      tx: DbExecutor
+    ): Promise<{
+      order: Order;
+      wallet: Wallet;
+      buyer: Buyer;
+      refundLedgerTransaction: LedgerTransaction;
+    }> => {
+      // 1a. Lock order row
+      const order = await this.orderRepo.findByIdForUpdate(input.orderId, tx);
+      if (!order) {
+        throw new OrderNotFoundError(
+          `Order with ID ${input.orderId} not found.`
+        );
+      }
+
+      // 1b. Assert status is PLACED or PROCESSING
+      if (order.status !== 'PLACED' && order.status !== 'PROCESSING') {
+        throw new InvalidOrderStatusError(
+          `Order ${order.id} cannot be rejected because it is in status '${order.status}'.`
+        );
+      }
+
+      // 1c. Lock wallet row
+      const wallet = await this.walletRepo.findByUserIdForUpdate(
+        order.userId,
+        tx
+      );
+      if (!wallet) {
+        throw new WalletNotFoundError(
+          `Wallet not found for buyer ID ${order.userId}`
+        );
+      }
+
+      // 1d. Record refund double-entry ledger transaction & link to original
+      const refundResult = await this.ledgerService.recordOrderRefund(
+        {
+          orderId: order.id,
+          walletId: wallet.id,
+          usdAmount: order.usdAmountVo,
+          narrative: `Order rejection refund for order ${order.id}`,
+        },
+        tx
+      );
+
+      // 1e. Restore Buyer available balance
+      const newBalance = wallet.availableBalanceVo.plus(
+        order.usdAmountVo
+      );
+      const updatedWallet = await this.walletRepo.updateBalance(
+        wallet.id,
+        newBalance,
+        tx
+      );
+
+      // 1f. Update Order to REJECTED
+      const now = new Date();
+      const updatedOrder = await this.orderRepo.updateStatus(
+        order.id,
+        'REJECTED',
+        {
+          rejectionCategory,
+          rejectionNote,
+          rejectedAt: now,
+          updatedAt: now,
+        },
+        tx
+      );
+
+      if (!updatedOrder) {
+        throw new Error(`Failed to update order ${order.id} to REJECTED`);
+      }
+
+      // 1g. Resolve Buyer
+      const buyer = await this.buyerRepo.findById(updatedOrder.userId, tx);
+      if (!buyer) {
+        throw new BuyerNotFoundError(
+          `Buyer with ID ${updatedOrder.userId} not found for order ${updatedOrder.id}`
+        );
+      }
+
+      return {
+        order: updatedOrder,
+        wallet: updatedWallet,
+        buyer,
+        refundLedgerTransaction: refundResult.transaction,
+      };
+    };
+
+    let txResult: {
+      order: Order;
+      wallet: Wallet;
+      buyer: Buyer;
+      refundLedgerTransaction: LedgerTransaction;
+    };
+
+    if ('transaction' in client && typeof client.transaction === 'function') {
+      txResult = await client.transaction(async (tx) => {
+        return await executeRejection(tx);
+      });
+    } else {
+      txResult = await executeRejection(client);
+    }
+
+    // 2. Fetch admin notifications for this order
+    const notifications = await this.orderRepo.getAdminNotifications(
+      txResult.order.id,
+      client
+    );
+
+    // 3. Notify Buyer (outside transaction, fire-and-forget / resilient)
+    if (dependencies?.notifyBuyer) {
+      try {
+        const buyerContext: RejectOrderBuyerNotificationContext = {
+          order: txResult.order,
+          buyer: txResult.buyer,
+          rejectionCategory,
+          rejectionNote,
+          refundAmount: txResult.order.usdPriceSnapshot,
+          updatedBalance: txResult.wallet.availableBalance,
+        };
+        await dependencies.notifyBuyer(buyerContext);
+      } catch (buyerNotifyErr) {
+        console.error(
+          `Failed to send rejection notification to buyer ${txResult.buyer.id} for order ${txResult.order.id}:`,
+          buyerNotifyErr
+        );
+      }
+    }
+
+    // 4. Update Admin notifications (outside transaction, fire-and-forget / resilient)
+    if (dependencies?.updateAdminNotifications) {
+      try {
+        const adminContext: RejectOrderNotificationContext = {
+          order: txResult.order,
+          buyer: txResult.buyer,
+          rejectionCategory,
+          rejectionNote,
+          notifications,
+          adminTelegramId,
+        };
+        await dependencies.updateAdminNotifications(adminContext);
+      } catch (adminNotifyErr) {
+        console.error(
+          `Failed to update admin notifications for rejected order ${txResult.order.id}:`,
+          adminNotifyErr
+        );
+      }
+    }
+
+    return {
+      order: txResult.order,
+      wallet: txResult.wallet,
+      buyer: txResult.buyer,
+      refundLedgerTransaction: txResult.refundLedgerTransaction,
+      adminNotifications: notifications,
+    };
+  }
+
+  /**
    * Retrieves an Order by ID.
    */
+
   public async findById(
     orderId: string,
     executor?: DbExecutor

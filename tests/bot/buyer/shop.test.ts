@@ -650,15 +650,37 @@ describe('Buyer /shop Command & Order Confirmation Prompt (Ticket 03)', () => {
       expect(answeredCallbackQueries[0]?.text).toContain('شروع پردازش');
     });
 
-    it('answers order:reject callback query as stub', async () => {
-      const { bot, answeredCallbackQueries } = createTestBot();
+    it('handles order:reject callback query by entering rejection flow', async () => {
+      const { buyer, wallet } = await createTestBuyer(container, {
+        telegramChatId: buyerChatId,
+        telegramUsername: 'reject_admin_buyer',
+      });
+
+      await db
+        .update(wallets)
+        .set({ availableBalance: '50.00' })
+        .where(eq(wallets.id, wallet.id));
+
+      const item = await createTestCatalogItem(container, {
+        name: 'Item Reject Test',
+        usdPrice: '10.00',
+        isActive: true,
+      });
+
+      const { order } = await placeTestOrder(container, {
+        userId: buyer.id,
+        catalogItemId: item.id,
+      });
+
+      const { bot, repliedMessages } = createTestBot();
 
       await bot.handleUpdate(
-        makeCallbackQueryUpdate(1, adminChatId, 'order:reject:test-order-id', 1, 'Admin', 'admin_user')
+        makeCallbackQueryUpdate(1, adminChatId, `order:reject:${order.id}`, 1, 'Admin', 'admin_user')
       );
 
-      expect(answeredCallbackQueries).toHaveLength(1);
-      expect(answeredCallbackQueries[0]?.text).toContain('رد سفارش');
+      expect(repliedMessages).toHaveLength(1);
+      expect(repliedMessages[0]).toContain('رد سفارش');
     });
   });
 });
+
