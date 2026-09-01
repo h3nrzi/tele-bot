@@ -11,12 +11,12 @@ export interface StatusHandlerDependencies {
 }
 
 const STATUS_LABELS: Record<TopUpStatus, string> = {
-  INITIATED: 'در انتظار پرداخت (INITIATED)',
-  PENDING: 'در انتظار بررسی ادمین (PENDING)',
-  APPROVED: 'تایید شده (APPROVED)',
-  REJECTED: 'رد شده (REJECTED)',
-  EXPIRED: 'منقضی شده (EXPIRED)',
-  CANCELLED: 'لغو شده (CANCELLED)',
+  INITIATED: 'در انتظار پرداخت',
+  PENDING: 'در انتظار بررسی ادمین',
+  APPROVED: 'تایید شده',
+  REJECTED: 'رد شده',
+  EXPIRED: 'منقضی شده',
+  CANCELLED: 'لغو شده',
 };
 
 /**

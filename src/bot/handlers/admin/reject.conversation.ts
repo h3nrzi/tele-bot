@@ -135,7 +135,7 @@ export function createRejectConversation(topUpService: TopUpService) {
           await nextCtx.answerCallbackQuery();
         } catch {}
       }
-      rejectionReason = PRESET_REJECTION_REASONS[presetKey] ?? 'Rejected by Admin';
+      rejectionReason = PRESET_REJECTION_REASONS[presetKey] ?? 'رد شده توسط مدیر';
     } else if (actionText.trim()) {
       rejectionReason = actionText.trim();
     } else {

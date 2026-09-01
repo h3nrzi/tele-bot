@@ -111,13 +111,13 @@ describe('Admin Order Claim & Start Processing Callback Handler (Ticket 05)', ()
     const rejectButton = flatButtons.find((btn) => btn.callback_data === 'order:reject:test-order-id');
 
     expect(lockButton).toBeDefined();
-    expect(lockButton?.text).toBe('🔒 Processing by @admin_jane');
+    expect(lockButton?.text).toBe('🔒 در حال پردازش توسط @admin_jane');
 
     expect(fulfilButton).toBeDefined();
-    expect(fulfilButton?.text).toBe('📦 Fulfil Order');
+    expect(fulfilButton?.text).toBe('📦 تحویل سفارش');
 
     expect(rejectButton).toBeDefined();
-    expect(rejectButton?.text).toBe('✗ Reject');
+    expect(rejectButton?.text).toBe('✗ رد سفارش');
   });
 
   it('happy path: admin taps [▶ Start Processing] -> transitions order to PROCESSING and edits all admin notifications', async () => {

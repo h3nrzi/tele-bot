@@ -205,13 +205,13 @@ describe('Admin Rejection Conversation & Callback Handler', () => {
       )
     );
 
-    // 3. Verify DB state: REJECTED, rejectionReason = "Wrong amount", wallet = 0.00
+    // 3. Verify DB state: REJECTED, rejectionReason = "مبلغ واریزی اشتباه است", wallet = 0.00
     const [rejectedReq] = await db
       .select()
       .from(topUpRequests)
       .where(eq(topUpRequests.id, pendingReq.id));
     expect(rejectedReq?.status).toBe('REJECTED');
-    expect(rejectedReq?.rejectionReason).toBe('Wrong amount');
+    expect(rejectedReq?.rejectionReason).toBe('مبلغ واریزی اشتباه است');
     expect(rejectedReq?.processedByAdminTelegramId).toBe(BigInt(adminChatId1));
 
     const [buyerWallet] = await db
@@ -229,7 +229,7 @@ describe('Admin Rejection Conversation & Callback Handler', () => {
     // 5. Verify Buyer push notification contains rejection reason
     expect(
       repliedMessages.some(
-        (msg) => msg.includes('رد شد') && msg.includes('Wrong amount')
+        (msg) => msg.includes('رد شد') && msg.includes('مبلغ واریزی اشتباه است')
       )
     ).toBe(true);
 
@@ -238,7 +238,7 @@ describe('Admin Rejection Conversation & Callback Handler', () => {
     expect(editedNotification).toBeDefined();
     expect(editedNotification?.caption).toContain('❌');
     expect(editedNotification?.caption).toContain('super_admin');
-    expect(editedNotification?.caption).toContain('Wrong amount');
+    expect(editedNotification?.caption).toContain('مبلغ واریزی اشتباه است');
   });
 
   it('custom note path: admin chooses Other / custom... -> enters free text note -> request is REJECTED with custom note verbatim', async () => {
@@ -483,6 +483,6 @@ describe('Admin Rejection Conversation & Callback Handler', () => {
       .from(topUpRequests)
       .where(eq(topUpRequests.id, pendingReq.id));
     expect(rejectedReq?.status).toBe('REJECTED');
-    expect(rejectedReq?.rejectionReason).toBe('Unreadable receipt');
+    expect(rejectedReq?.rejectionReason).toBe('تصویر رسید ناخوانا یا نامعتبر است');
   });
 });

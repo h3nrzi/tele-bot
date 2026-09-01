@@ -107,7 +107,7 @@ export function createSetCardConversation(bankAccountService: BankAccountService
     }
 
     // Step 4: Prompt Optional Notes
-    await ctx.reply('توضیحات تکمیلی (اختیاری) را وارد کنید یا در صورت عدم نیاز عبارت - یا skip را ارسال کنید:');
+    await ctx.reply('توضیحات تکمیلی (اختیاری) را وارد کنید یا در صورت عدم نیاز عبارت - یا رد را ارسال کنید:');
     const notesCtx = await conversation.wait();
     const notesText = notesCtx.message?.text ?? '';
 

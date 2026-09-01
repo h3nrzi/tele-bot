@@ -30,35 +30,35 @@ export function getAdminOrderProcessingKeyboard(
   const display = formatAdminDisplay(adminUsernameOrDisplay);
 
   return new InlineKeyboard()
-    .text(`🔒 Processing by ${display}`, 'order:noop')
+    .text(`🔒 در حال پردازش توسط ${display}`, 'order:noop')
     .row()
-    .text('📦 Fulfil Order', `order:fulfil:${orderId}`)
-    .text('✗ Reject', `order:reject:${orderId}`);
+    .text('📦 تحویل سفارش', `order:fulfil:${orderId}`)
+    .text('✗ رد سفارش', `order:reject:${orderId}`);
 }
 
 /**
  * Builds inline confirmation buttons for the 3-step fulfilment conversation:
- * - [✓ Send] (fulfil:confirm)
- * - [✗ Re-enter] (fulfil:reenter)
+ * - [✓ ارسال] (fulfil:confirm)
+ * - [🔄 ویرایش مجدد] (fulfil:reenter)
  * - [❌ انصراف] (flow:cancel)
  */
 export function getFulfilOrderConfirmationKeyboard(): InlineKeyboard {
   return new InlineKeyboard()
-    .text('✓ Send', 'fulfil:confirm')
-    .text('✗ Re-enter', 'fulfil:reenter')
+    .text('✓ ارسال', 'fulfil:confirm')
+    .text('🔄 ویرایش مجدد', 'fulfil:reenter')
     .row()
     .text('❌ انصراف', 'flow:cancel');
 }
 
 /**
  * Builds inline status display for a fulfilled Order Admin Notification (FULFILLED status):
- * - [✅ Fulfilled by @adminX] (non-interactive, callback: order:noop)
+ * - [✅ تکمیل شده توسط @adminX] (non-interactive, callback: order:noop)
  */
 export function getAdminOrderFulfilledKeyboard(
   adminUsernameOrDisplay: string
 ): InlineKeyboard {
   const display = formatAdminDisplay(adminUsernameOrDisplay);
 
-  return new InlineKeyboard().text(`✅ Fulfilled by ${display}`, 'order:noop');
+  return new InlineKeyboard().text(`✅ تکمیل شده توسط ${display}`, 'order:noop');
 }
 

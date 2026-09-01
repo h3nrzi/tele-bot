@@ -146,7 +146,7 @@ describe('Admin Order Fulfilment Handler & Conversation (Ticket 06)', () => {
     const flatFulfilledButtons = fulfilledKeyboard.inline_keyboard.flat() as any[];
 
     expect(flatFulfilledButtons).toHaveLength(1);
-    expect(flatFulfilledButtons[0]?.text).toContain('Fulfilled by @superadmin');
+    expect(flatFulfilledButtons[0]?.text).toContain('تکمیل شده توسط @superadmin');
     expect(flatFulfilledButtons[0]?.callback_data).toBe('order:noop');
   });
 
@@ -343,11 +343,11 @@ describe('Admin Order Fulfilment Handler & Conversation (Ticket 06)', () => {
 
     expect(admin1Edited).toBeDefined();
     const admin1Buttons = admin1Edited?.reply_markup?.inline_keyboard?.flat() ?? [];
-    expect(admin1Buttons.some((b: any) => b.text.includes('Fulfilled by @lead_admin'))).toBe(true);
+    expect(admin1Buttons.some((b: any) => b.text.includes('تکمیل شده توسط @lead_admin'))).toBe(true);
 
     expect(admin2Edited).toBeDefined();
     const admin2Buttons = admin2Edited?.reply_markup?.inline_keyboard?.flat() ?? [];
-    expect(admin2Buttons.some((b: any) => b.text.includes('Fulfilled by @lead_admin'))).toBe(true);
+    expect(admin2Buttons.some((b: any) => b.text.includes('تکمیل شده توسط @lead_admin'))).toBe(true);
 
     // 4. Verify Admin received confirmation
     expect(repliedMessages[2]).toContain('با موفقیت تحویل داده شد');
