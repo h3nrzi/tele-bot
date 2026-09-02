@@ -1,4 +1,5 @@
 import type { Context } from 'grammy';
+import { InlineKeyboard } from 'grammy';
 import type { BotConversation } from '@/bot/context';
 import type { TopUpService } from '@/modules/top-up/top-up.service';
 import type { BuyerService } from '@/modules/buyer/buyer.service';
@@ -29,15 +30,28 @@ export function createTopUpConversation(
     const limits = limitsSource ?? TopUpLimits.fromEnv();
 
     await ctx.reply(
-      `لطفاً مبلغ مورد نظر برای افزایش موجودی به دلار را وارد کنید (حداقل: ${formatUsd(limits.minUsd)}، حداکثر: ${formatUsd(limits.maxUsd)})، یا برای انصراف /cancel را ارسال کنید:`
+      `لطفاً مبلغ مورد نظر برای افزایش موجودی به دلار را وارد کنید (حداقل: ${formatUsd(limits.minUsd)}، حداکثر: ${formatUsd(limits.maxUsd)}):`,
+      {
+        reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+      }
     );
 
     let amountString = '';
     while (true) {
       const nextCtx = await conversation.wait();
       const text = nextCtx.message?.text ?? '';
+      const callbackData = nextCtx.callbackQuery?.data;
 
-      if (isCancelCommand(text)) {
+      if (
+        callbackData === 'flow:cancel' ||
+        callbackData === 'topup:cancel' ||
+        isCancelCommand(text)
+      ) {
+        if (nextCtx.callbackQuery) {
+          try {
+            await nextCtx.answerCallbackQuery();
+          } catch {}
+        }
         await nextCtx.reply('درخواست افزایش موجودی لغو شد.');
         return;
       }
@@ -49,7 +63,10 @@ export function createTopUpConversation(
       }
 
       await nextCtx.reply(
-        `${validation.message}\n\nلطفاً یک مبلغ معتبر به دلار وارد کنید (یا برای انصراف /cancel را ارسال کنید):`
+        `${validation.message}\n\nلطفاً یک مبلغ معتبر به دلار وارد کنید:`,
+        {
+          reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+        }
       );
     }
 

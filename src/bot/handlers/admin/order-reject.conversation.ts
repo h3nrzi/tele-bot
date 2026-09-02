@@ -104,8 +104,7 @@ export function createRejectOrderConversation(orderService: OrderService) {
       // Note is mandatory for OTHER
       await catCtx.reply(
         `✏️ *علت رد سفارش: سایر*\n\n` +
-        `لطفاً دلیل یا توضیحات رد سفارش را تایپ و ارسال نمایید (اجباری):\n\n` +
-        `(برای انصراف /cancel را ارسال نمایید)`,
+        `لطفاً دلیل یا توضیحات رد سفارش را تایپ و ارسال نمایید (اجباری):`,
         {
           parse_mode: 'Markdown',
           reply_markup: getOrderRejectionNotePromptKeyboard(false),
@@ -137,8 +136,7 @@ export function createRejectOrderConversation(orderService: OrderService) {
       await catCtx.reply(
         `📋 *علت انتخاب شده:* ${categoryInfo.label}\n\n` +
         `آیا مایل به افزودن یادداشت/توضیحات اضافی برای خریدار هستید؟\n` +
-        `اکنون متن را ارسال کنید یا دکمه «⏩ رد کردن (بدون یادداشت)» را بزنید:\n\n` +
-        `(برای انصراف /cancel را ارسال نمایید)`,
+        `اکنون متن را ارسال کنید یا دکمه «⏩ رد کردن (بدون یادداشت)» را بزنید:`,
         {
           parse_mode: 'Markdown',
           reply_markup: getOrderRejectionNotePromptKeyboard(true),

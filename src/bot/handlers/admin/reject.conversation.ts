@@ -116,13 +116,27 @@ export function createRejectConversation(topUpService: TopUpService) {
       }
 
       await nextCtx.reply(
-        'لطفاً توضیحات یا علت رد درخواست را به صورت پیام متنی ارسال کنید (یا برای انصراف /cancel را ارسال کنید):'
+        'لطفاً توضیحات یا علت رد درخواست را به صورت پیام متنی ارسال کنید:',
+        {
+          reply_markup: new InlineKeyboard().text('❌ انصراف', 'reject_reason:cancel'),
+        }
       );
 
       const customNoteCtx = await conversation.wait();
       const customText = customNoteCtx.message?.text ?? '';
+      const customCb = customNoteCtx.callbackQuery?.data;
 
-      if (isCancelCommand(customText) || !customText.trim()) {
+      if (
+        customCb === 'reject_reason:cancel' ||
+        customCb === 'flow:cancel' ||
+        isCancelCommand(customText) ||
+        !customText.trim()
+      ) {
+        if (customNoteCtx.callbackQuery) {
+          try {
+            await customNoteCtx.answerCallbackQuery();
+          } catch {}
+        }
         await customNoteCtx.reply('❌ عملیات رد درخواست لغو شد.');
         return;
       }

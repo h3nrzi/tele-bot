@@ -1,4 +1,5 @@
 import type { Context } from 'grammy';
+import { InlineKeyboard } from 'grammy';
 import type { BotConversation } from '@/bot/context';
 import type { OrderService } from '@/modules/order/order.service';
 import { isCancelCommand } from '@/core/shared/telegram.utils';
@@ -51,8 +52,10 @@ export function createFulfilOrderConversation(orderService: OrderService) {
     while (true) {
       await ctx.reply(
         `📦 تحویل سفارش #${shortOrderId}\n\n` +
-        `لطفاً اطلاعات یا محتوای تحویل سفارش (اکانت، لایسنس، اطلاعات دسترسی یا توضیحات) را برای ارسال به خریدار تایپ و ارسال کنید:\n\n` +
-        `(برای انصراف /cancel را ارسال نمایید)`
+        `لطفاً اطلاعات یا محتوای تحویل سفارش (اکانت، لایسنس، اطلاعات دسترسی یا توضیحات) را برای ارسال به خریدار تایپ و ارسال کنید:`,
+        {
+          reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+        }
       );
 
       const inputCtx = await conversation.wait();

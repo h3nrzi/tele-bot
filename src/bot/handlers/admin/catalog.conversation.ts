@@ -1,4 +1,5 @@
 import type { Context } from 'grammy';
+import { InlineKeyboard } from 'grammy';
 import Decimal from 'decimal.js';
 import type { BotConversation } from '@/bot/context';
 import type { CatalogService } from '@/modules/catalog/catalog.service';
@@ -168,7 +169,10 @@ export function createAddCatalogItemConversation(catalogService: CatalogService)
 
     // Step 1: Prompt Name
     await ctx.reply(
-      '📦 افزودن خدمت جدید\n\nلطفاً نام خدمت را وارد کنید (یا /cancel برای انصراف):'
+      '📦 افزودن خدمت جدید\n\nلطفاً نام خدمت را وارد کنید:',
+      {
+        reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+      }
     );
 
     let name = '';
@@ -193,7 +197,10 @@ export function createAddCatalogItemConversation(catalogService: CatalogService)
       }
 
       await nameCtx.reply(
-        '❌ نام خدمت نمی‌تواند خالی باشد. لطفاً نام خدمت را وارد کنید (یا /cancel برای انصراف):'
+        '❌ نام خدمت نمی‌تواند خالی باشد. لطفاً نام خدمت را وارد کنید:',
+        {
+          reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+        }
       );
     }
 
@@ -233,7 +240,10 @@ export function createAddCatalogItemConversation(catalogService: CatalogService)
 
     // Step 3: Prompt USD Price
     await ctx.reply(
-      'لطفاً قیمت خدمت به دلار ($) را وارد کنید (مثال: 15.00، یا /cancel برای انصراف):'
+      'لطفاً قیمت خدمت به دلار ($) را وارد کنید (مثال: 15.00):',
+      {
+        reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+      }
     );
 
     let usdPrice = '';
@@ -259,7 +269,10 @@ export function createAddCatalogItemConversation(catalogService: CatalogService)
       }
 
       await priceCtx.reply(
-        '❌ قیمت وارد شده نامعتبر است. لطفاً یک عدد مثبت به دلار وارد کنید (مثال: 15.00، یا /cancel برای انصراف):'
+        '❌ قیمت وارد شده نامعتبر است. لطفاً یک عدد مثبت به دلار وارد کنید (مثال: 15.00):',
+        {
+          reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+        }
       );
     }
 
