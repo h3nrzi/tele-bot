@@ -3,7 +3,7 @@ import type { TopUpService } from '@/modules/top-up/top-up.service';
 import type { BuyerService } from '@/modules/buyer/buyer.service';
 import type { TopUpStatus } from '@/modules/top-up/top-up-request.entity';
 import { formatUsd, formatIrr } from '@/core/shared/currency.utils';
-import { getBuyerMainMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
+import { getBuyerWalletMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
 
 export interface StatusHandlerDependencies {
   buyerService: BuyerService;
@@ -41,7 +41,7 @@ export async function handleStatusCommand(
   const latestRequest = await topUpService.getLatestTopUpRequest(buyer.id);
   if (!latestRequest) {
     await ctx.reply('شما تاکنون هیچ درخواست افزایش موجودی ثبت نکرده‌اید.', {
-      reply_markup: getBuyerMainMenuKeyboard(),
+      reply_markup: getBuyerWalletMenuKeyboard(),
     });
     return;
   }
@@ -61,6 +61,6 @@ export async function handleStatusCommand(
   }
 
   await ctx.reply(message, {
-    reply_markup: getBuyerMainMenuKeyboard(),
+    reply_markup: getBuyerWalletMenuKeyboard(),
   });
 }

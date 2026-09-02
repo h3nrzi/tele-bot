@@ -115,19 +115,36 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     await handleMyOrderCommand(ctx, orderService);
   });
 
+  composer.hears(
+    ['💰 مدیریت کیف پول', 'مدیریت کیف پول', '💳 کیف پول و افزایش موجودی', 'کیف پول و افزایش موجودی', 'کیف پول و شارژ', 'کیف پول', 'شارژ حساب'],
+    async (ctx) => {
+      const { getBuyerWalletMenuKeyboard } = await import('@/bot/keyboards/menu.keyboards');
+      await ctx.reply(
+        '💰 *مدیریت کیف پول و تراکنش‌ها*\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: getBuyerWalletMenuKeyboard(),
+        }
+      );
+    }
+  );
+
   composer.hears(['💰 موجودی کیف پول', 'موجودی کیف پول', 'موجودی'], async (ctx) => {
     await handleBalance(ctx, walletService);
   });
 
-  composer.hears(['➕ افزایش موجودی', 'افزایش موجودی', 'شارژ کیف پول'], async (ctx) => {
-    await handleTopUpCommand(ctx, {
-      exchangeRateService,
-      bankAccountService,
-      buyerService,
-      topUpService,
-      adminIds: options?.adminIds,
-    });
-  });
+  composer.hears(
+    ['➕ افزایش درخواست', 'افزایش درخواست', '➕ افزایش موجودی', 'افزایش موجودی', 'شارژ کیف پول'],
+    async (ctx) => {
+      await handleTopUpCommand(ctx, {
+        exchangeRateService,
+        bankAccountService,
+        buyerService,
+        topUpService,
+        adminIds: options?.adminIds,
+      });
+    }
+  );
 
   composer.hears(['📋 پیگیری وضعیت', 'پیگیری وضعیت', 'وضعیت درخواست'], async (ctx) => {
     await handleStatusCommand(ctx, { buyerService, topUpService });
@@ -137,9 +154,12 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     await handleCancelCommand(ctx, { buyerService, topUpService });
   });
 
-  composer.hears(['🏠 منوی اصلی', 'منوی اصلی'], async (ctx) => {
-    await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
-  });
+  composer.hears(
+    ['🔙 بازگشت به منوی اصلی', 'بازگشت به منوی اصلی', 'بازگشت', '🏠 منوی اصلی', 'منوی اصلی'],
+    async (ctx) => {
+      await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
+    }
+  );
 
   // Callback Queries
   composer.callbackQuery(/^shop:item:(.+)$/, async (ctx) => {

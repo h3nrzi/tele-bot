@@ -3,12 +3,21 @@ import { Keyboard } from 'grammy';
 export function getBuyerMainMenuKeyboard(): Keyboard {
   return new Keyboard()
     .text('🛍️ فروشگاه خدمات')
+    .text('📦 آخرین سفارش')
     .row()
+    .text('💰 مدیریت کیف پول')
+    .resized();
+}
+
+export function getBuyerWalletMenuKeyboard(): Keyboard {
+  return new Keyboard()
     .text('💰 موجودی کیف پول')
-    .text('➕ افزایش موجودی')
+    .text('➕ افزایش درخواست')
     .row()
     .text('📋 پیگیری وضعیت')
     .text('❌ لغو درخواست')
+    .row()
+    .text('🔙 بازگشت به منوی اصلی')
     .resized();
 }
 

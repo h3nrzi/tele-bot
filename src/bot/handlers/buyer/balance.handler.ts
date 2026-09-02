@@ -1,6 +1,7 @@
 import type { Context } from 'grammy';
 import type { WalletService } from '@/modules/wallet/wallet.service';
 import { formatUsd } from '@/core/shared/currency.utils';
+import { getBuyerWalletMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
 
 /**
  * Handles the /balance command and menu button.
@@ -25,5 +26,7 @@ export async function handleBalance(
     return;
   }
 
-  await ctx.reply(`💰 موجودی کیف پول شما: ${formatUsd(result.wallet.availableBalance)}`);
+  await ctx.reply(`💰 موجودی کیف پول شما: ${formatUsd(result.wallet.availableBalance)}`, {
+    reply_markup: getBuyerWalletMenuKeyboard(),
+  });
 }

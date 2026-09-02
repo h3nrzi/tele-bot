@@ -5,6 +5,7 @@ import { createBot } from '@/bot/bot';
 import { createTestBuyer, setTestRate } from '@tests/helpers/fixtures';
 import {
   getBuyerMainMenuKeyboard,
+  getBuyerWalletMenuKeyboard,
   getAdminMainMenuKeyboard,
 } from '@/bot/keyboards/menu.keyboards';
 
@@ -13,17 +14,26 @@ describe('Role-based Menus and Keyboards', () => {
   const adminChatId = 123456789;
   const buyerChatId = 987654321;
 
-  it('creates valid Buyer reply keyboard structure', () => {
+  it('creates valid Buyer main menu reply keyboard structure', () => {
     const keyboard = getBuyerMainMenuKeyboard();
     expect(keyboard).toBeDefined();
-    // Verify keyboard buttons contain the expected texts
     const flatButtons = keyboard.build().flat();
     const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
     expect(buttonTexts).toContain('🛍️ فروشگاه خدمات');
+    expect(buttonTexts).toContain('📦 آخرین سفارش');
+    expect(buttonTexts).toContain('💰 مدیریت کیف پول');
+  });
+
+  it('creates valid Buyer wallet submenu reply keyboard structure', () => {
+    const keyboard = getBuyerWalletMenuKeyboard();
+    expect(keyboard).toBeDefined();
+    const flatButtons = keyboard.build().flat();
+    const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
     expect(buttonTexts).toContain('💰 موجودی کیف پول');
-    expect(buttonTexts).toContain('➕ افزایش موجودی');
+    expect(buttonTexts).toContain('➕ افزایش درخواست');
     expect(buttonTexts).toContain('📋 پیگیری وضعیت');
     expect(buttonTexts).toContain('❌ لغو درخواست');
+    expect(buttonTexts).toContain('🔙 بازگشت به منوی اصلی');
   });
 
   it('creates valid Admin reply keyboard structure', () => {
@@ -81,11 +91,27 @@ describe('Role-based Menus and Keyboards', () => {
       expect(repliedMessages[0]).toContain('فروشگاه خدمات');
     });
 
-    it("triggers balance reply when sending '💰 موجودی کیف پول'", async () => {
+    it("triggers wallet submenu reply when sending '💰 مدیریت کیف پول'", async () => {
       await bot.handleUpdate({
         update_id: 2,
         message: {
           message_id: 2,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
+          from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
+          text: '💰 مدیریت کیف پول',
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(1);
+      expect(repliedMessages[0]).toContain('مدیریت کیف پول');
+    });
+
+    it("triggers balance reply when sending '💰 موجودی کیف پول'", async () => {
+      await bot.handleUpdate({
+        update_id: 3,
+        message: {
+          message_id: 3,
           date: Math.floor(Date.now() / 1000),
           chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
           from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
@@ -100,9 +126,9 @@ describe('Role-based Menus and Keyboards', () => {
 
     it("triggers status reply when sending '📋 پیگیری وضعیت'", async () => {
       await bot.handleUpdate({
-        update_id: 2,
+        update_id: 4,
         message: {
-          message_id: 2,
+          message_id: 4,
           date: Math.floor(Date.now() / 1000),
           chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
           from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
@@ -116,9 +142,9 @@ describe('Role-based Menus and Keyboards', () => {
 
     it("triggers cancel reply when sending '❌ لغو درخواست'", async () => {
       await bot.handleUpdate({
-        update_id: 3,
+        update_id: 5,
         message: {
-          message_id: 3,
+          message_id: 5,
           date: Math.floor(Date.now() / 1000),
           chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
           from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
@@ -128,6 +154,22 @@ describe('Role-based Menus and Keyboards', () => {
 
       expect(repliedMessages).toHaveLength(1);
       expect(repliedMessages[0]).toContain('هیچ درخواست افزایش موجودی فعالی');
+    });
+
+    it("triggers main menu when sending '🔙 بازگشت به منوی اصلی'", async () => {
+      await bot.handleUpdate({
+        update_id: 6,
+        message: {
+          message_id: 6,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
+          from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
+          text: '🔙 بازگشت به منوی اصلی',
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(1);
+      expect(repliedMessages[0]).toContain('Tele-Bot');
     });
   });
 
