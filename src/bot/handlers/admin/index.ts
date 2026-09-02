@@ -1,5 +1,6 @@
 export * from '@/bot/handlers/admin/rate.handler';
 export * from '@/bot/handlers/admin/set-rate.handler';
+export * from '@/bot/handlers/admin/set-rate.conversation';
 export * from '@/bot/handlers/admin/set-card.conversation';
 export * from '@/bot/handlers/admin/set-card.handler';
 export * from '@/bot/handlers/admin/approval.keyboards';

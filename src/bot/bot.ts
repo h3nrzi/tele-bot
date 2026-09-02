@@ -11,10 +11,15 @@ import { TopUpService } from '@/modules/top-up/top-up.service';
 import { BuyerService } from '@/modules/buyer/buyer.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
 import { OrderService } from '@/modules/order/order.service';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import {
   createSetCardConversation,
   SETCARD_CONVERSATION_ID,
 } from '@/bot/handlers/admin/set-card.conversation';
+import {
+  createSetRateConversation,
+  SETRATE_CONVERSATION_ID,
+} from '@/bot/handlers/admin/set-rate.conversation';
 import {
   createTopUpConversation,
   TOPUP_CONVERSATION_ID,
@@ -83,6 +88,7 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   const buyerService = appContainer.resolve(BuyerService);
   const catalogService = appContainer.resolve(CatalogService);
   const orderService = appContainer.resolve(OrderService);
+  const exchangeRateService = appContainer.resolve(ExchangeRateService);
 
   const botConfig: BotConfig<BotContext> = {};
   if (options?.botInfo) {
@@ -96,6 +102,14 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
 
   // 1. Plugins & Conversations
   bot.use(conversations());
+  bot.use(
+    createConversation<BotContext, Context>(
+      createSetRateConversation(exchangeRateService),
+      {
+        id: SETRATE_CONVERSATION_ID,
+      }
+    )
+  );
   bot.use(
     createConversation<BotContext, Context>(
       createSetCardConversation(bankAccountService),

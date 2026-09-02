@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
-import { captureBotReplies } from '@tests/helpers/mock-context';
+import { captureBotReplies, createMockFetch } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
 import { createTestBuyer, setTestRate } from '@tests/helpers/fixtures';
 import {
@@ -68,10 +68,15 @@ describe('Role-based Menus and Keyboards', () => {
         { telegramChatId: buyerChatId, telegramUsername: 'buyer_user' }
       );
 
+      repliedMessages = [];
+      const { fetch: mockFetch } = createMockFetch(repliedMessages);
       bot = createBot({
         token: 'test_token',
         dbClient: db,
         adminIds: `${adminChatId}`,
+        client: {
+          fetch: mockFetch,
+        },
         botInfo: {
           id: 1000,
           is_bot: true,
@@ -82,8 +87,6 @@ describe('Role-based Menus and Keyboards', () => {
           supports_inline_queries: false,
         } as any,
       });
-
-      repliedMessages = captureBotReplies(bot);
     });
 
     it("triggers shop reply when sending '🛍️ فروشگاه خدمات'", async () => {
@@ -189,10 +192,15 @@ describe('Role-based Menus and Keyboards', () => {
     let repliedMessages: string[];
 
     beforeEach(async () => {
+      repliedMessages = [];
+      const { fetch: mockFetch } = createMockFetch(repliedMessages);
       bot = createBot({
         token: 'test_token',
         dbClient: db,
         adminIds: `${adminChatId}`,
+        client: {
+          fetch: mockFetch,
+        },
         botInfo: {
           id: 1000,
           is_bot: true,
@@ -203,8 +211,6 @@ describe('Role-based Menus and Keyboards', () => {
           supports_inline_queries: false,
         } as any,
       });
-
-      repliedMessages = captureBotReplies(bot);
     });
 
     it("triggers rate reply when sending '💱 نرخ ارز فعلی' as Admin", async () => {
@@ -225,7 +231,7 @@ describe('Role-based Menus and Keyboards', () => {
       expect(repliedMessages[0]).toContain('630,000');
     });
 
-    it("triggers rate guide when sending '✏️ تنظیم نرخ ارز' as Admin", async () => {
+    it("triggers set-rate conversation when sending '✏️ تنظیم نرخ ارز' as Admin", async () => {
       await bot.handleUpdate({
         update_id: 11,
         message: {
@@ -238,7 +244,7 @@ describe('Role-based Menus and Keyboards', () => {
       });
 
       expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toContain('/setrate');
+      expect(repliedMessages[0]).toContain('تنظیم نرخ ارز');
     });
 
     it("triggers settings submenu reply when sending '⚙️ تنظیمات نرخ ارز و حساب' as Admin", async () => {

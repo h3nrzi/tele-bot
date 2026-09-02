@@ -135,10 +135,7 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.hears(['✏️ تنظیم نرخ ارز', 'تنظیم نرخ ارز'], adminAuth, async (ctx) => {
-    await ctx.reply(
-      `برای تنظیم نرخ ارز، لطفاً مقدار ریالی هر دلار را به همراه دستور /setrate ارسال کنید.\n` +
-      `مثال: /setrate 620000`
-    );
+    await handleSetRate(ctx, exchangeRateService);
   });
 
   // Admin Callback Queries
