@@ -153,6 +153,7 @@ describe('Buyer /myorder Command & Order Cancellation Flow (Ticket 08)', () => {
       expect(messageText).toContain('Telegram Premium 1 Year');
       expect(messageText).toContain('$19.99');
       expect(messageText).toContain('ثبت شده');
+      expect(messageText).toContain('📅 تاریخ ثبت:');
       expect(hasCancelButton).toBe(true);
 
       const flatButtons = keyboard.inline_keyboard.flat() as any[];

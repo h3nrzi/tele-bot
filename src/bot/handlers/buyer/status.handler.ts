@@ -3,6 +3,7 @@ import type { TopUpService } from '@/modules/top-up/top-up.service';
 import type { BuyerService } from '@/modules/buyer/buyer.service';
 import type { TopUpStatus } from '@/modules/top-up/top-up-request.entity';
 import { formatUsd, formatIrr } from '@/core/shared/currency.utils';
+import { formatPersianDateTime } from '@/core/shared/date.utils';
 import { getBuyerWalletMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
 
 export interface StatusHandlerDependencies {
@@ -47,7 +48,7 @@ export async function handleStatusCommand(
   }
 
   const statusLabel = STATUS_LABELS[latestRequest.status];
-  const dateFormatted = latestRequest.createdAt.toISOString();
+  const dateFormatted = formatPersianDateTime(latestRequest.createdAt);
 
   let message =
     `📊 وضعیت آخرین درخواست افزایش موجودی:\n\n` +

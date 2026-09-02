@@ -2,6 +2,7 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import type { TopUpService } from '@/modules/top-up/top-up.service';
 import { formatUsd, formatIrr } from '@/core/shared/currency.utils';
+import { formatTimeAgo } from '@/core/shared/date.utils';
 import { getPendingQueueKeyboard } from '@/bot/handlers/admin/pending.keyboards';
 import { getAdminReceiptKeyboard } from '@/bot/handlers/admin/approval.keyboards';
 
@@ -14,24 +15,6 @@ export interface PendingHandlerOptions {
 interface PendingQueueView {
   messageText: string;
   keyboard: InlineKeyboard;
-}
-
-function formatTimeAgo(date: Date, now: Date = new Date()): string {
-  const diffMs = Math.max(0, now.getTime() - date.getTime());
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMinutes < 1) {
-    return 'لحظاتی پیش';
-  }
-  if (diffMinutes < 60) {
-    return `${diffMinutes} دقیقه پیش`;
-  }
-  if (diffHours < 24) {
-    return `${diffHours} ساعت پیش`;
-  }
-  return `${diffDays} روز پیش`;
 }
 
 function buildPendingQueueView(

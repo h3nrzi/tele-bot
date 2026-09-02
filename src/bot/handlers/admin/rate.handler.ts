@@ -1,6 +1,7 @@
 import type { Context } from 'grammy';
 import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { formatIrr } from '@/core/shared/currency.utils';
+import { formatPersianDateTime } from '@/core/shared/date.utils';
 
 /**
  * Handles the /rate command for Admins.
@@ -26,6 +27,6 @@ export async function handleRate(
   await ctx.reply(
     `💱 نرخ فعلی تبدیل ارز:\n\n` +
     `هر ۱ دلار آمریکا = ${formatIrr(currentRate.irrPerUsd)} ریال\n` +
-    `آخرین به‌روزرسانی: ${date.toISOString()}`
+    `آخرین به‌روزرسانی: ${formatPersianDateTime(date)}`
   );
 }

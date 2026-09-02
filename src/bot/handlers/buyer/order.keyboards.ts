@@ -2,6 +2,7 @@ import { InlineKeyboard } from 'grammy';
 import type { Order, OrderStatus } from '@/modules/order/order.entity';
 import type { CatalogItem } from '@/modules/catalog/catalog.entity';
 import { formatUsd } from '@/core/shared/currency.utils';
+import { formatPersianDateTime } from '@/core/shared/date.utils';
 
 export interface MyOrderViewResult {
   messageText: string;
@@ -41,7 +42,7 @@ export function buildMyOrderView(
     `🛍️ نام خدمت: ${itemName}\n` +
     `💵 مبلغ سفارش: ${formatUsd(order.usdPriceSnapshot)}\n` +
     `📊 وضعیت: ${statusLabel}\n` +
-    `📅 تاریخ ثبت: ${order.createdAt.toISOString()}`;
+    `📅 تاریخ ثبت: ${formatPersianDateTime(order.createdAt)}`;
 
   if (order.status === 'PROCESSING') {
     messageText += `\n\nℹ️ سفارش شما در حال حاضر در حال پردازش توسط ادمین است و امکان لغو آن وجود ندارد.`;
