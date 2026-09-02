@@ -1,6 +1,6 @@
 # 09: `/orders` Admin queue command
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 04 — Order placement service + Confirm handler, 05 — Order claim service + `[▶ Start Processing]` handler, 07 — Order rejection service + `[✗ Reject]` inline keyboard flow
 
@@ -16,11 +16,12 @@
 
 ## Acceptance criteria
 
-- [ ] `/orders` is restricted to Admin users; non-Admins receive an access-denied message.
-- [ ] `PLACED` Orders show `[▶ Start Processing]` and `[✗ Reject]`; tapping either works identically to tapping from the original notification.
-- [ ] `PROCESSING` Orders claimed by the current Admin show `[📦 Fulfil Order]` and `[✗ Reject]`.
-- [ ] `PROCESSING` Orders claimed by another Admin show `[🔒 Processing by @adminX]` (non-interactive) and `[✗ Reject]`.
-- [ ] Terminal Orders do not appear in the list.
-- [ ] An empty queue shows a graceful "no active orders" message.
-- [ ] All admin order queue service unit tests pass.
-- [ ] TypeScript compiles without errors.
+- [x] `/orders` is restricted to Admin users; non-Admins receive an access-denied message.
+- [x] `PLACED` Orders show `[▶ Start Processing]` and `[✗ Reject]`; tapping either works identically to tapping from the original notification.
+- [x] `PROCESSING` Orders claimed by the current Admin show `[📦 Fulfil Order]` and `[✗ Reject]`.
+- [x] `PROCESSING` Orders claimed by another Admin show `[🔒 Processing by @adminX]` (non-interactive) and `[✗ Reject]`.
+- [x] Terminal Orders do not appear in the list.
+- [x] An empty queue shows a graceful "no active orders" message.
+- [x] All admin order queue service unit tests pass.
+- [x] TypeScript compiles without errors.
+

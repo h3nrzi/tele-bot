@@ -29,7 +29,9 @@ export * from '@/bot/handlers/admin/fulfil.conversation';
 export * from '@/bot/handlers/admin/fulfil.handler';
 export * from '@/bot/handlers/admin/order-reject.conversation';
 export * from '@/bot/handlers/admin/order-reject.handler';
+export * from '@/bot/handlers/admin/orders.handler';
 export * from '@/bot/handlers/admin/admin.composer';
 export { isCancelCommand } from '@/core/shared/telegram.utils';
+
 
 

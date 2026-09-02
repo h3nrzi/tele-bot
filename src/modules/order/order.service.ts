@@ -46,6 +46,7 @@ import type {
   CancelOrderNotificationContext,
   GetLatestOrderInput,
   BuyerLatestOrderResult,
+  AdminOrderQueueItem,
 } from '@/modules/order/dtos/order.dto';
 import { TOKENS } from '@/core/di/tokens';
 import type { Buyer } from '@/modules/buyer/buyer.entity';
@@ -891,4 +892,26 @@ export class OrderService {
       buyer,
     };
   }
+
+  /**
+   * Retrieves all active orders in the queue (status PLACED or PROCESSING),
+   * including catalog item name, price snapshot, buyer details, and claim info.
+   * Terminal orders (FULFILLED, REJECTED, CANCELLED) are excluded.
+   */
+  public async getAdminOrderQueue(
+    executor?: DbExecutor
+  ): Promise<AdminOrderQueueItem[]> {
+    const client = executor ?? this.db ?? getDefaultDb();
+    return await this.orderRepo.findActiveOrders(client);
+  }
+
+  /**
+   * Alias for getAdminOrderQueue.
+   */
+  public async getActiveOrders(
+    executor?: DbExecutor
+  ): Promise<AdminOrderQueueItem[]> {
+    return await this.getAdminOrderQueue(executor);
+  }
 }
+

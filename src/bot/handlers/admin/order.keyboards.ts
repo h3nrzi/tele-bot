@@ -1,4 +1,5 @@
 import { InlineKeyboard } from 'grammy';
+import type { OrderStatus } from '@/modules/order/order.entity';
 
 /**
  * Builds inline action buttons for an Order Admin Notification:
@@ -207,5 +208,63 @@ export function getAdminOrderRejectedKeyboard(
 export function getAdminOrderCancelledKeyboard(): InlineKeyboard {
   return new InlineKeyboard().text('🚫 لغو شده توسط خریدار', 'order:noop');
 }
+
+export interface AdminOrderQueueKeyboardOptions {
+  orderId: string;
+  status: OrderStatus;
+  claimedByAdminTelegramId?: bigint | number | string | null | undefined;
+  currentAdminTelegramId?: bigint | number | string | undefined;
+  claimedByAdminDisplay?: string | undefined;
+}
+
+/**
+ * Builds inline action buttons for an active Order in the /orders Admin queue:
+ * - PLACED: [▶ شروع پردازش] and [✗ رد سفارش]
+ * - PROCESSING (claimed by this admin): [📦 تحویل سفارش] and [✗ رد سفارش]
+ * - PROCESSING (claimed by another admin): [🔒 در حال پردازش توسط @adminX] (non-interactive) and [✗ رد سفارش]
+ */
+export function getAdminOrderQueueItemKeyboard(
+  options: AdminOrderQueueKeyboardOptions
+): InlineKeyboard {
+  const {
+    orderId,
+    status,
+    claimedByAdminTelegramId,
+    currentAdminTelegramId,
+    claimedByAdminDisplay,
+  } = options;
+
+  if (status === 'PLACED') {
+    return getAdminOrderNotificationKeyboard(orderId);
+  }
+
+  if (status === 'PROCESSING') {
+    const isClaimedByCurrentAdmin =
+      claimedByAdminTelegramId !== null &&
+      claimedByAdminTelegramId !== undefined &&
+      currentAdminTelegramId !== undefined &&
+      BigInt(claimedByAdminTelegramId) === BigInt(currentAdminTelegramId);
+
+    if (isClaimedByCurrentAdmin) {
+      return new InlineKeyboard()
+        .text('📦 تحویل سفارش', `order:fulfil:${orderId}`)
+        .text('✗ رد سفارش', `order:reject:${orderId}`);
+    } else {
+      const display = claimedByAdminDisplay
+        ? formatAdminDisplay(claimedByAdminDisplay)
+        : claimedByAdminTelegramId
+          ? formatAdminDisplay(String(claimedByAdminTelegramId))
+          : 'ادمین';
+
+      return new InlineKeyboard()
+        .text(`🔒 در حال پردازش توسط ${display}`, 'order:noop')
+        .row()
+        .text('✗ رد سفارش', `order:reject:${orderId}`);
+    }
+  }
+
+  return new InlineKeyboard();
+}
+
 
 

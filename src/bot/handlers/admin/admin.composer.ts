@@ -18,6 +18,7 @@ import {
   handleCatalogAddCallback,
   handleCatalogEditCallback,
 } from '@/bot/handlers/admin/catalog.handler';
+import { handleOrdersCommand } from '@/bot/handlers/admin/orders.handler';
 import { handleClaimOrderCallback } from '@/bot/handlers/admin/claim.handler';
 import { handleFulfilOrderCallback } from '@/bot/handlers/admin/fulfil.handler';
 import { handleRejectOrderCallback } from '@/bot/handlers/admin/order-reject.handler';
@@ -38,6 +39,7 @@ export interface AdminComposerOptions {
 
 /**
  * Creates a grammY Composer that mounts and guards all Admin routes:
+ * - /orders & '📋 سفارش‌های فعال'
  * - /setrate
  * - /rate & '💱 نرخ ارز فعلی'
  * - /setcard & '💳 تنظیم کارت بانکی'
@@ -75,6 +77,12 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     await handleCatalogCommand(ctx, catalogService, { adminIds: options?.adminIds });
   });
 
+  composer.command('orders', async (ctx) => {
+    if (orderService) {
+      await handleOrdersCommand(ctx, orderService, { adminIds: options?.adminIds });
+    }
+  });
+
   composer.command('setrate', adminAuth, async (ctx) => {
     await handleSetRate(ctx, exchangeRateService);
   });
@@ -96,6 +104,15 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     ['📦 کاتالوگ خدمات', 'کاتالوگ خدمات', 'مدیریت خدمات', 'کاتالوگ'],
     async (ctx) => {
       await handleCatalogCommand(ctx, catalogService, { adminIds: options?.adminIds });
+    }
+  );
+
+  composer.hears(
+    ['📋 سفارش‌های فعال', 'سفارش‌های فعال', 'لیست سفارش‌ها', 'سفارش‌ها', 'صف سفارشات', 'سفارشات'],
+    async (ctx) => {
+      if (orderService) {
+        await handleOrdersCommand(ctx, orderService, { adminIds: options?.adminIds });
+      }
     }
   );
 

@@ -1,4 +1,4 @@
-import type { Order, OrderAdminNotification } from '@/modules/order/order.entity';
+import type { Order, OrderAdminNotification, OrderStatus } from '@/modules/order/order.entity';
 import type { Wallet } from '@/modules/wallet/wallet.entity';
 import type { LedgerTransaction } from '@/modules/ledger/ledger-transaction.entity';
 import type { LedgerEntry } from '@/modules/ledger/ledger-entry.entity';
@@ -189,5 +189,22 @@ export interface BuyerLatestOrderResult {
   catalogItem: CatalogItem | null;
   buyer: Buyer;
 }
+
+export interface AdminOrderQueueItem {
+  id: string;
+  userId: string;
+  catalogItemId: string;
+  catalogItemName: string;
+  usdPriceSnapshot: string;
+  status: OrderStatus;
+  buyerTelegramChatId: bigint;
+  buyerTelegramUsername: string | null;
+  claimedByAdminTelegramId: bigint | null;
+  claimedByAdminUsername?: string | null | undefined;
+  claimedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 
 

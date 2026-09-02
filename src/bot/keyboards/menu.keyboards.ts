@@ -24,8 +24,9 @@ export function getBuyerWalletMenuKeyboard(): Keyboard {
 export function getAdminMainMenuKeyboard(): Keyboard {
   return new Keyboard()
     .text('📦 کاتالوگ خدمات')
-    .text('⏳ درخواست‌های در انتظار')
+    .text('📋 سفارش‌های فعال')
     .row()
+    .text('⏳ درخواست‌های در انتظار')
     .text('⚙️ تنظیمات نرخ ارز و حساب')
     .resized();
 }

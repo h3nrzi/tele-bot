@@ -43,6 +43,7 @@ describe('Role-based Menus and Keyboards', () => {
     const flatButtons = keyboard.build().flat();
     const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
     expect(buttonTexts).toContain('📦 کاتالوگ خدمات');
+    expect(buttonTexts).toContain('📋 سفارش‌های فعال');
     expect(buttonTexts).toContain('⏳ درخواست‌های در انتظار');
     expect(buttonTexts).toContain('⚙️ تنظیمات نرخ ارز و حساب');
   });

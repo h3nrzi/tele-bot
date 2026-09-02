@@ -15,6 +15,7 @@ export const BUYER_BOT_COMMANDS: BotCommand[] = [
 export const ADMIN_BOT_COMMANDS: BotCommand[] = [
   { command: 'start', description: '🏠 پنل و منوی مدیریت' },
   { command: 'catalog', description: '📦 مدیریت آیتم‌های کاتالوگ' },
+  { command: 'orders', description: '📋 لیست سفارش‌های فعال در انتظار پردازش' },
   { command: 'pending', description: '⏳ لیست درخواست‌های در انتظار تایید' },
   { command: 'setrate', description: '✏️ تنظیم نرخ لحظه‌ای تبدیل ارز (ریال به دلار)' },
   { command: 'rate', description: '💱 مشاهده نرخ تبدیل ارز فعال' },

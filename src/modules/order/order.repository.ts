@@ -1,6 +1,9 @@
 import { injectable, inject } from 'tsyringe';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, asc, inArray } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { orders, orderAdminNotifications } from '@/modules/order/order.schema';
+import { catalogItems } from '@/modules/catalog/catalog.schema';
+import { users } from '@/modules/buyer/buyer.schema';
 import { getDefaultDb, type DbClient } from '@/core/database/client';
 import type { DbExecutor } from '@/core/database/types';
 import {
@@ -14,6 +17,7 @@ import type {
   CreateOrderAdminNotificationParams,
   UpdateOrderStatusFields,
 } from '@/modules/order/order.repository.interface';
+import type { AdminOrderQueueItem } from '@/modules/order/dtos/order.dto';
 import { UsdAmount } from '@/core/shared/money.vo';
 import { TOKENS } from '@/core/di/tokens';
 
@@ -108,6 +112,56 @@ export class DrizzleOrderRepository implements IOrderRepository<DbExecutor> {
 
     return this.mapOrderToEntity(row);
   }
+
+  public async findActiveOrders(
+    executor?: DbExecutor
+  ): Promise<AdminOrderQueueItem[]> {
+    const db = this.getDb(executor);
+    const adminUsers = alias(users, 'admin_users');
+
+    const rows = await db
+      .select({
+        id: orders.id,
+        userId: orders.userId,
+        catalogItemId: orders.catalogItemId,
+        catalogItemName: catalogItems.name,
+        usdPriceSnapshot: orders.usdPriceSnapshot,
+        status: orders.status,
+        buyerTelegramChatId: users.telegramChatId,
+        buyerTelegramUsername: users.telegramUsername,
+        claimedByAdminTelegramId: orders.claimedByAdminTelegramId,
+        claimedByAdminUsername: adminUsers.telegramUsername,
+        claimedAt: orders.claimedAt,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+      })
+      .from(orders)
+      .innerJoin(catalogItems, eq(orders.catalogItemId, catalogItems.id))
+      .innerJoin(users, eq(orders.userId, users.id))
+      .leftJoin(
+        adminUsers,
+        eq(orders.claimedByAdminTelegramId, adminUsers.telegramChatId)
+      )
+      .where(inArray(orders.status, ['PLACED', 'PROCESSING']))
+      .orderBy(asc(orders.createdAt));
+
+    return rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      catalogItemId: r.catalogItemId,
+      catalogItemName: r.catalogItemName,
+      usdPriceSnapshot: r.usdPriceSnapshot,
+      status: r.status as OrderStatus,
+      buyerTelegramChatId: r.buyerTelegramChatId,
+      buyerTelegramUsername: r.buyerTelegramUsername,
+      claimedByAdminTelegramId: r.claimedByAdminTelegramId,
+      claimedByAdminUsername: r.claimedByAdminUsername ?? null,
+      claimedAt: r.claimedAt,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+  }
+
 
   public async createAdminNotification(
     params: CreateOrderAdminNotificationParams,

@@ -1,5 +1,6 @@
 import type { Order, OrderAdminNotification, OrderStatus } from '@/modules/order/order.entity';
 import type { UsdAmount } from '@/core/shared/money.vo';
+import type { AdminOrderQueueItem } from '@/modules/order/dtos/order.dto';
 
 export interface CreateOrderParams {
   userId: string;
@@ -35,6 +36,7 @@ export interface IOrderRepository<TExecutor = unknown> {
   findById(id: string, executor?: TExecutor): Promise<Order | null>;
   findByIdForUpdate(id: string, executor: TExecutor): Promise<Order | null>;
   findLatestByUserId(userId: string, executor?: TExecutor): Promise<Order | null>;
+  findActiveOrders(executor?: TExecutor): Promise<AdminOrderQueueItem[]>;
   createAdminNotification(
     params: CreateOrderAdminNotificationParams,
     executor?: TExecutor
@@ -54,3 +56,4 @@ export interface IOrderRepository<TExecutor = unknown> {
     executor?: TExecutor
   ): Promise<Order | null>;
 }
+
