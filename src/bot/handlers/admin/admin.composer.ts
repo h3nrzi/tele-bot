@@ -103,6 +103,29 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     await handlePending(ctx, topUpService);
   });
 
+  composer.hears(
+    [
+      '⚙️ تنظیمات نرخ ارز و حساب',
+      'تنظیمات نرخ ارز و حساب',
+      'تنظیمات نرخ ارز',
+      'تنظیمات مالی',
+      'تنظیمات حساب',
+      'مدیریت نرخ ارز',
+      'مدیریت حساب',
+    ],
+    adminAuth,
+    async (ctx) => {
+      const { getAdminSettingsMenuKeyboard } = await import('@/bot/keyboards/menu.keyboards');
+      await ctx.reply(
+        '⚙️ *تنظیمات مالی، نرخ ارز و حساب بانکی*\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: getAdminSettingsMenuKeyboard(),
+        }
+      );
+    }
+  );
+
   composer.hears(['💳 تنظیم کارت بانکی', 'تنظیم کارت بانکی', 'تنظیم کارت'], adminAuth, async (ctx) => {
     await handleSetCardCommand(ctx);
   });

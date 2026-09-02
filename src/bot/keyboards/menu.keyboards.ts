@@ -26,9 +26,17 @@ export function getAdminMainMenuKeyboard(): Keyboard {
     .text('📦 کاتالوگ خدمات')
     .text('⏳ درخواست‌های در انتظار')
     .row()
-    .text('💳 تنظیم کارت بانکی')
+    .text('⚙️ تنظیمات نرخ ارز و حساب')
+    .resized();
+}
+
+export function getAdminSettingsMenuKeyboard(): Keyboard {
+  return new Keyboard()
     .text('💱 نرخ ارز فعلی')
-    .row()
     .text('✏️ تنظیم نرخ ارز')
+    .row()
+    .text('💳 تنظیم کارت بانکی')
+    .row()
+    .text('🔙 بازگشت به منوی اصلی')
     .resized();
 }

@@ -7,6 +7,7 @@ import {
   getBuyerMainMenuKeyboard,
   getBuyerWalletMenuKeyboard,
   getAdminMainMenuKeyboard,
+  getAdminSettingsMenuKeyboard,
 } from '@/bot/keyboards/menu.keyboards';
 
 describe('Role-based Menus and Keyboards', () => {
@@ -36,15 +37,25 @@ describe('Role-based Menus and Keyboards', () => {
     expect(buttonTexts).toContain('🔙 بازگشت به منوی اصلی');
   });
 
-  it('creates valid Admin reply keyboard structure', () => {
+  it('creates valid Admin main menu reply keyboard structure', () => {
     const keyboard = getAdminMainMenuKeyboard();
     expect(keyboard).toBeDefined();
     const flatButtons = keyboard.build().flat();
     const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
+    expect(buttonTexts).toContain('📦 کاتالوگ خدمات');
     expect(buttonTexts).toContain('⏳ درخواست‌های در انتظار');
-    expect(buttonTexts).toContain('💳 تنظیم کارت بانکی');
+    expect(buttonTexts).toContain('⚙️ تنظیمات نرخ ارز و حساب');
+  });
+
+  it('creates valid Admin settings submenu reply keyboard structure', () => {
+    const keyboard = getAdminSettingsMenuKeyboard();
+    expect(keyboard).toBeDefined();
+    const flatButtons = keyboard.build().flat();
+    const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
     expect(buttonTexts).toContain('💱 نرخ ارز فعلی');
     expect(buttonTexts).toContain('✏️ تنظیم نرخ ارز');
+    expect(buttonTexts).toContain('💳 تنظیم کارت بانکی');
+    expect(buttonTexts).toContain('🔙 بازگشت به منوی اصلی');
   });
 
   describe('Buyer Menu Buttons via bot.handleUpdate', () => {
@@ -230,6 +241,22 @@ describe('Role-based Menus and Keyboards', () => {
       expect(repliedMessages[0]).toContain('/setrate');
     });
 
+    it("triggers settings submenu reply when sending '⚙️ تنظیمات نرخ ارز و حساب' as Admin", async () => {
+      await bot.handleUpdate({
+        update_id: 13,
+        message: {
+          message_id: 13,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: '⚙️ تنظیمات نرخ ارز و حساب',
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(1);
+      expect(repliedMessages[0]).toContain('تنظیمات مالی، نرخ ارز و حساب بانکی');
+    });
+
     it('silently ignores Admin menu buttons when sent by a non-Admin', async () => {
       await bot.handleUpdate({
         update_id: 12,
@@ -239,6 +266,17 @@ describe('Role-based Menus and Keyboards', () => {
           chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
           from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
           text: '💱 نرخ ارز فعلی',
+        },
+      });
+
+      await bot.handleUpdate({
+        update_id: 14,
+        message: {
+          message_id: 14,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: buyerChatId, type: 'private', first_name: 'Buyer' },
+          from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
+          text: '⚙️ تنظیمات نرخ ارز و حساب',
         },
       });
 
