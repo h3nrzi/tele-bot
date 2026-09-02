@@ -904,14 +904,6 @@ export class OrderService {
     const client = executor ?? this.db ?? getDefaultDb();
     return await this.orderRepo.findActiveOrders(client);
   }
-
-  /**
-   * Alias for getAdminOrderQueue.
-   */
-  public async getActiveOrders(
-    executor?: DbExecutor
-  ): Promise<AdminOrderQueueItem[]> {
-    return await this.getAdminOrderQueue(executor);
-  }
 }
+
 
