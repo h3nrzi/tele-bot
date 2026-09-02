@@ -52,3 +52,9 @@ export class OrderRejectionNoteRequiredError extends DomainError {
   }
 }
 
+export class OrderNotOwnedByBuyerError extends DomainError {
+  constructor(message = 'You can only cancel your own orders.') {
+    super(message, 'ORDER_NOT_OWNED_BY_BUYER');
+  }
+}
+

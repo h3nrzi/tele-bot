@@ -200,4 +200,12 @@ export function getAdminOrderRejectedKeyboard(
   return new InlineKeyboard().text('❌ سفارش رد شد', 'order:noop');
 }
 
+/**
+ * Builds inline status display for a cancelled Order Admin Notification (CANCELLED status):
+ * - [🚫 لغو شده توسط خریدار] (non-interactive, callback: order:noop)
+ */
+export function getAdminOrderCancelledKeyboard(): InlineKeyboard {
+  return new InlineKeyboard().text('🚫 لغو شده توسط خریدار', 'order:noop');
+}
+
 

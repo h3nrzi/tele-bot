@@ -16,6 +16,7 @@ import {
   InvalidOrderStatusError,
   OrderNotClaimedByAdminError,
   OrderRejectionNoteRequiredError,
+  OrderNotOwnedByBuyerError,
 } from '@/modules/order/order.errors';
 import { WalletNotFoundError } from '@/modules/wallet/wallet.errors';
 import { BuyerNotFoundError } from '@/modules/buyer/buyer.errors';
@@ -38,6 +39,13 @@ import type {
   RejectOrderResult,
   RejectOrderBuyerNotificationContext,
   RejectOrderNotificationContext,
+  CancelOrderInput,
+  CancelOrderDependencies,
+  CancelOrderResult,
+  CancelOrderBuyerNotificationContext,
+  CancelOrderNotificationContext,
+  GetLatestOrderInput,
+  BuyerLatestOrderResult,
 } from '@/modules/order/dtos/order.dto';
 import { TOKENS } from '@/core/di/tokens';
 import type { Buyer } from '@/modules/buyer/buyer.entity';
@@ -62,7 +70,7 @@ export class OrderService {
   ) { }
 
   private async resolveBuyer(
-    input: { userId?: string | undefined; telegramChatId?: bigint | number | undefined },
+    input: { userId?: string | undefined; telegramChatId?: bigint | number | string | undefined },
     client: DbExecutor
   ): Promise<Buyer> {
     if (input.userId) {
@@ -659,9 +667,184 @@ export class OrderService {
   }
 
   /**
+   * Executes the atomic Order Cancellation sequence (Buyer-initiated):
+   * 1. Resolves caller Buyer
+   * 2. Inside transaction:
+   *    - SELECT order FOR UPDATE
+   *    - Asserts caller user_id matches order.userId (throws OrderNotOwnedByBuyerError)
+   *    - Asserts status = 'PLACED' (throws InvalidOrderStatusError if claimed or terminal)
+   *    - SELECT wallet FOR UPDATE
+   *    - Writes refund ledger transaction (CREDIT BUYER_WALLET + DEBIT SYSTEM_CASH)
+   *      and sets reversed_by_ledger_transaction_id on the original debit transaction
+   *    - Updates wallet available_balance (available_balance + usd_price_snapshot)
+   *    - Updates order: status = 'CANCELLED', cancelled_at = now()
+   * 3. Commit transaction
+   * 4. Outside transaction:
+   *    - Fetches order_admin_notifications
+   *    - Dispatches Buyer push notification (fire-and-forget / resilient)
+   *    - Dispatches Admin notification edits to remove action buttons (fire-and-forget / resilient)
+   */
+  public async cancelOrder(
+    input: CancelOrderInput,
+    dependencies?: CancelOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<CancelOrderResult> {
+    const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
+
+    // 1. Resolve Buyer
+    const buyer = await this.resolveBuyer(input, client);
+
+    const executeCancellation = async (
+      tx: DbExecutor
+    ): Promise<{
+      order: Order;
+      wallet: Wallet;
+      refundLedgerTransaction: LedgerTransaction;
+    }> => {
+      // 1a. Lock order row
+      const order = await this.orderRepo.findByIdForUpdate(input.orderId, tx);
+      if (!order) {
+        throw new OrderNotFoundError(
+          `Order with ID ${input.orderId} not found.`
+        );
+      }
+
+      // 1b. Assert caller owns the order
+      if (order.userId !== buyer.id) {
+        throw new OrderNotOwnedByBuyerError(
+          `Buyer ${buyer.id} is not the owner of order ${order.id}.`
+        );
+      }
+
+      // 1c. Assert status is PLACED
+      if (order.status !== 'PLACED') {
+        throw new InvalidOrderStatusError(
+          `Order ${order.id} cannot be cancelled because it is in status '${order.status}'.`
+        );
+      }
+
+      // 1d. Lock wallet row
+      const wallet = await this.walletRepo.findByUserIdForUpdate(
+        buyer.id,
+        tx
+      );
+      if (!wallet) {
+        throw new WalletNotFoundError(
+          `Wallet not found for buyer ID ${buyer.id}`
+        );
+      }
+
+      // 1e. Record refund double-entry ledger transaction & link to original debit
+      const refundResult = await this.ledgerService.recordOrderRefund(
+        {
+          orderId: order.id,
+          walletId: wallet.id,
+          usdAmount: order.usdAmountVo,
+          narrative: `Order cancellation refund for order ${order.id}`,
+        },
+        tx
+      );
+
+      // 1f. Restore Buyer available balance
+      const newBalance = wallet.availableBalanceVo.plus(order.usdAmountVo);
+      const updatedWallet = await this.walletRepo.updateBalance(
+        wallet.id,
+        newBalance,
+        tx
+      );
+
+      // 1g. Update Order to CANCELLED
+      const now = new Date();
+      const updatedOrder = await this.orderRepo.updateStatus(
+        order.id,
+        'CANCELLED',
+        {
+          cancelledAt: now,
+          updatedAt: now,
+        },
+        tx
+      );
+
+      if (!updatedOrder) {
+        throw new Error(`Failed to update order ${order.id} to CANCELLED`);
+      }
+
+      return {
+        order: updatedOrder,
+        wallet: updatedWallet,
+        refundLedgerTransaction: refundResult.transaction,
+      };
+    };
+
+    let txResult: {
+      order: Order;
+      wallet: Wallet;
+      refundLedgerTransaction: LedgerTransaction;
+    };
+
+    if ('transaction' in client && typeof client.transaction === 'function') {
+      txResult = await client.transaction(async (tx) => {
+        return await executeCancellation(tx);
+      });
+    } else {
+      txResult = await executeCancellation(client);
+    }
+
+    // 2. Fetch admin notifications for this order
+    const notifications = await this.orderRepo.getAdminNotifications(
+      txResult.order.id,
+      client
+    );
+
+    // 3. Notify Buyer (outside transaction, fire-and-forget / resilient)
+    if (dependencies?.notifyBuyer) {
+      try {
+        const buyerContext: CancelOrderBuyerNotificationContext = {
+          order: txResult.order,
+          buyer,
+          refundAmount: txResult.order.usdPriceSnapshot,
+          updatedBalance: txResult.wallet.availableBalance,
+        };
+        await dependencies.notifyBuyer(buyerContext);
+      } catch (buyerNotifyErr) {
+        console.error(
+          `Failed to send cancellation notification to buyer ${buyer.id} for order ${txResult.order.id}:`,
+          buyerNotifyErr
+        );
+      }
+    }
+
+    // 4. Update Admin notifications (outside transaction, fire-and-forget / resilient)
+    if (dependencies?.updateAdminNotifications) {
+      try {
+        const adminContext: CancelOrderNotificationContext = {
+          order: txResult.order,
+          buyer,
+          refundAmount: txResult.order.usdPriceSnapshot,
+          updatedBalance: txResult.wallet.availableBalance,
+          notifications,
+        };
+        await dependencies.updateAdminNotifications(adminContext);
+      } catch (adminNotifyErr) {
+        console.error(
+          `Failed to update admin notifications for cancelled order ${txResult.order.id}:`,
+          adminNotifyErr
+        );
+      }
+    }
+
+    return {
+      order: txResult.order,
+      wallet: txResult.wallet,
+      buyer,
+      refundLedgerTransaction: txResult.refundLedgerTransaction,
+      adminNotifications: notifications,
+    };
+  }
+
+  /**
    * Retrieves an Order by ID.
    */
-
   public async findById(
     orderId: string,
     executor?: DbExecutor
@@ -671,7 +854,7 @@ export class OrderService {
   }
 
   /**
-   * Retrieves the most recent Order for a Buyer.
+   * Retrieves the most recent Order for a Buyer by userId.
    */
   public async getLatestOrderByUserId(
     userId: string,
@@ -679,5 +862,33 @@ export class OrderService {
   ): Promise<Order | null> {
     const client = executor ?? this.db ?? getDefaultDb();
     return await this.orderRepo.findLatestByUserId(userId, client);
+  }
+
+  /**
+   * Retrieves the most recent Order for a Buyer regardless of status,
+   * along with its Catalog Item and Buyer entity.
+   */
+  public async getLatestOrderForBuyer(
+    input: GetLatestOrderInput,
+    executor?: DbExecutor
+  ): Promise<BuyerLatestOrderResult | null> {
+    const client = executor ?? this.db ?? getDefaultDb();
+    const buyer = await this.resolveBuyer(input, client);
+
+    const latestOrder = await this.orderRepo.findLatestByUserId(buyer.id, client);
+    if (!latestOrder) {
+      return null;
+    }
+
+    const catalogItem = await this.catalogRepo.findById(
+      latestOrder.catalogItemId,
+      client
+    );
+
+    return {
+      order: latestOrder,
+      catalogItem,
+      buyer,
+    };
   }
 }

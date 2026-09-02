@@ -5,6 +5,7 @@ import { resolveAdminIds } from '@/bot/middleware/admin.middleware';
 export const BUYER_BOT_COMMANDS: BotCommand[] = [
   { command: 'start', description: '🏠 شروع و منوی اصلی' },
   { command: 'shop', description: '🛍️ مشاهده و خرید خدمات کاتالوگ' },
+  { command: 'myorder', description: '📦 پیگیری آخرین سفارش ثبت‌شده' },
   { command: 'balance', description: '💰 مشاهده موجودی کیف پول' },
   { command: 'topup', description: '➕ افزایش موجودی کیف پول' },
   { command: 'status', description: '📋 پیگیری وضعیت آخرین درخواست' },

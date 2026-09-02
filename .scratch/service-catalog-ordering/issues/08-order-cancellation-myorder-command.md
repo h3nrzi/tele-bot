@@ -1,6 +1,6 @@
 # 08: Order cancellation service + `/myorder` Buyer command
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Blocked by:** 04 — Order placement service + Confirm handler, 07 — Order rejection service + `[✗ Reject]` inline keyboard flow
 
@@ -24,13 +24,13 @@
 
 ## Acceptance criteria
 
-- [ ] `/myorder` shows the most recent Order's Catalog Item name, Price Snapshot, and current status.
-- [ ] `[✗ Cancel]` is present when `status = 'PLACED'`; a clear explanation is shown when `status = 'PROCESSING'`.
-- [ ] On cancellation: Order status is `CANCELLED`, `cancelled_at` is set, Buyer's Available Balance is restored.
-- [ ] The original debit `ledger_transactions` row has `reversed_by_ledger_transaction_id` set to the refund transaction's id.
-- [ ] All Admin notifications are edited to remove action buttons.
-- [ ] The Buyer receives a Telegram notification with refund amount and updated balance.
-- [ ] A non-owner Buyer attempting cancellation is rejected.
-- [ ] Cancellation from `PROCESSING` (or any terminal state) is rejected.
-- [ ] All cancellation service unit tests pass.
-- [ ] TypeScript compiles without errors.
+- [x] `/myorder` shows the most recent Order's Catalog Item name, Price Snapshot, and current status.
+- [x] `[✗ Cancel]` is present when `status = 'PLACED'`; a clear explanation is shown when `status = 'PROCESSING'`.
+- [x] On cancellation: Order status is `CANCELLED`, `cancelled_at` is set, Buyer's Available Balance is restored.
+- [x] The original debit `ledger_transactions` row has `reversed_by_ledger_transaction_id` set to the refund transaction's id.
+- [x] All Admin notifications are edited to remove action buttons.
+- [x] The Buyer receives a Telegram notification with refund amount and updated balance.
+- [x] A non-owner Buyer attempting cancellation is rejected.
+- [x] Cancellation from `PROCESSING` (or any terminal state) is rejected.
+- [x] All cancellation service unit tests pass.
+- [x] TypeScript compiles without errors.

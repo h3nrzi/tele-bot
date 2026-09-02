@@ -141,4 +141,53 @@ export interface RejectOrderResult {
   adminNotifications: OrderAdminNotification[];
 }
 
+export interface CancelOrderInput {
+  orderId: string;
+  userId?: string | undefined;
+  telegramChatId?: bigint | number | string | undefined;
+}
+
+export interface CancelOrderBuyerNotificationContext {
+  order: Order;
+  buyer: Buyer;
+  refundAmount: string;
+  updatedBalance: string;
+}
+
+export interface CancelOrderNotificationContext {
+  order: Order;
+  buyer: Buyer;
+  refundAmount: string;
+  updatedBalance: string;
+  notifications: OrderAdminNotification[];
+}
+
+export interface CancelOrderDependencies {
+  notifyBuyer?: (
+    context: CancelOrderBuyerNotificationContext
+  ) => Promise<void>;
+  updateAdminNotifications?: (
+    context: CancelOrderNotificationContext
+  ) => Promise<void>;
+}
+
+export interface CancelOrderResult {
+  order: Order;
+  wallet: Wallet;
+  buyer: Buyer;
+  refundLedgerTransaction: LedgerTransaction;
+  adminNotifications: OrderAdminNotification[];
+}
+
+export interface GetLatestOrderInput {
+  userId?: string | undefined;
+  telegramChatId?: bigint | number | string | undefined;
+}
+
+export interface BuyerLatestOrderResult {
+  order: Order;
+  catalogItem: CatalogItem | null;
+  buyer: Buyer;
+}
+
 

@@ -34,6 +34,11 @@ import type {
   RejectOrderInput,
   RejectOrderDependencies,
   RejectOrderResult,
+  CancelOrderInput,
+  CancelOrderDependencies,
+  CancelOrderResult,
+  GetLatestOrderInput,
+  BuyerLatestOrderResult,
 } from '@/modules/order/dtos/order.dto';
 
 
@@ -164,6 +169,25 @@ export async function rejectTestOrder(
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
   return await service.rejectOrder(input, dependencies);
+}
+
+export async function cancelTestOrder(
+  containerOrDb: DependencyContainer | DbClient,
+  input: CancelOrderInput,
+  dependencies?: CancelOrderDependencies
+): Promise<CancelOrderResult> {
+  const container = getContainer(containerOrDb);
+  const service = container.resolve(OrderService);
+  return await service.cancelOrder(input, dependencies);
+}
+
+export async function getTestLatestOrderForBuyer(
+  containerOrDb: DependencyContainer | DbClient,
+  input: GetLatestOrderInput
+): Promise<BuyerLatestOrderResult | null> {
+  const container = getContainer(containerOrDb);
+  const service = container.resolve(OrderService);
+  return await service.getLatestOrderForBuyer(input);
 }
 
 

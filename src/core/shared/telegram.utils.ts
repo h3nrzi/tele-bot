@@ -1,7 +1,7 @@
 /**
- * Normalizes a Telegram Chat ID from number or bigint to bigint.
+ * Normalizes a Telegram Chat ID from number, bigint, or string to bigint.
  */
-export function normalizeChatId(chatId: bigint | number): bigint {
+export function normalizeChatId(chatId: bigint | number | string): bigint {
   return typeof chatId === 'bigint' ? chatId : BigInt(chatId);
 }
 
