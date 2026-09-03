@@ -1,4 +1,5 @@
 import type { Context } from 'grammy';
+import { InlineKeyboard } from 'grammy';
 import type { BotConversation } from '@/bot/context';
 import type { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import { isCancelCommand } from '@/core/shared/telegram.utils';
@@ -43,14 +44,22 @@ export function createSetCardConversation(bankAccountService: BankAccountService
     ctx: Context
   ): Promise<void> {
     // Step 1: Prompt Card Number
-    await ctx.reply('لطفاً شماره کارت ۱۶ رقمی را وارد کنید (یا برای انصراف /cancel را ارسال کنید):');
+    await ctx.reply('لطفاً شماره کارت ۱۶ رقمی را وارد کنید:', {
+      reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+    });
 
     let cardNumber = '';
     while (true) {
       const nextCtx = await conversation.wait();
       const text = nextCtx.message?.text ?? '';
+      const cb = nextCtx.callbackQuery?.data;
 
-      if (isCancelCommand(text)) {
+      if (cb === 'flow:cancel' || isCancelCommand(text)) {
+        if (nextCtx.callbackQuery) {
+          try {
+            await nextCtx.answerCallbackQuery();
+          } catch {}
+        }
         await nextCtx.reply('عملیات تنظیم کارت بانکی لغو شد.');
         return;
       }
@@ -62,18 +71,29 @@ export function createSetCardConversation(bankAccountService: BankAccountService
       }
 
       await nextCtx.reply(
-        '❌ شماره کارت نامعتبر است. شماره کارت باید دقیقاً ۱۶ رقم باشد. لطفاً مجدداً وارد کنید (یا برای انصراف /cancel را ارسال کنید):'
+        '❌ شماره کارت نامعتبر است. شماره کارت باید دقیقاً ۱۶ رقم باشد. لطفاً مجدداً وارد کنید:',
+        {
+          reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+        }
       );
     }
 
     // Step 2: Prompt Card Holder Name
-    await ctx.reply('لطفاً نام صاحب حساب / دارنده کارت را وارد کنید:');
+    await ctx.reply('لطفاً نام صاحب حساب / دارنده کارت را وارد کنید:', {
+      reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+    });
     let cardHolderName = '';
     while (true) {
       const nextCtx = await conversation.wait();
       const text = nextCtx.message?.text ?? '';
+      const cb = nextCtx.callbackQuery?.data;
 
-      if (isCancelCommand(text)) {
+      if (cb === 'flow:cancel' || isCancelCommand(text)) {
+        if (nextCtx.callbackQuery) {
+          try {
+            await nextCtx.answerCallbackQuery();
+          } catch {}
+        }
         await nextCtx.reply('عملیات تنظیم کارت بانکی لغو شد.');
         return;
       }
@@ -83,17 +103,27 @@ export function createSetCardConversation(bankAccountService: BankAccountService
         break;
       }
 
-      await nextCtx.reply('لطفاً نام صاحب حساب / دارنده کارت را وارد کنید:');
+      await nextCtx.reply('لطفاً نام صاحب حساب / دارنده کارت را وارد کنید:', {
+        reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+      });
     }
 
     // Step 3: Prompt Bank Name
-    await ctx.reply('لطفاً نام بانک را وارد کنید:');
+    await ctx.reply('لطفاً نام بانک را وارد کنید:', {
+      reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+    });
     let bankName = '';
     while (true) {
       const nextCtx = await conversation.wait();
       const text = nextCtx.message?.text ?? '';
+      const cb = nextCtx.callbackQuery?.data;
 
-      if (isCancelCommand(text)) {
+      if (cb === 'flow:cancel' || isCancelCommand(text)) {
+        if (nextCtx.callbackQuery) {
+          try {
+            await nextCtx.answerCallbackQuery();
+          } catch {}
+        }
         await nextCtx.reply('عملیات تنظیم کارت بانکی لغو شد.');
         return;
       }
@@ -103,20 +133,43 @@ export function createSetCardConversation(bankAccountService: BankAccountService
         break;
       }
 
-      await nextCtx.reply('لطفاً نام بانک را وارد کنید:');
+      await nextCtx.reply('لطفاً نام بانک را وارد کنید:', {
+        reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
+      });
     }
 
     // Step 4: Prompt Optional Notes
-    await ctx.reply('توضیحات تکمیلی (اختیاری) را وارد کنید یا در صورت عدم نیاز عبارت - یا skip را ارسال کنید:');
+    await ctx.reply(
+      'توضیحات تکمیلی (اختیاری) را وارد کنید (یا دکمه [رد شدن] را بزنید):',
+      {
+        reply_markup: new InlineKeyboard()
+          .text('⏭ رد شدن (بدون توضیحات)', 'flow:skip')
+          .row()
+          .text('❌ انصراف', 'flow:cancel'),
+      }
+    );
     const notesCtx = await conversation.wait();
     const notesText = notesCtx.message?.text ?? '';
+    const notesCb = notesCtx.callbackQuery?.data;
 
-    if (isCancelCommand(notesText)) {
+    if (notesCb === 'flow:cancel' || isCancelCommand(notesText)) {
+      if (notesCtx.callbackQuery) {
+        try {
+          await notesCtx.answerCallbackQuery();
+        } catch {}
+      }
       await notesCtx.reply('عملیات تنظیم کارت بانکی لغو شد.');
       return;
     }
 
-    const additionalNotes = isSkipCommand(notesText) ? null : notesText.trim();
+    if (notesCtx.callbackQuery) {
+      try {
+        await notesCtx.answerCallbackQuery();
+      } catch {}
+    }
+
+    const additionalNotes =
+      notesCb === 'flow:skip' || isSkipCommand(notesText) ? null : notesText.trim();
 
     // Step 5: Save Bank Account
     const updatedAccount = await conversation.external(async () => {

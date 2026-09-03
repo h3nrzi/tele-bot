@@ -19,17 +19,17 @@ export function getPendingQueueKeyboard(options: PendingQueueKeyboardOptions): I
 
   options.items.forEach((item, index) => {
     const itemNumber = options.startIndex + index + 1;
-    keyboard.text(`🔍 Review #${itemNumber} (${formatUsd(item.usdAmount)})`, `review:${item.id}`);
+    keyboard.text(`🔍 بررسی #${itemNumber} (${formatUsd(item.usdAmount)})`, `review:${item.id}`);
     keyboard.row();
   });
 
   if (options.totalPages > 1) {
     const navRow: { text: string; data: string }[] = [];
     if (options.page > 1) {
-      navRow.push({ text: '← Prev', data: `pending_page:${options.page - 1}` });
+      navRow.push({ text: '← صفحه قبل', data: `pending_page:${options.page - 1}` });
     }
     if (options.page < options.totalPages) {
-      navRow.push({ text: 'Next →', data: `pending_page:${options.page + 1}` });
+      navRow.push({ text: 'صفحه بعد →', data: `pending_page:${options.page + 1}` });
     }
     if (navRow.length > 0) {
       navRow.forEach((btn) => keyboard.text(btn.text, btn.data));

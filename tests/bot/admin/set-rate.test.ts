@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
-import { createMockContext } from '@tests/helpers/mock-context';
-import { handleSetRate } from '@/bot/handlers/admin';
+import { createMockContext, createMockFetch } from '@tests/helpers/mock-context';
+import { handleSetRate, cleanRateInput, isValidRateInput } from '@/bot/handlers/admin';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { createBot } from '@/bot/bot';
 import { exchangeRates } from '@/modules/exchange-rate/exchange-rate.schema';
@@ -148,11 +148,16 @@ describe('/setrate Handler', () => {
   });
 
   describe('Bot integration with /setrate', () => {
-    it('executes /setrate command for Admin via bot.handleUpdate', async () => {
+    function createTestBot() {
+      const repliedMessages: string[] = [];
+      const { fetch: mockFetch } = createMockFetch(repliedMessages);
       const bot = createBot({
         token: 'test_token',
         dbClient: db,
         adminIds: `${adminChatId}`,
+        client: {
+          fetch: mockFetch,
+        },
         botInfo: {
           id: 1000,
           is_bot: true,
@@ -164,22 +169,11 @@ describe('/setrate Handler', () => {
         } as any,
       });
 
-      const repliedMessages: string[] = [];
-      bot.api.config.use(async (prev: any, method: string, payload: any, signal: any) => {
-        if (method === 'sendMessage') {
-          repliedMessages.push(payload.text);
-          return {
-            ok: true,
-            result: {
-              message_id: 1,
-              date: Date.now(),
-              chat: { id: payload.chat_id, type: 'private' },
-              text: payload.text,
-            },
-          } as any;
-        }
-        return prev(method, payload, signal);
-      });
+      return { bot, repliedMessages };
+    }
+
+    it('executes /setrate command for Admin via bot.handleUpdate with direct argument', async () => {
+      const { bot, repliedMessages } = createTestBot();
 
       await bot.handleUpdate({
         update_id: 1,
@@ -202,39 +196,172 @@ describe('/setrate Handler', () => {
       expect(rows[0]?.irrPerUsd).toBe(620000n);
     });
 
-    it('silently ignores /setrate command when sent by a non-Admin', async () => {
-      const nonAdminChatId = 999888777;
-      const bot = createBot({
-        token: 'test_token',
-        dbClient: db,
-        adminIds: `${adminChatId}`,
-        botInfo: {
-          id: 1000,
-          is_bot: true,
-          first_name: 'TeleBot',
-          username: 'tele_bot',
-          can_join_groups: true,
-          can_read_all_group_messages: false,
-          supports_inline_queries: false,
-        } as any,
+    it('enters conversation when /setrate is called without arguments and saves rate', async () => {
+      const { bot, repliedMessages } = createTestBot();
+
+      // 1. Send /setrate without arguments
+      await bot.handleUpdate({
+        update_id: 10,
+        message: {
+          message_id: 10,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: '/setrate',
+          entities: [{ offset: 0, length: 8, type: 'bot_command' }],
+        },
       });
 
-      const repliedMessages: string[] = [];
-      bot.api.config.use(async (prev: any, method: string, payload: any, signal: any) => {
-        if (method === 'sendMessage') {
-          repliedMessages.push(payload.text);
-          return {
-            ok: true,
-            result: {
-              message_id: 1,
-              date: Date.now(),
-              chat: { id: payload.chat_id, type: 'private' },
-              text: payload.text,
-            },
-          } as any;
-        }
-        return prev(method, payload, signal);
+      expect(repliedMessages).toHaveLength(1);
+      expect(repliedMessages[0]).toContain('تنظیم نرخ ارز');
+
+      // 2. Admin inputs new rate with comma formatting
+      await bot.handleUpdate({
+        update_id: 11,
+        message: {
+          message_id: 11,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: '635,000',
+        },
       });
+
+      expect(repliedMessages).toHaveLength(2);
+      expect(repliedMessages[1]).toContain('نرخ جدید با موفقیت تنظیم شد');
+      expect(repliedMessages[1]).toContain('635,000');
+
+      const rows = await db.select().from(exchangeRates);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.irrPerUsd).toBe(635000n);
+    });
+
+    it("enters conversation when clicking '✏️ تنظیم نرخ ارز' menu button", async () => {
+      const { bot, repliedMessages } = createTestBot();
+
+      await bot.handleUpdate({
+        update_id: 20,
+        message: {
+          message_id: 20,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: '✏️ تنظیم نرخ ارز',
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(1);
+      expect(repliedMessages[0]).toContain('تنظیم نرخ ارز');
+
+      // Admin sends rate
+      await bot.handleUpdate({
+        update_id: 21,
+        message: {
+          message_id: 21,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: '640000',
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(2);
+      expect(repliedMessages[1]).toContain('640,000');
+    });
+
+    it('cancels setrate conversation via inline cancel button', async () => {
+      const { bot, repliedMessages } = createTestBot();
+
+      // 1. Enter conversation
+      await bot.handleUpdate({
+        update_id: 30,
+        message: {
+          message_id: 30,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: '/setrate',
+          entities: [{ offset: 0, length: 8, type: 'bot_command' }],
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(1);
+
+      // 2. Click inline cancel button
+      await bot.handleUpdate({
+        update_id: 31,
+        callback_query: {
+          id: 'cb_cancel_rate',
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          chat_instance: 'inst_rate',
+          data: 'flow:cancel',
+          message: {
+            message_id: 1,
+            date: Math.floor(Date.now() / 1000),
+            chat: { id: adminChatId, type: 'private' },
+            text: 'تنظیم نرخ ارز',
+          },
+        },
+      } as any);
+
+      expect(repliedMessages).toHaveLength(2);
+      expect(repliedMessages[1]).toContain('لغو شد');
+
+      const [countResult] = await db.select({ value: count() }).from(exchangeRates);
+      expect(Number(countResult?.value ?? 0)).toBe(0);
+    });
+
+    it('re-prompts on invalid input inside conversation before accepting valid rate', async () => {
+      const { bot, repliedMessages } = createTestBot();
+
+      // 1. Enter conversation
+      await bot.handleUpdate({
+        update_id: 40,
+        message: {
+          message_id: 40,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: '/setrate',
+          entities: [{ offset: 0, length: 8, type: 'bot_command' }],
+        },
+      });
+
+      // 2. Invalid text
+      await bot.handleUpdate({
+        update_id: 41,
+        message: {
+          message_id: 41,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: 'invalid_number',
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(2);
+      expect(repliedMessages[1]).toContain('فرمت نرخ وارد شده نامعتبر است');
+
+      // 3. Valid rate
+      await bot.handleUpdate({
+        update_id: 42,
+        message: {
+          message_id: 42,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
+          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
+          text: '650000',
+        },
+      });
+
+      expect(repliedMessages).toHaveLength(3);
+      expect(repliedMessages[2]).toContain('نرخ جدید با موفقیت تنظیم شد');
+      expect(repliedMessages[2]).toContain('650,000');
+    });
+
+    it('silently ignores /setrate command when sent by a non-Admin', async () => {
+      const nonAdminChatId = 999888777;
+      const { bot, repliedMessages } = createTestBot();
 
       await bot.handleUpdate({
         update_id: 2,

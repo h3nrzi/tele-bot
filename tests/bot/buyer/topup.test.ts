@@ -147,6 +147,45 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     expect(Number(countRes?.value ?? 0)).toBe(0);
   });
 
+  it('cancels the topup flow when Buyer clicks inline cancel button', async () => {
+    await setTestRate(container, BigInt(adminChatId), 620000n);
+    await setTestActiveAccount(
+      container,
+      {
+        cardNumber: '6037991234567890',
+        cardHolderName: 'Ali Reza',
+        bankName: 'Mellat Bank',
+      }
+    );
+
+    const { bot, repliedMessages } = createTestBot();
+
+    await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, '/topup'));
+    expect(repliedMessages).toHaveLength(1);
+
+    await bot.handleUpdate({
+      update_id: 2,
+      callback_query: {
+        id: 'cb_cancel_1',
+        from: { id: buyerChatId, is_bot: false, first_name: 'Buyer' },
+        chat_instance: 'instance_1',
+        data: 'flow:cancel',
+        message: {
+          message_id: 1,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: buyerChatId, type: 'private' },
+          text: 'لطفاً مبلغ مورد نظر برای افزایش موجودی به دلار را وارد کنید',
+        },
+      },
+    } as any);
+
+    expect(repliedMessages).toHaveLength(2);
+    expect(repliedMessages[1]).toContain('لغو شد');
+
+    const [countRes] = await db.select({ value: count() }).from(topUpRequests);
+    expect(Number(countRes?.value ?? 0)).toBe(0);
+  });
+
   it('re-prompts on invalid string, below min amount, and above max amount', async () => {
     await setTestRate(container, BigInt(adminChatId), 620000n);
     await setTestActiveAccount(
@@ -166,7 +205,7 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     // Invalid non-number input
     await bot.handleUpdate(makeMessageUpdate(2, buyerChatId, 'fifty'));
     expect(repliedMessages).toHaveLength(2);
-    expect(repliedMessages[1]).toContain('/cancel');
+    expect(repliedMessages[1]).toContain('مبلغ معتبر');
 
     // Below min input
     await bot.handleUpdate(makeMessageUpdate(3, buyerChatId, '5'));

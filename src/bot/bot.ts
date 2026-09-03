@@ -9,10 +9,17 @@ import { createAppContainer } from '@/core/di/container';
 import { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { BuyerService } from '@/modules/buyer/buyer.service';
+import { CatalogService } from '@/modules/catalog/catalog.service';
+import { OrderService } from '@/modules/order/order.service';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import {
   createSetCardConversation,
   SETCARD_CONVERSATION_ID,
 } from '@/bot/handlers/admin/set-card.conversation';
+import {
+  createSetRateConversation,
+  SETRATE_CONVERSATION_ID,
+} from '@/bot/handlers/admin/set-rate.conversation';
 import {
   createTopUpConversation,
   TOPUP_CONVERSATION_ID,
@@ -21,7 +28,22 @@ import {
   createRejectConversation,
   REJECT_CONVERSATION_ID,
 } from '@/bot/handlers/admin/reject.conversation';
+import {
+  createAddCatalogItemConversation,
+  ADD_CATALOG_ITEM_CONVERSATION_ID,
+  createEditCatalogItemConversation,
+  EDIT_CATALOG_ITEM_CONVERSATION_ID,
+} from '@/bot/handlers/admin/catalog.conversation';
+import {
+  createFulfilOrderConversation,
+  FULFIL_ORDER_CONVERSATION_ID,
+} from '@/bot/handlers/admin/fulfil.conversation';
+import {
+  createRejectOrderConversation,
+  REJECT_ORDER_CONVERSATION_ID,
+} from '@/bot/handlers/admin/order-reject.conversation';
 import { createBuyerComposer } from '@/bot/handlers/buyer/buyer.composer';
+
 import { createAdminComposer } from '@/bot/handlers/admin/admin.composer';
 
 export interface CreateBotOptions {
@@ -64,6 +86,9 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   const bankAccountService = appContainer.resolve(BankAccountService);
   const topUpService = appContainer.resolve(TopUpService);
   const buyerService = appContainer.resolve(BuyerService);
+  const catalogService = appContainer.resolve(CatalogService);
+  const orderService = appContainer.resolve(OrderService);
+  const exchangeRateService = appContainer.resolve(ExchangeRateService);
 
   const botConfig: BotConfig<BotContext> = {};
   if (options?.botInfo) {
@@ -77,6 +102,14 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
 
   // 1. Plugins & Conversations
   bot.use(conversations());
+  bot.use(
+    createConversation<BotContext, Context>(
+      createSetRateConversation(exchangeRateService),
+      {
+        id: SETRATE_CONVERSATION_ID,
+      }
+    )
+  );
   bot.use(
     createConversation<BotContext, Context>(
       createSetCardConversation(bankAccountService),
@@ -101,8 +134,41 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
       }
     )
   );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createAddCatalogItemConversation(catalogService),
+      {
+        id: ADD_CATALOG_ITEM_CONVERSATION_ID,
+      }
+    )
+  );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createEditCatalogItemConversation(catalogService),
+      {
+        id: EDIT_CATALOG_ITEM_CONVERSATION_ID,
+      }
+    )
+  );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createFulfilOrderConversation(orderService),
+      {
+        id: FULFIL_ORDER_CONVERSATION_ID,
+      }
+    )
+  );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createRejectOrderConversation(orderService),
+      {
+        id: REJECT_ORDER_CONVERSATION_ID,
+      }
+    )
+  );
 
   // 2. Domain Presentation Composers
+
   bot.use(
     createBuyerComposer({
       container: appContainer,

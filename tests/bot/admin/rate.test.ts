@@ -3,6 +3,7 @@ import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext, captureBotReplies } from '@tests/helpers/mock-context';
 import { handleRate } from '@/bot/handlers/admin';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { formatPersianDateTime } from '@/core/shared/date.utils';
 import { setTestRate } from '@tests/helpers/fixtures';
 import { createBot } from '@/bot/bot';
 
@@ -46,7 +47,7 @@ describe('/rate Handler', () => {
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
     expect(repliedMessages[0]).toContain('620,000');
-    expect(repliedMessages[0]).toContain(createdRate.createdAt.toISOString());
+    expect(repliedMessages[0]).toContain(formatPersianDateTime(createdRate.createdAt));
   });
 
   it('shows the latest rate and timestamp when multiple rates have been set', async () => {
@@ -63,7 +64,7 @@ describe('/rate Handler', () => {
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
     expect(repliedMessages[0]).toContain('650,000');
-    expect(repliedMessages[0]).toContain(secondRate.createdAt.toISOString());
+    expect(repliedMessages[0]).toContain(formatPersianDateTime(secondRate.createdAt));
   });
 
   it('silently ignores update if ctx.from is undefined', async () => {

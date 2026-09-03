@@ -36,6 +36,13 @@
       "when": 1787769532526,
       "tag": "0004_clean_bug",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788107821312,
+      "tag": "0005_friendly_tinkerer",
+      "breakpoints": true
     }
   ]
 }

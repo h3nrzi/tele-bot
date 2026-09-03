@@ -3,7 +3,8 @@ import type { TopUpService } from '@/modules/top-up/top-up.service';
 import type { BuyerService } from '@/modules/buyer/buyer.service';
 import type { TopUpStatus } from '@/modules/top-up/top-up-request.entity';
 import { formatUsd, formatIrr } from '@/core/shared/currency.utils';
-import { getBuyerMainMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
+import { formatPersianDateTime } from '@/core/shared/date.utils';
+import { getBuyerWalletMenuKeyboard } from '@/bot/keyboards/menu.keyboards';
 
 export interface StatusHandlerDependencies {
   buyerService: BuyerService;
@@ -11,12 +12,12 @@ export interface StatusHandlerDependencies {
 }
 
 const STATUS_LABELS: Record<TopUpStatus, string> = {
-  INITIATED: 'در انتظار پرداخت (INITIATED)',
-  PENDING: 'در انتظار بررسی ادمین (PENDING)',
-  APPROVED: 'تایید شده (APPROVED)',
-  REJECTED: 'رد شده (REJECTED)',
-  EXPIRED: 'منقضی شده (EXPIRED)',
-  CANCELLED: 'لغو شده (CANCELLED)',
+  INITIATED: 'در انتظار پرداخت',
+  PENDING: 'در انتظار بررسی ادمین',
+  APPROVED: 'تایید شده',
+  REJECTED: 'رد شده',
+  EXPIRED: 'منقضی شده',
+  CANCELLED: 'لغو شده',
 };
 
 /**
@@ -41,13 +42,13 @@ export async function handleStatusCommand(
   const latestRequest = await topUpService.getLatestTopUpRequest(buyer.id);
   if (!latestRequest) {
     await ctx.reply('شما تاکنون هیچ درخواست افزایش موجودی ثبت نکرده‌اید.', {
-      reply_markup: getBuyerMainMenuKeyboard(),
+      reply_markup: getBuyerWalletMenuKeyboard(),
     });
     return;
   }
 
   const statusLabel = STATUS_LABELS[latestRequest.status];
-  const dateFormatted = latestRequest.createdAt.toISOString();
+  const dateFormatted = formatPersianDateTime(latestRequest.createdAt);
 
   let message =
     `📊 وضعیت آخرین درخواست افزایش موجودی:\n\n` +
@@ -61,6 +62,6 @@ export async function handleStatusCommand(
   }
 
   await ctx.reply(message, {
-    reply_markup: getBuyerMainMenuKeyboard(),
+    reply_markup: getBuyerWalletMenuKeyboard(),
   });
 }

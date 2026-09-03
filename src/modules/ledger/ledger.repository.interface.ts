@@ -11,6 +11,8 @@ export interface CreateLedgerEntryParams {
 
 export interface CreateLedgerTransactionParams {
   topUpRequestId?: string | null;
+  orderId?: string | null;
+  reversedByLedgerTransactionId?: string | null;
   narrative: string;
   entries: CreateLedgerEntryParams[];
 }
@@ -28,4 +30,14 @@ export interface ILedgerRepository<TExecutor = unknown> {
     params: CreateLedgerTransactionParams,
     executor: TExecutor
   ): Promise<CreateLedgerTransactionResult>;
+  findOriginalByOrderId(
+    orderId: string,
+    executor: TExecutor
+  ): Promise<LedgerTransaction | null>;
+  updateReversedBy(
+    transactionId: string,
+    reversedByLedgerTransactionId: string,
+    executor: TExecutor
+  ): Promise<void>;
 }
+

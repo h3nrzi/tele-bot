@@ -5,4 +5,9 @@ export * from '@/bot/handlers/buyer/top-up.handler';
 export * from '@/bot/handlers/buyer/receipt.handler';
 export * from '@/bot/handlers/buyer/status.handler';
 export * from '@/bot/handlers/buyer/cancel.handler';
+export * from '@/bot/handlers/buyer/shop.keyboards';
+export * from '@/bot/handlers/buyer/shop.handler';
+export * from '@/bot/handlers/buyer/order.keyboards';
+export * from '@/bot/handlers/buyer/myorder.handler';
 export * from '@/bot/handlers/buyer/buyer.composer';
+

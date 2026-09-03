@@ -1,7 +1,17 @@
-import { pgTable, uuid, numeric, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import {
+  pgTable,
+  uuid,
+  numeric,
+  text,
+  timestamp,
+  pgEnum,
+  check,
+  type AnyPgColumn,
+} from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
+import { orders } from '@/modules/order/order.schema';
 
 export const ledgerAccountTypeEnum = pgEnum('ledger_account_type', [
   'BUYER_WALLET',
@@ -13,14 +23,27 @@ export const ledgerEntryDirectionEnum = pgEnum('ledger_entry_direction', [
   'CREDIT',
 ]);
 
-export const ledgerTransactions = pgTable('ledger_transactions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  topUpRequestId: uuid('top_up_request_id').references(() => topUpRequests.id),
-  narrative: text('narrative').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
-    .defaultNow()
-    .notNull(),
-});
+export const ledgerTransactions = pgTable(
+  'ledger_transactions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    topUpRequestId: uuid('top_up_request_id').references(() => topUpRequests.id),
+    orderId: uuid('order_id').references(() => orders.id),
+    reversedByLedgerTransactionId: uuid('reversed_by_ledger_transaction_id').references(
+      (): AnyPgColumn => ledgerTransactions.id
+    ),
+    narrative: text('narrative').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      'ledger_transactions_source_xor_check',
+      sql`(${table.topUpRequestId} IS NULL) != (${table.orderId} IS NULL)`
+    ),
+  ]
+);
 
 export const ledgerEntries = pgTable('ledger_entries', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -42,6 +65,15 @@ export const ledgerTransactionsRelations = relations(
     topUpRequest: one(topUpRequests, {
       fields: [ledgerTransactions.topUpRequestId],
       references: [topUpRequests.id],
+    }),
+    order: one(orders, {
+      fields: [ledgerTransactions.orderId],
+      references: [orders.id],
+    }),
+    reversedBy: one(ledgerTransactions, {
+      fields: [ledgerTransactions.reversedByLedgerTransactionId],
+      references: [ledgerTransactions.id],
+      relationName: 'ledger_transaction_reversals',
     }),
     entries: many(ledgerEntries),
   })

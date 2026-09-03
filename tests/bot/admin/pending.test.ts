@@ -279,8 +279,8 @@ describe('/pending Admin Queue and Review Callback', () => {
     expect(reSentPhoto?.caption).toContain('Tracking 4455');
     expect(reSentPhoto?.reply_markup?.inline_keyboard).toEqual([
       [
-        { text: '✅ Approve', callback_data: `approve:${pendingReq!.id}` },
-        { text: '❌ Reject', callback_data: `reject:${pendingReq!.id}` },
+        { text: '✅ تایید', callback_data: `approve:${pendingReq!.id}` },
+        { text: '❌ رد', callback_data: `reject:${pendingReq!.id}` },
       ],
     ]);
 

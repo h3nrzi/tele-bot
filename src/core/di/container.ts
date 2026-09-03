@@ -14,6 +14,8 @@ import { registerExchangeRateModule } from '@/modules/exchange-rate/exchange-rat
 import { registerBankAccountModule } from '@/modules/bank-account/bank-account.module';
 import { registerLedgerModule } from '@/modules/ledger/ledger.module';
 import { registerTopUpModule } from '@/modules/top-up/top-up.module';
+import { registerCatalogModule } from '@/modules/catalog/catalog.module';
+import { registerOrderModule } from '@/modules/order/order.module';
 
 export interface AppContainerOptions {
   dbClient?: DbClient | undefined;
@@ -66,6 +68,8 @@ export function createAppContainer(options?: AppContainerOptions): DependencyCon
   registerBankAccountModule(targetContainer);
   registerLedgerModule(targetContainer);
   registerTopUpModule(targetContainer);
+  registerCatalogModule(targetContainer);
+  registerOrderModule(targetContainer);
 
   return targetContainer;
 }

@@ -55,7 +55,7 @@ describe('/status Command Handler', () => {
       { telegramChatId: chatId, telegramUsername: 'bob_buyer' }
     );
     await setTestRate(container, adminId, 620000n);
-    await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '50.00' });
+    const initResult = await initiateTestTopUp(container, { userId: buyer.id, usdAmount: '50.00' });
 
     const { ctx, repliedMessages } = createMockContext({
       id: chatId,
@@ -67,9 +67,10 @@ describe('/status Command Handler', () => {
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toContain('وضعیت آخرین درخواست');
-    expect(repliedMessages[0]).toContain('INITIATED');
+    expect(repliedMessages[0]).toContain('در انتظار پرداخت');
     expect(repliedMessages[0]).toContain('$50.00');
     expect(repliedMessages[0]).toContain('31,000,000');
+    expect(repliedMessages[0]).toContain('تاریخ ثبت:');
   });
 
   it('formats status message including rejection reason when most recent request is REJECTED', async () => {
@@ -98,7 +99,7 @@ describe('/status Command Handler', () => {
     await handleStatusCommand(ctx, statusDeps);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toContain('REJECTED');
+    expect(repliedMessages[0]).toContain('رد شده');
     expect(repliedMessages[0]).toContain('$100.00');
     expect(repliedMessages[0]).toContain('رسید ناخوانا است');
   });
@@ -177,7 +178,7 @@ describe('/status Command Handler', () => {
 
     expect(repliedMessages).toHaveLength(1);
     expect(repliedMessages[0]).toContain('وضعیت آخرین درخواست');
-    expect(repliedMessages[0]).toContain('INITIATED');
+    expect(repliedMessages[0]).toContain('در انتظار پرداخت');
     expect(repliedMessages[0]).toContain('$25.00');
   });
 });

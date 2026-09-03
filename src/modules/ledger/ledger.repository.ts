@@ -1,4 +1,5 @@
 import { injectable } from 'tsyringe';
+import { eq, and, isNull, asc } from 'drizzle-orm';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
 import type { DbExecutor } from '@/core/database/types';
 import { LedgerTransaction } from '@/modules/ledger/ledger-transaction.entity';
@@ -26,6 +27,9 @@ export class DrizzleLedgerRepository
       .insert(ledgerTransactions)
       .values({
         topUpRequestId: params.topUpRequestId ?? null,
+        orderId: params.orderId ?? null,
+        reversedByLedgerTransactionId:
+          params.reversedByLedgerTransactionId ?? null,
         narrative: params.narrative,
       })
       .returning();
@@ -71,6 +75,8 @@ export class DrizzleLedgerRepository
     const domainTx = new LedgerTransaction({
       id: txRow.id,
       topUpRequestId: txRow.topUpRequestId,
+      orderId: txRow.orderId,
+      reversedByLedgerTransactionId: txRow.reversedByLedgerTransactionId,
       narrative: txRow.narrative,
       createdAt: txRow.createdAt,
       entries: domainEntries,
@@ -81,7 +87,70 @@ export class DrizzleLedgerRepository
       entries: domainEntries,
     };
   }
+
+  public async findOriginalByOrderId(
+    orderId: string,
+    executor: DbExecutor
+  ): Promise<LedgerTransaction | null> {
+    const [txRow] = await executor
+      .select()
+      .from(ledgerTransactions)
+      .where(
+        and(
+          eq(ledgerTransactions.orderId, orderId),
+          isNull(ledgerTransactions.reversedByLedgerTransactionId)
+        )
+      )
+      .orderBy(asc(ledgerTransactions.createdAt))
+      .limit(1);
+
+    if (!txRow) {
+      return null;
+    }
+
+    const entryRows = await executor
+      .select()
+      .from(ledgerEntries)
+      .where(eq(ledgerEntries.ledgerTransactionId, txRow.id));
+
+    const domainEntries = entryRows.map(
+      (r) =>
+        new LedgerEntry({
+          id: r.id,
+          ledgerTransactionId: r.ledgerTransactionId,
+          accountType: r.accountType,
+          direction: r.direction,
+          usdAmount: r.usdAmount,
+          walletId: r.walletId,
+          createdAt: r.createdAt,
+        })
+    );
+
+    return new LedgerTransaction({
+      id: txRow.id,
+      topUpRequestId: txRow.topUpRequestId,
+      orderId: txRow.orderId,
+      reversedByLedgerTransactionId: txRow.reversedByLedgerTransactionId,
+      narrative: txRow.narrative,
+      createdAt: txRow.createdAt,
+      entries: domainEntries,
+    });
+  }
+
+  public async updateReversedBy(
+    transactionId: string,
+    reversedByLedgerTransactionId: string,
+    executor: DbExecutor
+  ): Promise<void> {
+    await executor
+      .update(ledgerTransactions)
+      .set({
+        reversedByLedgerTransactionId,
+      })
+      .where(eq(ledgerTransactions.id, transactionId));
+  }
 }
 
 export const LedgerRepository = DrizzleLedgerRepository;
+
 

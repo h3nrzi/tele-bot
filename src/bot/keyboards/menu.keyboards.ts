@@ -2,21 +2,42 @@ import { Keyboard } from 'grammy';
 
 export function getBuyerMainMenuKeyboard(): Keyboard {
   return new Keyboard()
+    .text('🛍️ فروشگاه خدمات')
+    .text('📦 آخرین سفارش')
+    .row()
+    .text('💰 مدیریت کیف پول')
+    .resized();
+}
+
+export function getBuyerWalletMenuKeyboard(): Keyboard {
+  return new Keyboard()
     .text('💰 موجودی کیف پول')
-    .text('➕ افزایش موجودی')
+    .text('➕ افزایش درخواست')
     .row()
     .text('📋 پیگیری وضعیت')
     .text('❌ لغو درخواست')
+    .row()
+    .text('🔙 بازگشت به منوی اصلی')
     .resized();
 }
 
 export function getAdminMainMenuKeyboard(): Keyboard {
   return new Keyboard()
+    .text('📦 کاتالوگ خدمات')
+    .text('📋 سفارش‌های فعال')
+    .row()
     .text('⏳ درخواست‌های در انتظار')
+    .text('⚙️ تنظیمات نرخ ارز و حساب')
+    .resized();
+}
+
+export function getAdminSettingsMenuKeyboard(): Keyboard {
+  return new Keyboard()
+    .text('💱 نرخ ارز فعلی')
+    .text('✏️ تنظیم نرخ ارز')
     .row()
     .text('💳 تنظیم کارت بانکی')
-    .text('💱 نرخ ارز فعلی')
     .row()
-    .text('✏️ تنظیم نرخ ارز')
+    .text('🔙 بازگشت به منوی اصلی')
     .resized();
 }
