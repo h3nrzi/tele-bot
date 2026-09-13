@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `WallexClient` interface defined with `getOtcPrice` and `placeOtcOrder` signatures
-- [ ] HTTP implementation handles `GET /v1/account/otc/price?symbol=USDTTMN&side=BUY` for price quotes
-- [ ] HTTP implementation handles `POST /v1/account/easy-trade/orders` for order placement
-- [ ] TMN→IRR conversion (`× 10`) applied at the adapter boundary on all price/sum values
-- [ ] Wallex API errors (auth failure, rate limit, maintenance) mapped to typed domain errors
-- [ ] `WALLEX_API_KEY` and `WALLEX_API_BASE_URL` env vars wired
-- [ ] Unit tests with mocked HTTP verify quote parsing, order placement, TMN→IRR conversion, and error mapping
+- [x] `WallexClient` interface defined with `getOtcPrice` and `placeOtcOrder` signatures
+- [x] HTTP implementation handles `GET /v1/account/otc/price?symbol=USDTTMN&side=BUY` for price quotes
+- [x] HTTP implementation handles `POST /v1/account/easy-trade/orders` for order placement
+- [x] TMN→IRR conversion (`× 10`) applied at the adapter boundary on all price/sum values
+- [x] Wallex API errors (auth failure, rate limit, maintenance) mapped to typed domain errors
+- [x] `WALLEX_API_KEY` and `WALLEX_API_BASE_URL` env vars wired
+- [x] Unit tests with mocked HTTP verify quote parsing, order placement, TMN→IRR conversion, and error mapping

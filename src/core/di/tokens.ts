@@ -10,6 +10,10 @@ export const TOKENS = {
   TopUpLimits: Symbol('TopUpLimits'),
   BotToken: Symbol('BotToken'),
   AdminIds: Symbol('AdminIds'),
+  WallexConfig: Symbol('WallexConfig'),
+
+  // External Clients & Adapters
+  WallexClient: Symbol('WallexClient'),
 
   // Repositories
   BuyerRepository: Symbol('BuyerRepository'),

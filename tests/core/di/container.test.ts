@@ -50,4 +50,20 @@ describe('Dependency Injection Container', () => {
     const topUpService = container.resolve(TopUpService);
     expect(topUpService).toBeInstanceOf(TopUpService);
   });
+
+  it('registers and resolves WallexClient with container override', () => {
+    const mockWallexClient: any = {
+      getOtcPrice: () => {},
+      placeOtcOrder: () => {},
+    };
+
+    const container = createAppContainer({
+      dbClient: {} as any,
+      topUpLimits: new TopUpLimits('5.00', '500.00', 30),
+      wallexClient: mockWallexClient,
+      child: true,
+    });
+
+    expect(container.resolve(TOKENS.WallexClient)).toBe(mockWallexClient);
+  });
 });

@@ -16,11 +16,16 @@ import { registerLedgerModule } from '@/modules/ledger/ledger.module';
 import { registerTopUpModule } from '@/modules/top-up/top-up.module';
 import { registerCatalogModule } from '@/modules/catalog/catalog.module';
 import { registerOrderModule } from '@/modules/order/order.module';
+import { registerWallexModule } from '@/modules/wallex/wallex.module';
+import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
+import type { WallexConfig } from '@/modules/wallex/wallex.config';
 
 export interface AppContainerOptions {
   dbClient?: DbClient | undefined;
   databaseConnection?: DatabaseConnection | undefined;
   topUpLimits?: TopUpLimits | undefined;
+  wallexClient?: WallexClient | undefined;
+  wallexConfig?: WallexConfig | undefined;
   child?: boolean | undefined;
 }
 
@@ -70,6 +75,19 @@ export function createAppContainer(options?: AppContainerOptions): DependencyCon
   registerTopUpModule(targetContainer);
   registerCatalogModule(targetContainer);
   registerOrderModule(targetContainer);
+  registerWallexModule(targetContainer);
+
+  // 4. Client/Config overrides
+  if (options?.wallexConfig) {
+    targetContainer.register(TOKENS.WallexConfig, {
+      useValue: options.wallexConfig,
+    });
+  }
+  if (options?.wallexClient) {
+    targetContainer.register(TOKENS.WallexClient, {
+      useValue: options.wallexClient,
+    });
+  }
 
   return targetContainer;
 }
