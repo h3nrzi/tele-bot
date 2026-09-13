@@ -25,7 +25,7 @@ Proof of a completed bank transfer, uploaded by the Buyer as a Telegram photo wi
 _Avoid_: Payment Proof, Screenshot
 
 **Exchange Rate**:
-The Admin-configured USD→IRR conversion rate. Stored as an append-only history; the rate is locked onto a Top-Up Request at the moment of initiation and never changes thereafter.
+The USD→IRR conversion rate used to price Top-Up Requests. Stored as an append-only history. In Manual Rate Mode, Admins set the rate directly. In Auto-Sync Rate Mode, the system ingests rates from Wallex. The rate applied to a given Top-Up Request is locked inline at the moment of initiation (`locked_irr_per_usd`) and never changes thereafter.
 _Avoid_: FX Rate, Conversion Rate
 
 **Bank Account**:
@@ -79,3 +79,25 @@ _Avoid_: Credentials, Payload, Fulfilment data
 **Order Admin Notification**:
 The Telegram push message sent to each Admin when an Order is placed. Its `chat_id` and `message_id` are stored in `order_admin_notifications` so that claim, cancellation, rejection, and fulfilment services can edit the message's inline buttons to reflect the current Order state.
 _Avoid_: Alert, Broadcast, Push
+
+### Wallex Integration
+
+**Rate Mode**:
+The system-wide toggle that determines how Exchange Rates are sourced: `MANUAL` (Admin enters rates directly) or `AUTO_SYNC` (rates are fetched from the Wallex OTC pricing engine with an Admin-configured Spread applied). Stored in `exchange_rate_config`.
+_Avoid_: Pricing Mode, Rate Type, Rate Source
+
+**Spread**:
+The Admin-configured percentage markup applied on top of the raw Wallex OTC buy price before presenting the buyer-facing Exchange Rate. Absorbs operational costs, Wallex fees, and volatility risk.
+_Avoid_: Margin, Markup, Commission, Fee
+
+**OTC Quote**:
+A transient, on-demand price fetched from the Wallex OTC endpoint (`GET /v1/account/otc/price`) at the moment a Buyer initiates a Top-Up Request in Auto-Sync Rate Mode. The quote (with Spread applied) is locked inline on the Top-Up Request and is not persisted in the `exchange_rates` table.
+_Avoid_: Live Rate, Real-time Rate, Spot Price
+
+**Baseline Rate**:
+An Exchange Rate row inserted by the periodic background sync job (every 60 minutes in Auto-Sync Rate Mode). Serves as the fallback rate when an on-demand OTC Quote fetch fails or times out during Top-Up initiation.
+_Avoid_: Fallback Rate, Sync Rate, Background Rate
+
+**OTC Purchase**:
+An automated Wallex OTC market buy of USDT triggered asynchronously after an Admin approves a Top-Up Request. Records the execution result (Wallex order ID, executed price, quantity, fees) or failure details. Progresses through the states: `PENDING → COMPLETED | FAILED`.
+_Avoid_: Wallex Order, Exchange Order, Trade
