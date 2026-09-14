@@ -26,6 +26,7 @@ import { SPREAD_CONVERSATION_ID } from '@/bot/handlers/admin/spread.conversation
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
+import { BaselineRateSyncWorker } from '@/modules/exchange-rate/baseline-rate-sync.worker';
 import { TOKENS } from '@/core/di/tokens';
 
 import { TopUpService } from '@/modules/top-up/top-up.service';
@@ -40,6 +41,7 @@ export interface AdminComposerOptions {
   catalogService?: CatalogService | undefined;
   orderService?: OrderService | undefined;
   wallexClient?: WallexClient | undefined;
+  syncWorker?: BaselineRateSyncWorker | undefined;
   adminIds?: string | Set<bigint> | undefined;
 }
 
@@ -89,6 +91,19 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     } catch {}
   }
 
+  let syncWorker = options?.syncWorker;
+  if (!syncWorker && container) {
+    if (container.isRegistered(TOKENS.BaselineRateSyncWorker)) {
+      try {
+        syncWorker = container.resolve<BaselineRateSyncWorker>(TOKENS.BaselineRateSyncWorker);
+      } catch {}
+    } else if (container.isRegistered(BaselineRateSyncWorker)) {
+      try {
+        syncWorker = container.resolve<BaselineRateSyncWorker>(BaselineRateSyncWorker);
+      } catch {}
+    }
+  }
+
   if (!exchangeRateService || !topUpService || !catalogService) {
     throw new Error('All required services or a container must be provided to createAdminComposer');
   }
@@ -118,6 +133,7 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
         exchangeRateConfigService,
         exchangeRateService,
         wallexClient,
+        syncWorker,
       });
     }
   });
@@ -196,6 +212,7 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
         exchangeRateConfigService,
         exchangeRateService,
         wallexClient,
+        syncWorker,
       });
     }
   });
@@ -211,6 +228,7 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
         exchangeRateConfigService,
         exchangeRateService,
         wallexClient,
+        syncWorker,
       });
     }
   });

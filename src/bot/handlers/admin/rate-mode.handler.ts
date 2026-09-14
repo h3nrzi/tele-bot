@@ -2,12 +2,15 @@ import { InlineKeyboard, type Context } from 'grammy';
 import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import type { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
+import type { BaselineRateSyncWorker } from '@/modules/exchange-rate/baseline-rate-sync.worker';
 import { formatIrr } from '@/core/shared/currency.utils';
+import { parseBotIdFromToken } from '@/core/shared/telegram.utils';
 
 export interface RateModeHandlerDependencies {
   exchangeRateConfigService: ExchangeRateConfigService;
   exchangeRateService: ExchangeRateService;
   wallexClient?: WallexClient | undefined;
+  syncWorker?: BaselineRateSyncWorker | undefined;
 }
 
 /**
@@ -108,11 +111,21 @@ export async function handleRateModeSwitchCallback(
       const quote = await deps.wallexClient.getOtcPrice('USDTTMN', 'BUY');
 
       // Step 2: Insert as first baseline rate in exchange_rates
-      const creatorId = ctx.me?.id ? BigInt(ctx.me.id) : BigInt(sender.id);
+      const creatorId = ctx.me?.id
+        ? BigInt(ctx.me.id)
+        : (deps.syncWorker?.getBotTelegramId() ?? parseBotIdFromToken(process.env.BOT_TOKEN) ?? BigInt(sender.id));
       await deps.exchangeRateService.setRate(creatorId, quote.priceIrr);
 
       // Step 3: Update config mode to AUTO_SYNC
       await deps.exchangeRateConfigService.updateMode('AUTO_SYNC', sender.id);
+
+      // Step 4: Start background sync timer
+      if (deps.syncWorker) {
+        if (ctx.me?.id) {
+          deps.syncWorker.setBotTelegramId(BigInt(ctx.me.id));
+        }
+        await deps.syncWorker.start();
+      }
 
       if (ctx.callbackQuery) {
         try {
@@ -148,6 +161,11 @@ export async function handleRateModeSwitchCallback(
   } else if (targetMode === 'MANUAL') {
     // Switching to MANUAL: preserve last synced rate, just update mode
     await deps.exchangeRateConfigService.updateMode('MANUAL', sender.id);
+
+    // Stop background sync timer
+    if (deps.syncWorker) {
+      deps.syncWorker.stop();
+    }
 
     if (ctx.callbackQuery) {
       try {

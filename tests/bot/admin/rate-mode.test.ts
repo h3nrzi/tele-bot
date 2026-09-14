@@ -11,6 +11,7 @@ import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.servi
 import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import { exchangeRates } from '@/modules/exchange-rate/exchange-rate.schema';
 import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
+import type { BaselineRateSyncWorker } from '@/modules/exchange-rate/baseline-rate-sync.worker';
 import { WallexNetworkError } from '@/modules/wallex/wallex.errors';
 import { count } from 'drizzle-orm';
 
@@ -69,12 +70,22 @@ describe('Rate Mode Toggle Handler', () => {
   const adminChatId = 123456789;
 
   let mockWallexClient: WallexClient;
+  let mockSyncWorker: BaselineRateSyncWorker;
 
   beforeEach(() => {
     mockWallexClient = {
       getOtcPrice: vi.fn(),
       placeOtcOrder: vi.fn(),
     };
+    mockSyncWorker = {
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn(),
+      sync: vi.fn().mockResolvedValue(null),
+      isRunning: vi.fn().mockReturnValue(false),
+      setBotTelegramId: vi.fn(),
+      getBotTelegramId: vi.fn(),
+      getIntervalMinutes: vi.fn(),
+    } as unknown as BaselineRateSyncWorker;
   });
 
   describe('handleRateModeCommand', () => {
@@ -140,6 +151,7 @@ describe('Rate Mode Toggle Handler', () => {
         exchangeRateConfigService,
         exchangeRateService,
         wallexClient: mockWallexClient,
+        syncWorker: mockSyncWorker,
       });
 
       expect(mockWallexClient.getOtcPrice).toHaveBeenCalledWith('USDTTMN', 'BUY');
@@ -152,6 +164,9 @@ describe('Rate Mode Toggle Handler', () => {
       const currentRate = await exchangeRateService.getCurrentRate();
       expect(currentRate).toBeDefined();
       expect(currentRate?.irrPerUsd).toBe(910000n);
+
+      // Background sync worker timer started
+      expect(mockSyncWorker.start).toHaveBeenCalledTimes(1);
 
       // Confirmation message sent
       expect(editedMessages[0]).toContain('با موفقیت به خودکار');
@@ -174,6 +189,7 @@ describe('Rate Mode Toggle Handler', () => {
         exchangeRateConfigService,
         exchangeRateService,
         wallexClient: mockWallexClient,
+        syncWorker: mockSyncWorker,
       });
 
       expect(mockWallexClient.getOtcPrice).toHaveBeenCalledWith('USDTTMN', 'BUY');
@@ -185,6 +201,9 @@ describe('Rate Mode Toggle Handler', () => {
       // No exchange rate row inserted
       const [countResult] = await db.select({ value: count() }).from(exchangeRates);
       expect(Number(countResult?.value ?? 0)).toBe(0);
+
+      // Background sync worker timer NOT started
+      expect(mockSyncWorker.start).not.toHaveBeenCalled();
 
       // Error message sent
       expect(editedMessages[0]).toContain('خطا در اتصال به صرافی والکس');
@@ -210,6 +229,7 @@ describe('Rate Mode Toggle Handler', () => {
         exchangeRateConfigService,
         exchangeRateService,
         wallexClient: mockWallexClient,
+        syncWorker: mockSyncWorker,
       });
 
       // Wallex should not be contacted when switching to MANUAL
@@ -218,6 +238,9 @@ describe('Rate Mode Toggle Handler', () => {
       // Mode updated to MANUAL
       const config = await exchangeRateConfigService.getConfig();
       expect(config.mode).toBe('MANUAL');
+
+      // Background sync worker timer stopped
+      expect(mockSyncWorker.stop).toHaveBeenCalledTimes(1);
 
       // Previous rate is preserved
       const currentRate = await exchangeRateService.getCurrentRate();

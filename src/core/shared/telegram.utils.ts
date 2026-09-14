@@ -48,4 +48,19 @@ export function escapeMarkdown(text: string): string {
   return text.replace(/([\\_*`\[])/g, '\\$1');
 }
 
+/**
+ * Extracts the numerical bot Telegram ID from a Telegram Bot API token.
+ * Telegram Bot API tokens are formatted as `<bot_id>:<token_secret>`.
+ */
+export function parseBotIdFromToken(token?: string | null): bigint | null {
+  if (!token) {
+    return null;
+  }
+  const match = token.trim().match(/^(\d+):/);
+  if (!match || !match[1]) {
+    return null;
+  }
+  return BigInt(match[1]);
+}
+
 

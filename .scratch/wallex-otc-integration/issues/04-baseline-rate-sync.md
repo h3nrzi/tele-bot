@@ -10,12 +10,12 @@
 
 **Blocked by:** 03 (needs ExchangeRateConfigService and mode toggle wiring).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Sync function fetches OTC price and inserts a Baseline Rate with bot's Telegram ID
-- [ ] Sync function gracefully handles Wallex failures (logs error, no crash)
-- [ ] Timer starts on boot when mode is AUTO_SYNC
-- [ ] Timer starts/stops on mode toggle
-- [ ] Interval sourced from config table
-- [ ] Sync function exported as a standalone callable for unit testing
-- [ ] Unit tests with mocked WallexClient verify row insertion and error handling (no timer tests)
+- [x] Sync function fetches OTC price and inserts a Baseline Rate with bot's Telegram ID
+- [x] Sync function gracefully handles Wallex failures (logs error, no crash)
+- [x] Timer starts on boot when mode is AUTO_SYNC
+- [x] Timer starts/stops on mode toggle
+- [x] Interval sourced from config table
+- [x] Sync function exported as a standalone callable for unit testing
+- [x] Unit tests with mocked WallexClient verify row insertion and error handling (no timer tests)

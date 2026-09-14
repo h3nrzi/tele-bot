@@ -10,5 +10,6 @@ export * from '@/modules/exchange-rate/exchange-rate-config.repository';
 export * from '@/modules/exchange-rate/dtos/set-rate.dto';
 export * from '@/modules/exchange-rate/exchange-rate.service';
 export * from '@/modules/exchange-rate/exchange-rate-config.service';
+export * from '@/modules/exchange-rate/baseline-rate-sync.worker';
 export * from '@/modules/exchange-rate/exchange-rate.module';
 
