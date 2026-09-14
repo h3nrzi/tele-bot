@@ -16,18 +16,19 @@
 
 **Blocked by:** 02 (wallex_otc_purchases table), 05 (modified approval flow with locked rate data).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `OtcPurchase` entity with `PENDING → COMPLETED | FAILED` state machine
-- [ ] `OtcPurchaseRepository` with insert, update, and find methods
-- [ ] `OtcPurchaseService.execute()` coordinates quote → order → record result
-- [ ] `OtcPurchaseService.retry()` inserts new PENDING row and re-executes
-- [ ] Partial unique index prevents concurrent PENDING/COMPLETED rows per Top-Up Request
-- [ ] `ApproveTopUpDependencies` extended with `executeOtcPurchase` callback
-- [ ] Fire-and-forget invocation after approval commit — wallet credit never blocked
-- [ ] Success notification with execution details to ops group or Admin DMs
-- [ ] Failure notification with error details and inline Retry button
-- [ ] `otc:retry` callback handler in admin composer
-- [ ] `TELEGRAM_OPS_GROUP_ID` env var wired with fallback to `ADMIN_IDS`
-- [ ] DI tokens and container registrations for new repository and service
-- [ ] Integration tests: happy path, Wallex failure, retry, duplicate prevention, fire-and-forget resilience
+- [x] `OtcPurchase` entity with `PENDING → COMPLETED | FAILED` state machine
+- [x] `OtcPurchaseRepository` with insert, update, and find methods
+- [x] `OtcPurchaseService.execute()` coordinates quote → order → record result
+- [x] `OtcPurchaseService.retry()` inserts new PENDING row and re-executes
+- [x] Partial unique index prevents concurrent PENDING/COMPLETED rows per Top-Up Request
+- [x] `ApproveTopUpDependencies` extended with `executeOtcPurchase` callback
+- [x] Fire-and-forget invocation after approval commit — wallet credit never blocked
+- [x] Success notification with execution details to ops group or Admin DMs
+- [x] Failure notification with error details and inline Retry button
+- [x] `otc:retry` callback handler in admin composer
+- [x] `TELEGRAM_OPS_GROUP_ID` env var wired with fallback to `ADMIN_IDS`
+- [x] DI tokens and container registrations for new repository and service
+- [x] Integration tests: happy path, Wallex failure, retry, duplicate prevention, fire-and-forget resilience
+

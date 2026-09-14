@@ -228,4 +228,47 @@ describe('Top-Up Approval Service', () => {
       .where(eq(wallets.id, wallet.id));
     expect(dbWallet!.availableBalance).toBe('75.00');
   });
+
+  it('post-approval OTC trigger: invokes executeOtcPurchase callback with approved request after commit', async () => {
+    const { wallet, request } = await seedPendingRequest('80.00');
+    const executeOtcPurchaseSpy = vi.fn().mockResolvedValue(undefined);
+
+    const result = await topUpService.approveTopUp(
+      {
+        topUpRequestId: request.id,
+        adminTelegramId: adminId1,
+      },
+      { executeOtcPurchase: executeOtcPurchaseSpy }
+    );
+
+    expect(result.request.status).toBe('APPROVED');
+    expect(executeOtcPurchaseSpy).toHaveBeenCalledTimes(1);
+    const passedRequest = executeOtcPurchaseSpy.mock.calls[0]![0];
+    expect(passedRequest.id).toBe(request.id);
+    expect(passedRequest.usdAmount).toBe('80.00');
+  });
+
+  it('post-approval OTC trigger resilience: failure in executeOtcPurchase does not roll back transaction or throw', async () => {
+    const { wallet, request } = await seedPendingRequest('120.00');
+    const failingOtc = vi.fn().mockRejectedValue(new Error('Wallex OTC connection down'));
+
+    const result = await topUpService.approveTopUp(
+      {
+        topUpRequestId: request.id,
+        adminTelegramId: adminId1,
+      },
+      { executeOtcPurchase: failingOtc }
+    );
+
+    expect(result.request.status).toBe('APPROVED');
+    expect(failingOtc).toHaveBeenCalledTimes(1);
+
+    // Verify wallet was still credited in DB
+    const [dbWallet] = await db
+      .select()
+      .from(wallets)
+      .where(eq(wallets.id, wallet.id));
+    expect(dbWallet!.availableBalance).toBe('120.00');
+  });
 });
+

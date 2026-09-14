@@ -17,6 +17,7 @@ import { registerTopUpModule } from '@/modules/top-up/top-up.module';
 import { registerCatalogModule } from '@/modules/catalog/catalog.module';
 import { registerOrderModule } from '@/modules/order/order.module';
 import { registerWallexModule } from '@/modules/wallex/wallex.module';
+import { registerOtcPurchaseModule } from '@/modules/otc-purchase/otc-purchase.module';
 import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
 import type { WallexConfig } from '@/modules/wallex/wallex.config';
 
@@ -76,6 +77,8 @@ export function createAppContainer(options?: AppContainerOptions): DependencyCon
   registerCatalogModule(targetContainer);
   registerOrderModule(targetContainer);
   registerWallexModule(targetContainer);
+  registerOtcPurchaseModule(targetContainer);
+
 
   // 4. Client/Config overrides
   if (options?.wallexConfig) {

@@ -37,12 +37,17 @@ export interface ApproveTopUpInput {
 }
 
 export interface ApproveTopUpDependencies {
-  notifyBuyer?: (params: {
-    buyerTelegramChatId: bigint;
-    creditedUsdAmount: string;
-    newAvailableBalance: string;
-  }) => Promise<void>;
+  notifyBuyer?:
+    | ((params: {
+        buyerTelegramChatId: bigint;
+        creditedUsdAmount: string;
+        newAvailableBalance: string;
+      }) => Promise<void>)
+    | undefined;
+  executeOtcPurchase?: ((request: TopUpRequest) => Promise<void> | void) | undefined;
 }
+
+
 
 export interface ApproveTopUpResult {
   request: TopUpRequest;

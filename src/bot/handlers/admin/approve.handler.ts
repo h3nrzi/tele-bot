@@ -1,13 +1,16 @@
 import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import type { TopUpService } from '@/modules/top-up/top-up.service';
+import type { OtcPurchaseService } from '@/modules/otc-purchase/otc-purchase.service';
 import { TopUpRequestNotPendingError } from '@/modules/top-up/top-up.errors';
 import { formatUsd } from '@/core/shared/currency.utils';
 
 export interface ApproveHandlerDependencies {
   topUpService: TopUpService;
+  otcPurchaseService?: OtcPurchaseService | undefined;
   adminIds?: string | Set<bigint> | undefined;
 }
+
 
 async function editAdminMessageOutcome(
   ctx: Context,
@@ -84,8 +87,19 @@ export async function handleApproveCallback(
             messageText
           );
         },
+        executeOtcPurchase: deps.otcPurchaseService
+          ? (request) => {
+              void deps.otcPurchaseService!.execute(request).catch((err) => {
+                console.error(
+                  `Failed to execute post-approval OTC purchase for request ${request.id}:`,
+                  err
+                );
+              });
+            }
+          : undefined,
       }
     );
+
 
     // Edit admin notification message to show approved outcome
     const newCaption = `${originalCaption}\n\n✅ تایید شد توسط: ${adminDisplay}`;

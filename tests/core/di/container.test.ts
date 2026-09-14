@@ -33,6 +33,7 @@ describe('Dependency Injection Container', () => {
     expect(container.resolve<IBankAccountRepository>(TOKENS.BankAccountRepository)).toBeDefined();
     expect(container.resolve<ILedgerRepository>(TOKENS.LedgerRepository)).toBeDefined();
     expect(container.resolve<ITopUpRequestRepository>(TOKENS.TopUpRepository)).toBeDefined();
+    expect(container.resolve(TOKENS.OtcPurchaseRepository)).toBeDefined();
 
     // Verify Service class resolutions
     const buyerService = container.resolve(BuyerService);
@@ -49,6 +50,7 @@ describe('Dependency Injection Container', () => {
 
     const topUpService = container.resolve(TopUpService);
     expect(topUpService).toBeInstanceOf(TopUpService);
+
   });
 
   it('registers and resolves WallexClient with container override', () => {

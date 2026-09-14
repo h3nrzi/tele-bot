@@ -32,6 +32,8 @@ import { TOKENS } from '@/core/di/tokens';
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
 import { OrderService } from '@/modules/order/order.service';
+import { OtcPurchaseService } from '@/modules/otc-purchase/otc-purchase.service';
+import { handleOtcRetryCallback } from '@/bot/handlers/admin/otc-retry.handler';
 
 export interface AdminComposerOptions {
   container?: DependencyContainer | undefined;
@@ -40,10 +42,12 @@ export interface AdminComposerOptions {
   topUpService?: TopUpService | undefined;
   catalogService?: CatalogService | undefined;
   orderService?: OrderService | undefined;
+  otcPurchaseService?: OtcPurchaseService | undefined;
   wallexClient?: WallexClient | undefined;
   syncWorker?: BaselineRateSyncWorker | undefined;
   adminIds?: string | Set<bigint> | undefined;
 }
+
 
 /**
  * Creates a grammY Composer that mounts and guards all Admin routes:
@@ -83,6 +87,12 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
     options?.catalogService ?? container?.resolve(CatalogService);
   const orderService =
     options?.orderService ?? container?.resolve(OrderService);
+  const otcPurchaseService =
+    options?.otcPurchaseService ??
+    (container?.isRegistered(TOKENS.OtcPurchaseService) || container?.isRegistered(OtcPurchaseService)
+      ? container.resolve(OtcPurchaseService)
+      : undefined);
+
 
   let wallexClient = options?.wallexClient;
   if (!wallexClient && container && container.isRegistered(TOKENS.WallexClient)) {
@@ -249,9 +259,17 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   composer.callbackQuery(/^approve:(.+)$/, adminAuth, async (ctx) => {
     await handleApproveCallback(ctx, {
       topUpService,
+      otcPurchaseService,
       adminIds: options?.adminIds,
     });
   });
+
+  composer.callbackQuery(/^otc:retry:(.+)$/, adminAuth, async (ctx) => {
+    if (otcPurchaseService) {
+      await handleOtcRetryCallback(ctx, { otcPurchaseService });
+    }
+  });
+
 
   composer.callbackQuery(/^reject:(.+)$/, adminAuth, async (ctx) => {
     await handleRejectCallback(ctx);

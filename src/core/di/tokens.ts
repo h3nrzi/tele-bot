@@ -38,5 +38,7 @@ export const TOKENS = {
   CatalogService: Symbol('CatalogService'),
   OrderService: Symbol('OrderService'),
   OtcPurchaseService: Symbol('OtcPurchaseService'),
+  OtcPurchaseNotifier: Symbol('OtcPurchaseNotifier'),
   BaselineRateSyncWorker: Symbol('BaselineRateSyncWorker'),
 } as const;
+

@@ -13,6 +13,10 @@ import { CatalogService } from '@/modules/catalog/catalog.service';
 import { OrderService } from '@/modules/order/order.service';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
+import { OtcPurchaseService } from '@/modules/otc-purchase/otc-purchase.service';
+import { TelegramOtcPurchaseNotifier } from '@/bot/handlers/admin/otc-purchase.notifier';
+import { TOKENS } from '@/core/di/tokens';
+
 import {
   createSetCardConversation,
   SETCARD_CONVERSATION_ID,
@@ -105,6 +109,23 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   }
 
   const bot = new Bot<BotContext>(token, botConfig);
+
+  const otcNotifier = new TelegramOtcPurchaseNotifier({
+    api: bot.api,
+    opsGroupId: process.env.TELEGRAM_OPS_GROUP_ID,
+    adminIds: options?.adminIds ?? process.env.ADMIN_IDS,
+  });
+  appContainer.register(TOKENS.OtcPurchaseNotifier, { useValue: otcNotifier });
+  if (
+    appContainer.isRegistered(TOKENS.OtcPurchaseService) ||
+    appContainer.isRegistered(OtcPurchaseService)
+  ) {
+    try {
+      const otcService = appContainer.resolve(OtcPurchaseService);
+      otcService.setNotifier(otcNotifier);
+    } catch {}
+  }
+
 
   // 1. Plugins & Conversations
   bot.use(conversations());

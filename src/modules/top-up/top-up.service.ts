@@ -396,6 +396,18 @@ export class TopUpService {
       }
     }
 
+    // Post-commit OTC purchase execution (fire-and-forget / non-blocking)
+    if (dependencies?.executeOtcPurchase) {
+      try {
+        await dependencies.executeOtcPurchase(txResult.request);
+      } catch (otcErr) {
+        console.error(
+          `Failed to execute OTC purchase for top-up request ${txResult.request.id}:`,
+          otcErr
+        );
+      }
+    }
+
     return txResult;
   }
 

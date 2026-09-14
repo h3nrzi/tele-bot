@@ -11,7 +11,9 @@ import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
+import { OtcPurchaseService } from '@/modules/otc-purchase/otc-purchase.service';
 import { eq } from 'drizzle-orm';
+
 
 describe('Admin Approval Callback Handler', () => {
   const { db, container } = setupTestDatabase();
@@ -441,4 +443,40 @@ describe('Admin Approval Callback Handler', () => {
     expect(editedMessages).toHaveLength(1);
     expect(answeredCallbackQueries).toHaveLength(1);
   });
+
+  it('triggers post-approval OTC purchase execution when admin approves request', async () => {
+    await setTestRate(container, BigInt(adminChatId1), 620000n);
+    await setTestActiveAccount(container, {
+      cardNumber: '6037991234567890',
+      cardHolderName: 'Ali Reza',
+      bankName: 'Mellat Bank',
+    });
+
+    const { bot } = createTestBot();
+
+    const executeSpy = vi
+      .spyOn(OtcPurchaseService.prototype, 'execute')
+      .mockResolvedValue({} as any);
+
+    // 1. Buyer initiates and submits receipt
+    await bot.handleUpdate(makeCommandUpdate(1, buyerChatId, '/topup'));
+    await bot.handleUpdate(makeCommandUpdate(2, buyerChatId, '50.00'));
+    await bot.handleUpdate(makePhotoUpdate(3, buyerChatId, 'photo_otc_test'));
+
+    const [pendingReq] = await db.select().from(topUpRequests);
+
+    // 2. Admin approves
+    await bot.handleUpdate(
+      makeCallbackQueryUpdate(4, adminChatId1, `approve:${pendingReq!.id}`, 10)
+    );
+
+    // 3. Verify OTC execute was called with the approved request
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    const calledRequest = executeSpy.mock.calls[0]![0];
+    expect(calledRequest.id).toBe(pendingReq!.id);
+    expect(calledRequest.usdAmount).toBe('50.00');
+
+    executeSpy.mockRestore();
+  });
 });
+
