@@ -39,12 +39,21 @@ export async function handleOtcRetryCallback(
   const purchaseId = match[1];
 
   try {
-    await deps.otcPurchaseService.retry(purchaseId);
+    const result = await deps.otcPurchaseService.retry(purchaseId);
+
+    if (result.isFailed()) {
+      await ctx.answerCallbackQuery({
+        text: `❌ تلاش مجدد ناموفق بود: ${result.errorMessage ?? 'خطای صرافی والکس'}`,
+        show_alert: true,
+      });
+      return;
+    }
 
     await ctx.answerCallbackQuery({
-      text: '⏳ در حال تلاش مجدد برای خرید ارز از والکس...',
+      text: '✅ خرید با موفقیت در والکس انجام شد.',
     });
   } catch (err: any) {
+
 
     if (err instanceof DuplicateActiveOtcPurchaseError) {
       await ctx.answerCallbackQuery({

@@ -265,10 +265,16 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.callbackQuery(/^otc:retry:(.+)$/, adminAuth, async (ctx) => {
-    if (otcPurchaseService) {
-      await handleOtcRetryCallback(ctx, { otcPurchaseService });
+    if (!otcPurchaseService) {
+      await ctx.answerCallbackQuery({
+        text: '⚠️ سرویس خرید OTC در دسترس نیست.',
+        show_alert: true,
+      });
+      return;
     }
+    await handleOtcRetryCallback(ctx, { otcPurchaseService });
   });
+
 
 
   composer.callbackQuery(/^reject:(.+)$/, adminAuth, async (ctx) => {

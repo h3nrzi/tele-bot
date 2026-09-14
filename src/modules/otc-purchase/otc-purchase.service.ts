@@ -167,23 +167,8 @@ export class OtcPurchaseService {
     );
   }
 
-  public async getPurchaseById(id: string): Promise<OtcPurchase | null> {
-    return await this.otcPurchaseRepo.findById(id);
-  }
-
-  public async getPurchasesByTopUpRequestId(
-    topUpRequestId: string
-  ): Promise<OtcPurchase[]> {
-    return await this.otcPurchaseRepo.findByTopUpRequestId(topUpRequestId);
-  }
-
-  public async getActivePurchaseByTopUpRequestId(
-    topUpRequestId: string
-  ): Promise<OtcPurchase | null> {
-    return await this.otcPurchaseRepo.findActiveByTopUpRequestId(topUpRequestId);
-  }
-
   private async sendNotification(
+
     purchase: OtcPurchase,
     dependencies?: OtcPurchaseServiceDependencies,
     error?: string

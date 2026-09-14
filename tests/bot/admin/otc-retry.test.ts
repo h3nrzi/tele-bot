@@ -40,24 +40,50 @@ function createMockRetryContext(options: {
 }
 
 describe('handleOtcRetryCallback', () => {
-  it('parses purchase ID, acknowledges query, and calls otcPurchaseService.retry()', async () => {
+  it('parses purchase ID, acknowledges query, and calls otcPurchaseService.retry() with success', async () => {
     const { ctx, answeredQueries } = createMockRetryContext({
       callbackData: 'otc:retry:purchase-abc-123',
     });
 
     const mockService = {
-      retry: vi.fn().mockResolvedValue({ id: 'purchase-new', status: 'COMPLETED' }),
+      retry: vi.fn().mockResolvedValue({
+        id: 'purchase-new',
+        status: 'COMPLETED',
+        isFailed: () => false,
+      }),
     } as any;
 
     await handleOtcRetryCallback(ctx, { otcPurchaseService: mockService });
 
     expect(answeredQueries).toHaveLength(1);
-    expect(answeredQueries[0]!.text).toContain('در حال تلاش مجدد');
+    expect(answeredQueries[0]!.text).toContain('با موفقیت');
     expect(mockService.retry).toHaveBeenCalledWith('purchase-abc-123');
+  });
+
+  it('shows alert when retry execution completes with FAILED status', async () => {
+    const { ctx, answeredQueries } = createMockRetryContext({
+      callbackData: 'otc:retry:purchase-abc-123',
+    });
+
+    const mockService = {
+      retry: vi.fn().mockResolvedValue({
+        id: 'purchase-new',
+        status: 'FAILED',
+        errorMessage: 'Still insufficient balance',
+        isFailed: () => true,
+      }),
+    } as any;
+
+    await handleOtcRetryCallback(ctx, { otcPurchaseService: mockService });
+
+    expect(answeredQueries).toHaveLength(1);
+    expect(answeredQueries[0]!.show_alert).toBe(true);
+    expect(answeredQueries[0]!.text).toContain('Still insufficient balance');
   });
 
   it('handles invalid callback data format', async () => {
     const { ctx, answeredQueries } = createMockRetryContext({
+
       callbackData: 'otc:retry:',
     });
 

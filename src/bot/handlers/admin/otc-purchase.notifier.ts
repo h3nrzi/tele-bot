@@ -60,17 +60,23 @@ export function formatOtcPurchaseSuccessMessage(purchase: OtcPurchase): string {
   );
 }
 
+export function escapeMarkdown(text: string): string {
+  return text.replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, '\\$&');
+}
+
 export function formatOtcPurchaseFailureMessage(
   purchase: OtcPurchase,
   error?: string
 ): string {
   const reason = error ?? purchase.errorMessage ?? 'نامشخص';
+  const escapedReason = escapeMarkdown(reason);
+
   return (
     `❌ *خطا در خرید خودکار تتر از والکس*\n\n` +
     `🔹 *مقدار درخواستی:* \`${purchase.usdtQuantity}\` USDT\n` +
     `🔹 *شناسه درخواست شارژ:* \`${purchase.topUpRequestId}\`\n` +
     `🔹 *شناسه عملیات:* \`${purchase.id}\`\n` +
-    `🔹 *علت خطا:* ${reason}\n\n` +
+    `🔹 *علت خطا:* ${escapedReason}\n\n` +
     `جهت تلاش مجدد پس از بررسی موجودی حساب والکس، دکمه زیر را فشار دهید.`
   );
 }
@@ -87,52 +93,44 @@ export class TelegramOtcPurchaseNotifier implements IOtcPurchaseNotifier {
   }
 
   public async notifySuccess(purchase: OtcPurchase): Promise<void> {
-    const recipients = resolveOtcRecipients({
-      opsGroupId: this.opsGroupId,
-      adminIds: this.adminIds,
-    });
-
-    if (recipients.length === 0) {
-      console.warn('No recipients configured for OTC purchase success notification.');
-      return;
-    }
-
     const messageText = formatOtcPurchaseSuccessMessage(purchase);
-
-    for (const recipient of recipients) {
-      try {
-        await this.api.sendMessage(recipient, messageText, {
-          parse_mode: 'Markdown',
-        });
-      } catch (err) {
-        console.error(`Failed to send OTC success notification to ${recipient}:`, err);
-      }
-    }
+    await this.dispatchToRecipients(messageText);
   }
 
   public async notifyFailure(purchase: OtcPurchase, error?: string): Promise<void> {
+    const messageText = formatOtcPurchaseFailureMessage(purchase, error);
+    const keyboard = getOtcRetryKeyboard(purchase.id);
+    await this.dispatchToRecipients(messageText, keyboard);
+  }
+
+  private async dispatchToRecipients(
+    messageText: string,
+    replyMarkup?: InlineKeyboard
+  ): Promise<void> {
     const recipients = resolveOtcRecipients({
       opsGroupId: this.opsGroupId,
       adminIds: this.adminIds,
     });
 
     if (recipients.length === 0) {
-      console.warn('No recipients configured for OTC purchase failure notification.');
+      console.warn('No recipients configured for OTC purchase notification.');
       return;
     }
 
-    const messageText = formatOtcPurchaseFailureMessage(purchase, error);
-    const keyboard = getOtcRetryKeyboard(purchase.id);
+    const options: Record<string, unknown> = {
+      parse_mode: 'Markdown',
+    };
+    if (replyMarkup) {
+      options.reply_markup = replyMarkup;
+    }
 
     for (const recipient of recipients) {
       try {
-        await this.api.sendMessage(recipient, messageText, {
-          parse_mode: 'Markdown',
-          reply_markup: keyboard,
-        });
+        await this.api.sendMessage(recipient, messageText, options);
       } catch (err) {
-        console.error(`Failed to send OTC failure notification to ${recipient}:`, err);
+        console.error(`Failed to send OTC notification to ${recipient}:`, err);
       }
     }
   }
 }
+
