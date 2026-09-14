@@ -12,16 +12,16 @@
 
 **Blocked by:** 01 (WallexClient needed for connectivity verification on mode toggle), 02 (exchange_rate_config table).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `ExchangeRateConfigService` with get/update for mode, spread, and interval
-- [ ] Mode toggle handler with confirmation step
-- [ ] `MANUAL → AUTO_SYNC` transition fetches and inserts first Baseline Rate, aborts on failure
-- [ ] `AUTO_SYNC → MANUAL` transition preserves last synced rate
-- [ ] Spread config handler with 0–10% validation and calculation example
-- [ ] Settings menu keyboard extended with mode toggle and spread config buttons
-- [ ] Rate display enriched with mode, spread, and timestamp in AUTO_SYNC mode
-- [ ] Manual set-rate guarded in AUTO_SYNC mode with informative message
-- [ ] DI tokens and container registrations for new service
-- [ ] Handler-level tests for mode toggle, spread config, and set-rate guard
-- [ ] `ExchangeRateConfigService` integration tests against real DB
+- [x] `ExchangeRateConfigService` with get/update for mode, spread, and interval
+- [x] Mode toggle handler with confirmation step
+- [x] `MANUAL → AUTO_SYNC` transition fetches and inserts first Baseline Rate, aborts on failure
+- [x] `AUTO_SYNC → MANUAL` transition preserves last synced rate
+- [x] Spread config handler with 0–10% validation and calculation example
+- [x] Settings menu keyboard extended with mode toggle and spread config buttons
+- [x] Rate display enriched with mode, spread, and timestamp in AUTO_SYNC mode
+- [x] Manual set-rate guarded in AUTO_SYNC mode with informative message
+- [x] DI tokens and container registrations for new service
+- [x] Handler-level tests for mode toggle, spread config, and set-rate guard
+- [x] `ExchangeRateConfigService` integration tests against real DB

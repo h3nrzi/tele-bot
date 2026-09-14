@@ -308,7 +308,7 @@ describe('/orders Admin Queue Command (Ticket 09)', () => {
     const msg1 = repliedMessages[0]!;
     expect(msg1).toContain('Spotify Premium 1 Month');
     expect(msg1).toContain('$9.99');
-    expect(msg1).toContain('@happy_buyer');
+    expect(msg1).toContain('@happy\\_buyer');
     expect(msg1).toContain('در انتظار شروع پردازش');
 
     // Message 2: PROCESSING (claimed by Admin 1)

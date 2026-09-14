@@ -3,6 +3,7 @@ import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext, captureBotReplies } from '@tests/helpers/mock-context';
 import { handleRate } from '@/bot/handlers/admin';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import { formatPersianDateTime } from '@/core/shared/date.utils';
 import { setTestRate } from '@tests/helpers/fixtures';
 import { createBot } from '@/bot/bot';
@@ -10,6 +11,7 @@ import { createBot } from '@/bot/bot';
 describe('/rate Handler', () => {
   const { db, container } = setupTestDatabase();
   const exchangeRateService = container.resolve(ExchangeRateService);
+  const exchangeRateConfigService = container.resolve(ExchangeRateConfigService);
   const adminChatId = 123456789;
   const originalEnv = process.env.ADMIN_IDS;
 
@@ -59,12 +61,50 @@ describe('/rate Handler', () => {
       username: 'admin_user',
     });
 
-    await handleRate(ctx, exchangeRateService);
+    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
     expect(repliedMessages[0]).toContain('650,000');
     expect(repliedMessages[0]).toContain(formatPersianDateTime(secondRate.createdAt));
+  });
+
+  it('enriches rate display with mode, spread percentage, and timestamp in AUTO_SYNC mode', async () => {
+    await setTestRate(container, adminChatId, 905000n);
+    await exchangeRateConfigService.updateConfig({
+      mode: 'AUTO_SYNC',
+      spreadPercent: 1.5,
+      adminTelegramId: adminChatId,
+    });
+
+    const { ctx, repliedMessages } = createMockContext({
+      id: adminChatId,
+      username: 'admin_user',
+    });
+
+    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
+
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
+    expect(repliedMessages[0]).toContain('خودکار');
+    expect(repliedMessages[0]).toContain('1.50%');
+    expect(repliedMessages[0]).toContain('905,000');
+    expect(repliedMessages[0]).toContain('آخرین به‌روزرسانی');
+  });
+
+  it('shows MANUAL mode indicator in MANUAL mode', async () => {
+    await setTestRate(container, adminChatId, 620000n);
+    await exchangeRateConfigService.updateMode('MANUAL', adminChatId);
+
+    const { ctx, repliedMessages } = createMockContext({
+      id: adminChatId,
+      username: 'admin_user',
+    });
+
+    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
+
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
+    expect(repliedMessages[0]).toContain('دستی');
+    expect(repliedMessages[0]).toContain('620,000');
   });
 
   it('silently ignores update if ctx.from is undefined', async () => {

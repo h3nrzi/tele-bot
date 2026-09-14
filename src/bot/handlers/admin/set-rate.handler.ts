@@ -1,21 +1,46 @@
-import type { Context } from 'grammy';
+import { InlineKeyboard, type Context } from 'grammy';
 import type { BotContext } from '@/bot/context';
 import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import type { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import { formatIrr } from '@/core/shared/currency.utils';
 import { SETRATE_CONVERSATION_ID, cleanRateInput, isValidRateInput } from '@/bot/handlers/admin/set-rate.conversation';
 
 /**
  * Handles the /setrate command for Admins.
+ * If Auto-Sync mode is active, blocks manual rate changes with a warning and switch-to-MANUAL button.
  * If an argument is provided, updates the rate immediately.
  * Otherwise enters the interactive setrate conversation.
  */
 export async function handleSetRate(
   ctx: Context | BotContext,
-  service: ExchangeRateService
+  service: ExchangeRateService,
+  configService?: ExchangeRateConfigService
 ): Promise<void> {
   const sender = ctx.from;
   if (!sender) {
     return;
+  }
+
+  // Guard: If AUTO_SYNC mode is active, block manual rate setting
+  if (configService) {
+    const config = await configService.getConfig();
+    if (config.isAutoSync()) {
+      const inlineKeyboard = new InlineKeyboard()
+        .text('🔄 تغییر حالت به دستی', 'ratemode:switch:MANUAL')
+        .row()
+        .text('❌ انصراف', 'flow:cancel');
+
+      await ctx.reply(
+        '⚠️ *تنظیم دستی نرخ در حالت خودکار امکان‌پذیر نیست.*\n\n' +
+        'سیستم در حال حاضر روی حالت نرخ خودکار (Auto-Sync) تنظیم شده است و نرخ‌ها مستقیماً بر اساس والکس به‌روزرسانی می‌شوند.\n' +
+        'برای تنظیم دستی نرخ، ابتدا باید حالت نرخ ارز را به دستی (MANUAL) تغییر دهید.',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: inlineKeyboard,
+        }
+      );
+      return;
+    }
   }
 
   let rawRateInput: string | undefined;

@@ -19,6 +19,7 @@ export const TOKENS = {
   BuyerRepository: Symbol('BuyerRepository'),
   WalletRepository: Symbol('WalletRepository'),
   ExchangeRateRepository: Symbol('ExchangeRateRepository'),
+  ExchangeRateConfigRepository: Symbol('ExchangeRateConfigRepository'),
   BankAccountRepository: Symbol('BankAccountRepository'),
   LedgerRepository: Symbol('LedgerRepository'),
   TopUpRepository: Symbol('TopUpRepository'),

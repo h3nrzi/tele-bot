@@ -5,6 +5,10 @@ export * from '@/modules/exchange-rate/exchange-rate-config.entity';
 export * from '@/modules/exchange-rate/exchange-rate.errors';
 export * from '@/modules/exchange-rate/exchange-rate.repository.interface';
 export * from '@/modules/exchange-rate/exchange-rate.repository';
+export * from '@/modules/exchange-rate/exchange-rate-config.repository.interface';
+export * from '@/modules/exchange-rate/exchange-rate-config.repository';
 export * from '@/modules/exchange-rate/dtos/set-rate.dto';
 export * from '@/modules/exchange-rate/exchange-rate.service';
+export * from '@/modules/exchange-rate/exchange-rate-config.service';
 export * from '@/modules/exchange-rate/exchange-rate.module';
+

@@ -12,6 +12,7 @@ import { BuyerService } from '@/modules/buyer/buyer.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
 import { OrderService } from '@/modules/order/order.service';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import {
   createSetCardConversation,
   SETCARD_CONVERSATION_ID,
@@ -20,6 +21,10 @@ import {
   createSetRateConversation,
   SETRATE_CONVERSATION_ID,
 } from '@/bot/handlers/admin/set-rate.conversation';
+import {
+  createSpreadConversation,
+  SPREAD_CONVERSATION_ID,
+} from '@/bot/handlers/admin/spread.conversation';
 import {
   createTopUpConversation,
   TOPUP_CONVERSATION_ID,
@@ -89,6 +94,7 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   const catalogService = appContainer.resolve(CatalogService);
   const orderService = appContainer.resolve(OrderService);
   const exchangeRateService = appContainer.resolve(ExchangeRateService);
+  const exchangeRateConfigService = appContainer.resolve(ExchangeRateConfigService);
 
   const botConfig: BotConfig<BotContext> = {};
   if (options?.botInfo) {
@@ -104,9 +110,17 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   bot.use(conversations());
   bot.use(
     createConversation<BotContext, Context>(
-      createSetRateConversation(exchangeRateService),
+      createSetRateConversation(exchangeRateService, exchangeRateConfigService),
       {
         id: SETRATE_CONVERSATION_ID,
+      }
+    )
+  );
+  bot.use(
+    createConversation<BotContext, Context>(
+      createSpreadConversation(exchangeRateConfigService),
+      {
+        id: SPREAD_CONVERSATION_ID,
       }
     )
   );

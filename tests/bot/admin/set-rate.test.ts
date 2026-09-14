@@ -3,6 +3,7 @@ import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockContext, createMockFetch } from '@tests/helpers/mock-context';
 import { handleSetRate, cleanRateInput, isValidRateInput } from '@/bot/handlers/admin';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import { createBot } from '@/bot/bot';
 import { exchangeRates } from '@/modules/exchange-rate/exchange-rate.schema';
 import { count } from 'drizzle-orm';
@@ -10,6 +11,7 @@ import { count } from 'drizzle-orm';
 describe('/setrate Handler', () => {
   const { db, container } = setupTestDatabase();
   const exchangeRateService = container.resolve(ExchangeRateService);
+  const exchangeRateConfigService = container.resolve(ExchangeRateConfigService);
   const adminChatId = 123456789;
   const originalEnv = process.env.ADMIN_IDS;
 
@@ -145,6 +147,47 @@ describe('/setrate Handler', () => {
     expect(ctx.reply).not.toHaveBeenCalled();
     const [countResult] = await db.select({ value: count() }).from(exchangeRates);
     expect(Number(countResult?.value ?? 0)).toBe(0);
+  });
+
+  describe('AUTO_SYNC Mode Guard', () => {
+    beforeEach(async () => {
+      await exchangeRateConfigService.updateMode('AUTO_SYNC', adminChatId);
+    });
+
+    it('blocks manual rate setting with direct argument when AUTO_SYNC is active', async () => {
+      const { ctx, repliedMessages } = createMockContext(
+        { id: adminChatId, username: 'admin_user' },
+        { match: '620000' }
+      );
+
+      await handleSetRate(ctx, exchangeRateService, exchangeRateConfigService);
+
+      expect(ctx.reply).toHaveBeenCalledTimes(1);
+      expect(repliedMessages[0]).toContain('خودکار');
+      expect(repliedMessages[0]).toContain('امکان‌پذیر نیست');
+
+      // Verify inline button to switch to MANUAL is included
+      const replyCall = (ctx.reply as any).mock.calls[0];
+      const replyMarkup = replyCall[1]?.reply_markup;
+      expect(replyMarkup).toBeDefined();
+
+      // Verify no exchange rate was inserted
+      const [countResult] = await db.select({ value: count() }).from(exchangeRates);
+      expect(Number(countResult?.value ?? 0)).toBe(0);
+    });
+
+    it('blocks entering conversation when AUTO_SYNC is active', async () => {
+      const { ctx, repliedMessages } = createMockContext(
+        { id: adminChatId, username: 'admin_user' },
+        { match: '' }
+      );
+
+      await handleSetRate(ctx, exchangeRateService, exchangeRateConfigService);
+
+      expect(ctx.reply).toHaveBeenCalledTimes(1);
+      expect(repliedMessages[0]).toContain('خودکار');
+      expect(repliedMessages[0]).toContain('امکان‌پذیر نیست');
+    });
   });
 
   describe('Bot integration with /setrate', () => {

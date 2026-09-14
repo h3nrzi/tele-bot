@@ -12,17 +12,21 @@ import {
   handlePendingPage,
   handleReviewCallback,
 } from '@/bot/handlers/admin/pending.handler';
-import {
-  handleCatalogCommand,
-  handleCatalogToggleCallback,
-  handleCatalogAddCallback,
-  handleCatalogEditCallback,
-} from '@/bot/handlers/admin/catalog.handler';
+import { handleCatalogCommand, handleCatalogToggleCallback, handleCatalogAddCallback, handleCatalogEditCallback } from '@/bot/handlers/admin/catalog.handler';
 import { handleOrdersCommand } from '@/bot/handlers/admin/orders.handler';
 import { handleClaimOrderCallback } from '@/bot/handlers/admin/claim.handler';
 import { handleFulfilOrderCallback } from '@/bot/handlers/admin/fulfil.handler';
 import { handleRejectOrderCallback } from '@/bot/handlers/admin/order-reject.handler';
+import {
+  handleRateModeCommand,
+  handleRateModeSwitchCallback,
+  handleRateModeCancelCallback,
+} from '@/bot/handlers/admin/rate-mode.handler';
+import { SPREAD_CONVERSATION_ID } from '@/bot/handlers/admin/spread.conversation';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
+import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
+import { TOKENS } from '@/core/di/tokens';
 
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
@@ -31,21 +35,26 @@ import { OrderService } from '@/modules/order/order.service';
 export interface AdminComposerOptions {
   container?: DependencyContainer | undefined;
   exchangeRateService?: ExchangeRateService | undefined;
+  exchangeRateConfigService?: ExchangeRateConfigService | undefined;
   topUpService?: TopUpService | undefined;
   catalogService?: CatalogService | undefined;
   orderService?: OrderService | undefined;
+  wallexClient?: WallexClient | undefined;
   adminIds?: string | Set<bigint> | undefined;
 }
 
 /**
  * Creates a grammY Composer that mounts and guards all Admin routes:
  * - /orders & '📋 سفارش‌های فعال'
- * - /setrate
+ * - /setrate & '✏️ تنظیم نرخ ارز'
  * - /rate & '💱 نرخ ارز فعلی'
+ * - /ratemode & '🔄 حالت نرخ ارز'
+ * - /spread & '📊 تنظیم اسپرد'
  * - /setcard & '💳 تنظیم کارت بانکی'
  * - /pending & '⏳ درخواست‌های در انتظار'
  * - /catalog & '📦 کاتالوگ خدمات'
- * - '✏️ تنظیم نرخ ارز' (usage guide)
+ * - callbackQuery ratemode:switch:<mode>
+ * - callbackQuery ratemode:cancel
  * - callbackQuery pending_page:<page>
  * - callbackQuery review:<requestId>
  * - callbackQuery approve:<requestId>
@@ -61,12 +70,24 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
 
   const exchangeRateService =
     options?.exchangeRateService ?? container?.resolve(ExchangeRateService);
+  const exchangeRateConfigService =
+    options?.exchangeRateConfigService ??
+    (container?.isRegistered(TOKENS.ExchangeRateConfigService) || container?.isRegistered(ExchangeRateConfigService)
+      ? container.resolve(ExchangeRateConfigService)
+      : undefined);
   const topUpService =
     options?.topUpService ?? container?.resolve(TopUpService);
   const catalogService =
     options?.catalogService ?? container?.resolve(CatalogService);
   const orderService =
     options?.orderService ?? container?.resolve(OrderService);
+
+  let wallexClient = options?.wallexClient;
+  if (!wallexClient && container && container.isRegistered(TOKENS.WallexClient)) {
+    try {
+      wallexClient = container.resolve<WallexClient>(TOKENS.WallexClient);
+    } catch {}
+  }
 
   if (!exchangeRateService || !topUpService || !catalogService) {
     throw new Error('All required services or a container must be provided to createAdminComposer');
@@ -84,11 +105,25 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.command('setrate', adminAuth, async (ctx) => {
-    await handleSetRate(ctx, exchangeRateService);
+    await handleSetRate(ctx, exchangeRateService, exchangeRateConfigService);
   });
 
   composer.command('rate', adminAuth, async (ctx) => {
-    await handleRate(ctx, exchangeRateService);
+    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
+  });
+
+  composer.command('ratemode', adminAuth, async (ctx) => {
+    if (exchangeRateConfigService) {
+      await handleRateModeCommand(ctx, {
+        exchangeRateConfigService,
+        exchangeRateService,
+        wallexClient,
+      });
+    }
+  });
+
+  composer.command('spread', adminAuth, async (ctx) => {
+    await ctx.conversation.enter(SPREAD_CONVERSATION_ID);
   });
 
   composer.command('setcard', adminAuth, async (ctx) => {
@@ -148,11 +183,40 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
   });
 
   composer.hears(['💱 نرخ ارز فعلی', 'نرخ ارز فعلی', 'نرخ ارز'], adminAuth, async (ctx) => {
-    await handleRate(ctx, exchangeRateService);
+    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
   });
 
   composer.hears(['✏️ تنظیم نرخ ارز', 'تنظیم نرخ ارز'], adminAuth, async (ctx) => {
-    await handleSetRate(ctx, exchangeRateService);
+    await handleSetRate(ctx, exchangeRateService, exchangeRateConfigService);
+  });
+
+  composer.hears(['🔄 حالت نرخ ارز', 'حالت نرخ ارز'], adminAuth, async (ctx) => {
+    if (exchangeRateConfigService) {
+      await handleRateModeCommand(ctx, {
+        exchangeRateConfigService,
+        exchangeRateService,
+        wallexClient,
+      });
+    }
+  });
+
+  composer.hears(['📊 تنظیم اسپرد', 'تنظیم اسپرد'], adminAuth, async (ctx) => {
+    await ctx.conversation.enter(SPREAD_CONVERSATION_ID);
+  });
+
+  // Admin Callback Queries
+  composer.callbackQuery(/^ratemode:switch:(AUTO_SYNC|MANUAL)$/, adminAuth, async (ctx) => {
+    if (exchangeRateConfigService) {
+      await handleRateModeSwitchCallback(ctx, {
+        exchangeRateConfigService,
+        exchangeRateService,
+        wallexClient,
+      });
+    }
+  });
+
+  composer.callbackQuery('ratemode:cancel', adminAuth, async (ctx) => {
+    await handleRateModeCancelCallback(ctx);
   });
 
   // Admin Callback Queries

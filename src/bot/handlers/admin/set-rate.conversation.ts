@@ -2,6 +2,7 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import type { BotConversation } from '@/bot/context';
 import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import type { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import { formatIrr } from '@/core/shared/currency.utils';
 import { isCancelCommand } from '@/core/shared/telegram.utils';
 
@@ -45,7 +46,10 @@ export function isValidRateInput(text: string): boolean {
 /**
  * Creates the grammY conversation for Admin exchange rate setup flow.
  */
-export function createSetRateConversation(exchangeRateService: ExchangeRateService) {
+export function createSetRateConversation(
+  exchangeRateService: ExchangeRateService,
+  exchangeRateConfigService?: ExchangeRateConfigService
+) {
   return async function setRateConversation(
     conversation: SetRateConversation,
     ctx: Context
@@ -59,6 +63,30 @@ export function createSetRateConversation(exchangeRateService: ExchangeRateServi
       try {
         await ctx.answerCallbackQuery();
       } catch {}
+    }
+
+    if (exchangeRateConfigService) {
+      const isAutoSync = await conversation.external(async () => {
+        const config = await exchangeRateConfigService.getConfig();
+        return config.isAutoSync();
+      });
+      if (isAutoSync) {
+        const inlineKeyboard = new InlineKeyboard()
+          .text('🔄 تغییر حالت به دستی', 'ratemode:switch:MANUAL')
+          .row()
+          .text('❌ انصراف', 'flow:cancel');
+
+        await ctx.reply(
+          '⚠️ *تنظیم دستی نرخ در حالت خودکار امکان‌پذیر نیست.*\n\n' +
+          'سیستم در حال حاضر روی حالت نرخ خودکار (Auto-Sync) تنظیم شده است و نرخ‌ها مستقیماً بر اساس والکس به‌روزرسانی می‌شوند.\n' +
+          'برای تنظیم دستی نرخ، ابتدا باید حالت نرخ ارز را به دستی (MANUAL) تغییر دهید.',
+          {
+            parse_mode: 'Markdown',
+            reply_markup: inlineKeyboard,
+          }
+        );
+        return;
+      }
     }
 
     await ctx.reply(

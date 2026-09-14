@@ -55,6 +55,8 @@ describe('Role-based Menus and Keyboards', () => {
     const buttonTexts = flatButtons.map((btn: any) => (typeof btn === 'string' ? btn : btn.text));
     expect(buttonTexts).toContain('💱 نرخ ارز فعلی');
     expect(buttonTexts).toContain('✏️ تنظیم نرخ ارز');
+    expect(buttonTexts).toContain('🔄 حالت نرخ ارز');
+    expect(buttonTexts).toContain('📊 تنظیم اسپرد');
     expect(buttonTexts).toContain('💳 تنظیم کارت بانکی');
     expect(buttonTexts).toContain('🔙 بازگشت به منوی اصلی');
   });
