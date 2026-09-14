@@ -24,14 +24,17 @@ export const TOKENS = {
   TopUpRepository: Symbol('TopUpRepository'),
   CatalogRepository: Symbol('CatalogRepository'),
   OrderRepository: Symbol('OrderRepository'),
+  OtcPurchaseRepository: Symbol('OtcPurchaseRepository'),
 
   // Services
   BuyerService: Symbol('BuyerService'),
   WalletService: Symbol('WalletService'),
   ExchangeRateService: Symbol('ExchangeRateService'),
+  ExchangeRateConfigService: Symbol('ExchangeRateConfigService'),
   BankAccountService: Symbol('BankAccountService'),
   LedgerService: Symbol('LedgerService'),
   TopUpService: Symbol('TopUpService'),
   CatalogService: Symbol('CatalogService'),
   OrderService: Symbol('OrderService'),
+  OtcPurchaseService: Symbol('OtcPurchaseService'),
 } as const;

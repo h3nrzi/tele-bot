@@ -15,6 +15,8 @@ export interface PendingTopUpRequestItem {
   updatedAt: Date;
 }
 
+import type { RateSource } from '@/modules/top-up/top-up.schema';
+
 /**
  * Domain Repository Interface for TopUpRequest.
  */
@@ -29,7 +31,9 @@ export interface ITopUpRequestRepository<TExecutor = unknown> {
   insert(
     data: {
       userId: string;
-      exchangeRateId: string;
+      exchangeRateId?: string | null;
+      lockedIrrPerUsd?: bigint | number;
+      rateSource?: RateSource;
       usdAmount: UsdAmount | string;
       irrAmount: IrrAmount | bigint;
       status: TopUpStatus;

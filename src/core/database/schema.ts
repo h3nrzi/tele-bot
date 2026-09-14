@@ -6,4 +6,5 @@ export * from '@/modules/top-up/top-up.schema';
 export * from '@/modules/ledger/ledger.schema';
 export * from '@/modules/catalog/catalog.schema';
 export * from '@/modules/order/order.schema';
+export * from '@/modules/otc-purchase/otc-purchase.schema';
 

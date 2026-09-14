@@ -22,6 +22,8 @@ export const topUpStatusEnum = pgEnum('top_up_status', [
   'CANCELLED',
 ]);
 
+export type RateSource = 'MANUAL' | 'OTC_QUOTE' | 'BASELINE_FALLBACK';
+
 export const topUpRequests = pgTable(
   'top_up_requests',
   {
@@ -30,8 +32,9 @@ export const topUpRequests = pgTable(
       .notNull()
       .references(() => users.id),
     exchangeRateId: uuid('exchange_rate_id')
-      .notNull()
       .references(() => exchangeRates.id),
+    lockedIrrPerUsd: bigint('locked_irr_per_usd', { mode: 'bigint' }).notNull(),
+    rateSource: varchar('rate_source', { length: 50 }).notNull(),
     usdAmount: numeric('usd_amount', { precision: 18, scale: 2 }).notNull(),
     irrAmount: bigint('irr_amount', { mode: 'bigint' }).notNull(),
     status: topUpStatusEnum('status').notNull(),

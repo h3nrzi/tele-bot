@@ -14,3 +14,5 @@ export type NewExchangeRateSchema = typeof exchangeRates.$inferInsert;
 
 export type ExchangeRateRow = ExchangeRateSchema;
 export type NewExchangeRateRow = NewExchangeRateSchema;
+
+export * from './exchange-rate-config.schema';

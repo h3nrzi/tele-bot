@@ -41,6 +41,8 @@ describe('Database Migrations', () => {
     expect(tableNames).toContain('catalog_items');
     expect(tableNames).toContain('orders');
     expect(tableNames).toContain('order_admin_notifications');
+    expect(tableNames).toContain('exchange_rate_config');
+    expect(tableNames).toContain('wallex_otc_purchases');
   });
 
   it('creates the users table with the required columns and types', async () => {
@@ -147,7 +149,13 @@ describe('Database Migrations', () => {
     expect(cols['user_id']).toEqual({ type: 'uuid', udt: 'uuid', nullable: 'NO' });
     expect(cols['usd_amount']).toEqual({ type: 'numeric', udt: 'numeric', nullable: 'NO' });
     expect(cols['irr_amount']).toEqual({ type: 'bigint', udt: 'int8', nullable: 'NO' });
-    expect(cols['exchange_rate_id']).toEqual({ type: 'uuid', udt: 'uuid', nullable: 'NO' });
+    expect(cols['exchange_rate_id']).toEqual({ type: 'uuid', udt: 'uuid', nullable: 'YES' });
+    expect(cols['locked_irr_per_usd']).toEqual({ type: 'bigint', udt: 'int8', nullable: 'NO' });
+    expect(cols['rate_source']).toEqual({
+      type: 'character varying',
+      udt: 'varchar',
+      nullable: 'NO',
+    });
     expect(cols['status']).toEqual({
       type: 'USER-DEFINED',
       udt: 'top_up_status',
@@ -238,15 +246,15 @@ describe('Database Migrations', () => {
 
     // 2. Insert first INITIATED request (should succeed)
     await pool.query(`
-      INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, status, expires_at)
-      VALUES ('${userId}', 100.00, 60000000, '${rateId}', 'INITIATED', NOW() + INTERVAL '30 minutes')
+      INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, locked_irr_per_usd, rate_source, status, expires_at)
+      VALUES ('${userId}', 100.00, 60000000, '${rateId}', 600000, 'MANUAL', 'INITIATED', NOW() + INTERVAL '30 minutes')
     `);
 
     // 3. Insert second INITIATED request for same user (must fail due to partial unique index)
     await expect(
       pool.query(`
-        INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, status, expires_at)
-        VALUES ('${userId}', 50.00, 30000000, '${rateId}', 'INITIATED', NOW() + INTERVAL '30 minutes')
+        INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, locked_irr_per_usd, rate_source, status, expires_at)
+        VALUES ('${userId}', 50.00, 30000000, '${rateId}', 600000, 'MANUAL', 'INITIATED', NOW() + INTERVAL '30 minutes')
       `)
     ).rejects.toThrow();
 
@@ -259,8 +267,8 @@ describe('Database Migrations', () => {
 
     // 5. Now inserting another INITIATED request should succeed
     const newReqRes = await pool.query(`
-      INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, status, expires_at)
-      VALUES ('${userId}', 75.00, 45000000, '${rateId}', 'INITIATED', NOW() + INTERVAL '30 minutes')
+      INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, locked_irr_per_usd, rate_source, status, expires_at)
+      VALUES ('${userId}', 75.00, 45000000, '${rateId}', 600000, 'MANUAL', 'INITIATED', NOW() + INTERVAL '30 minutes')
       RETURNING id
     `);
     expect(newReqRes.rows[0]?.id).toBeDefined();
@@ -275,8 +283,8 @@ describe('Database Migrations', () => {
     // 7. Inserting another active request while one is PENDING must fail
     await expect(
       pool.query(`
-        INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, status, expires_at)
-        VALUES ('${userId}', 25.00, 15000000, '${rateId}', 'INITIATED', NOW() + INTERVAL '30 minutes')
+        INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, locked_irr_per_usd, rate_source, status, expires_at)
+        VALUES ('${userId}', 25.00, 15000000, '${rateId}', 600000, 'MANUAL', 'INITIATED', NOW() + INTERVAL '30 minutes')
       `)
     ).rejects.toThrow();
   });
@@ -669,8 +677,8 @@ describe('Database Migrations', () => {
     const rateId = rateRes.rows[0].id;
 
     const topUpRes = await pool.query(`
-      INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, status, expires_at)
-      VALUES ('${userId}', 50.00, 30000000, '${rateId}', 'APPROVED', NOW() + INTERVAL '30 minutes')
+      INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, locked_irr_per_usd, rate_source, status, expires_at)
+      VALUES ('${userId}', 50.00, 30000000, '${rateId}', 600000, 'MANUAL', 'APPROVED', NOW() + INTERVAL '30 minutes')
       RETURNING id
     `);
     const topUpId = topUpRes.rows[0].id;
@@ -729,6 +737,315 @@ describe('Database Migrations', () => {
         WHERE id = '${txOrder.rows[0].id}'
       `)
     ).resolves.toBeDefined();
+  });
+
+  it('creates the rate_mode enum with all required values', async () => {
+    const res = await pool.query(`
+      SELECT e.enumlabel
+      FROM pg_type t
+      JOIN pg_enum e ON t.oid = e.enumtypid
+      WHERE t.typname = 'rate_mode'
+      ORDER BY e.enumsortorder
+    `);
+    const enumLabels = res.rows.map((row) => row.enumlabel);
+
+    expect(enumLabels).toEqual(['MANUAL', 'AUTO_SYNC']);
+  });
+
+  it('creates the exchange_rate_config table with required columns, types, defaults, and spread check', async () => {
+    const res = await pool.query(`
+      SELECT column_name, data_type, udt_name, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_name = 'exchange_rate_config'
+    `);
+    const cols = Object.fromEntries(
+      res.rows.map((r) => [
+        r.column_name,
+        { type: r.data_type, udt: r.udt_name, nullable: r.is_nullable, default: r.column_default },
+      ])
+    );
+
+    expect(cols['id']).toEqual({
+      type: 'uuid',
+      udt: 'uuid',
+      nullable: 'NO',
+      default: 'gen_random_uuid()',
+    });
+    expect(cols['mode']).toEqual({
+      type: 'USER-DEFINED',
+      udt: 'rate_mode',
+      nullable: 'NO',
+      default: "'MANUAL'::rate_mode",
+    });
+    expect(cols['spread_percent']).toEqual({
+      type: 'numeric',
+      udt: 'numeric',
+      nullable: 'NO',
+      default: '0.00',
+    });
+    expect(cols['sync_interval_minutes']).toEqual({
+      type: 'integer',
+      udt: 'int4',
+      nullable: 'NO',
+      default: '60',
+    });
+    expect(cols['updated_by_admin_telegram_id']).toEqual({
+      type: 'bigint',
+      udt: 'int8',
+      nullable: 'YES',
+      default: null,
+    });
+    expect(cols['created_at'].nullable).toBe('NO');
+    expect(cols['updated_at'].nullable).toBe('NO');
+
+    // Test spread check constraint (0 <= spread <= 10)
+    // Valid spread: 5.00
+    await expect(
+      pool.query(`
+        INSERT INTO exchange_rate_config (mode, spread_percent, sync_interval_minutes)
+        VALUES ('MANUAL', 5.00, 60)
+      `)
+    ).resolves.toBeDefined();
+
+    // Invalid spread: -1 (must fail)
+    await expect(
+      pool.query(`
+        INSERT INTO exchange_rate_config (mode, spread_percent, sync_interval_minutes)
+        VALUES ('MANUAL', -1.00, 60)
+      `)
+    ).rejects.toThrow();
+
+    // Invalid spread: 10.01 (must fail)
+    await expect(
+      pool.query(`
+        INSERT INTO exchange_rate_config (mode, spread_percent, sync_interval_minutes)
+        VALUES ('MANUAL', 10.01, 60)
+      `)
+    ).rejects.toThrow();
+  });
+
+  it('creates the otc_purchase_status enum with all required values', async () => {
+    const res = await pool.query(`
+      SELECT e.enumlabel
+      FROM pg_type t
+      JOIN pg_enum e ON t.oid = e.enumtypid
+      WHERE t.typname = 'otc_purchase_status'
+      ORDER BY e.enumsortorder
+    `);
+    const enumLabels = res.rows.map((row) => row.enumlabel);
+
+    expect(enumLabels).toEqual(['PENDING', 'COMPLETED', 'FAILED']);
+  });
+
+  it('creates the wallex_otc_purchases table with required columns, types, and foreign key', async () => {
+    const res = await pool.query(`
+      SELECT column_name, data_type, udt_name, is_nullable
+      FROM information_schema.columns
+      WHERE table_name = 'wallex_otc_purchases'
+    `);
+    const cols = Object.fromEntries(
+      res.rows.map((r) => [
+        r.column_name,
+        { type: r.data_type, udt: r.udt_name, nullable: r.is_nullable },
+      ])
+    );
+
+    expect(cols['id']).toEqual({ type: 'uuid', udt: 'uuid', nullable: 'NO' });
+    expect(cols['top_up_request_id']).toEqual({ type: 'uuid', udt: 'uuid', nullable: 'NO' });
+    expect(cols['usdt_quantity']).toEqual({ type: 'numeric', udt: 'numeric', nullable: 'NO' });
+    expect(cols['status']).toEqual({
+      type: 'USER-DEFINED',
+      udt: 'otc_purchase_status',
+      nullable: 'NO',
+    });
+    expect(cols['wallex_client_order_id']).toEqual({
+      type: 'character varying',
+      udt: 'varchar',
+      nullable: 'YES',
+    });
+    expect(cols['wallex_executed_price']).toEqual({ type: 'bigint', udt: 'int8', nullable: 'YES' });
+    expect(cols['wallex_executed_qty']).toEqual({ type: 'numeric', udt: 'numeric', nullable: 'YES' });
+    expect(cols['wallex_executed_sum']).toEqual({ type: 'bigint', udt: 'int8', nullable: 'YES' });
+    expect(cols['wallex_fee']).toEqual({ type: 'bigint', udt: 'int8', nullable: 'YES' });
+    expect(cols['error_message']).toEqual({ type: 'text', udt: 'text', nullable: 'YES' });
+    expect(cols['created_at']).toEqual({
+      type: 'timestamp with time zone',
+      udt: 'timestamptz',
+      nullable: 'NO',
+    });
+    expect(cols['updated_at']).toEqual({
+      type: 'timestamp with time zone',
+      udt: 'timestamptz',
+      nullable: 'NO',
+    });
+
+    const fks = await pool.query(`
+      SELECT
+        kcu.column_name,
+        ccu.table_name AS foreign_table_name,
+        ccu.column_name AS foreign_column_name
+      FROM information_schema.table_constraints AS tc
+      JOIN information_schema.key_column_usage AS kcu
+        ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+      JOIN information_schema.constraint_column_usage AS ccu
+        ON ccu.constraint_name = tc.constraint_name
+        AND ccu.table_schema = tc.table_schema
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+        AND tc.table_name = 'wallex_otc_purchases'
+    `);
+    const fkMap = Object.fromEntries(
+      fks.rows.map((r) => [r.column_name, { table: r.foreign_table_name, col: r.foreign_column_name }])
+    );
+    expect(fkMap['top_up_request_id']).toEqual({ table: 'top_up_requests', col: 'id' });
+  });
+
+  it('enforces partial uniqueness on wallex_otc_purchases: disallows multiple active (PENDING/COMPLETED) purchases per top_up_request but allows multiple FAILED purchases', async () => {
+    const userRes = await pool.query(`
+      INSERT INTO users (telegram_chat_id, telegram_username)
+      VALUES (888777666, 'otc_user')
+      RETURNING id
+    `);
+    const userId = userRes.rows[0].id;
+
+    const rateRes = await pool.query(`
+      INSERT INTO exchange_rates (irr_per_usd, created_by_admin_telegram_id)
+      VALUES (600000, 987)
+      RETURNING id
+    `);
+    const rateId = rateRes.rows[0].id;
+
+    const topUpRes = await pool.query(`
+      INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, locked_irr_per_usd, rate_source, status, expires_at)
+      VALUES ('${userId}', 100.00, 60000000, '${rateId}', 600000, 'MANUAL', 'APPROVED', NOW() + INTERVAL '30 minutes')
+      RETURNING id
+    `);
+    const topUpId = topUpRes.rows[0].id;
+
+    // 1. First PENDING purchase succeeds
+    const firstPending = await pool.query(`
+      INSERT INTO wallex_otc_purchases (top_up_request_id, usdt_quantity, status)
+      VALUES ('${topUpId}', 100.00, 'PENDING')
+      RETURNING id
+    `);
+    expect(firstPending.rows[0]?.id).toBeDefined();
+
+    // 2. Second PENDING purchase for same top_up_request must fail (partial unique index)
+    await expect(
+      pool.query(`
+        INSERT INTO wallex_otc_purchases (top_up_request_id, usdt_quantity, status)
+        VALUES ('${topUpId}', 100.00, 'PENDING')
+      `)
+    ).rejects.toThrow();
+
+    // 3. Fail the first purchase
+    await pool.query(`
+      UPDATE wallex_otc_purchases
+      SET status = 'FAILED', error_message = 'Network timeout'
+      WHERE id = '${firstPending.rows[0].id}'
+    `);
+
+    // 4. Now a new PENDING purchase can be inserted (for retry)
+    const secondPending = await pool.query(`
+      INSERT INTO wallex_otc_purchases (top_up_request_id, usdt_quantity, status)
+      VALUES ('${topUpId}', 100.00, 'PENDING')
+      RETURNING id
+    `);
+    expect(secondPending.rows[0]?.id).toBeDefined();
+
+    // 5. Fail the second purchase as well (multiple FAILED allowed)
+    await pool.query(`
+      UPDATE wallex_otc_purchases
+      SET status = 'FAILED', error_message = 'Insufficient TMN balance'
+      WHERE id = '${secondPending.rows[0].id}'
+    `);
+
+    // 6. Third purchase succeeds and moves to COMPLETED
+    const thirdPurchase = await pool.query(`
+      INSERT INTO wallex_otc_purchases (top_up_request_id, usdt_quantity, status)
+      VALUES ('${topUpId}', 100.00, 'PENDING')
+      RETURNING id
+    `);
+    await pool.query(`
+      UPDATE wallex_otc_purchases
+      SET status = 'COMPLETED', wallex_client_order_id = 'order-999', wallex_executed_price = 600000, wallex_executed_qty = 100.00, wallex_executed_sum = 60000000, wallex_fee = 60000
+      WHERE id = '${thirdPurchase.rows[0].id}'
+    `);
+
+    // 7. Cannot insert another PENDING or COMPLETED purchase after one is COMPLETED
+    await expect(
+      pool.query(`
+        INSERT INTO wallex_otc_purchases (top_up_request_id, usdt_quantity, status)
+        VALUES ('${topUpId}', 100.00, 'PENDING')
+      `)
+    ).rejects.toThrow();
+
+    await expect(
+      pool.query(`
+        INSERT INTO wallex_otc_purchases (top_up_request_id, usdt_quantity, status)
+        VALUES ('${topUpId}', 100.00, 'COMPLETED')
+      `)
+    ).rejects.toThrow();
+
+    // 8. Total count for this top-up: 2 FAILED and 1 COMPLETED
+    const countRes = await pool.query(`
+      SELECT count(*)::int AS count FROM wallex_otc_purchases WHERE top_up_request_id = '${topUpId}'
+    `);
+    expect(countRes.rows[0].count).toBe(3);
+  });
+
+  it('correctly backfills locked_irr_per_usd and rate_source on top_up_requests', async () => {
+    // 1. Setup user and exchange rate
+    const userRes = await pool.query(`
+      INSERT INTO users (telegram_chat_id, telegram_username)
+      VALUES (555444333, 'backfill_user')
+      RETURNING id
+    `);
+    const userId = userRes.rows[0].id;
+
+    const rateRes = await pool.query(`
+      INSERT INTO exchange_rates (irr_per_usd, created_by_admin_telegram_id)
+      VALUES (585000, 111)
+      RETURNING id
+    `);
+    const rateId = rateRes.rows[0].id;
+
+    // 2. Temporarily drop NOT NULL to simulate pre-migration row state
+    await pool.query(`ALTER TABLE top_up_requests ALTER COLUMN locked_irr_per_usd DROP NOT NULL`);
+    await pool.query(`ALTER TABLE top_up_requests ALTER COLUMN rate_source DROP NOT NULL`);
+
+    try {
+      // 3. Insert row with NULL locked_irr_per_usd and NULL rate_source
+      const topUpRes = await pool.query(`
+        INSERT INTO top_up_requests (user_id, usd_amount, irr_amount, exchange_rate_id, locked_irr_per_usd, rate_source, status, expires_at)
+        VALUES ('${userId}', 20.00, 11700000, '${rateId}', NULL, NULL, 'APPROVED', NOW() + INTERVAL '30 minutes')
+        RETURNING id
+      `);
+      const topUpId = topUpRes.rows[0].id;
+
+      // 4. Run the exact backfill SQL statement from the migration
+      await pool.query(`
+        UPDATE "top_up_requests"
+        SET "locked_irr_per_usd" = "exchange_rates"."irr_per_usd",
+            "rate_source" = 'MANUAL'
+        FROM "exchange_rates"
+        WHERE "top_up_requests"."exchange_rate_id" = "exchange_rates"."id"
+          AND "top_up_requests"."id" = '${topUpId}'
+      `);
+
+      // 5. Verify row has been backfilled with correct joined rate and MANUAL source
+      const verifyRes = await pool.query(`
+        SELECT locked_irr_per_usd, rate_source
+        FROM top_up_requests
+        WHERE id = '${topUpId}'
+      `);
+      expect(verifyRes.rows[0].locked_irr_per_usd).toBe('585000');
+      expect(verifyRes.rows[0].rate_source).toBe('MANUAL');
+    } finally {
+      // 6. Restore NOT NULL constraints
+      await pool.query(`ALTER TABLE top_up_requests ALTER COLUMN locked_irr_per_usd SET NOT NULL`);
+      await pool.query(`ALTER TABLE top_up_requests ALTER COLUMN rate_source SET NOT NULL`);
+    }
   });
 });
 

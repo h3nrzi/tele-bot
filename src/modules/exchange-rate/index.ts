@@ -1,5 +1,7 @@
 export * from '@/modules/exchange-rate/exchange-rate.schema';
+export * from '@/modules/exchange-rate/exchange-rate-config.schema';
 export * from '@/modules/exchange-rate/exchange-rate.entity';
+export * from '@/modules/exchange-rate/exchange-rate-config.entity';
 export * from '@/modules/exchange-rate/exchange-rate.errors';
 export * from '@/modules/exchange-rate/exchange-rate.repository.interface';
 export * from '@/modules/exchange-rate/exchange-rate.repository';

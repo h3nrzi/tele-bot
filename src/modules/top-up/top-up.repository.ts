@@ -1,4 +1,5 @@
 import { injectable, inject } from 'tsyringe';
+import Decimal from 'decimal.js';
 import { eq, and, inArray, desc, asc } from 'drizzle-orm';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
 import { users } from '@/modules/buyer/buyer.schema';
@@ -8,6 +9,7 @@ import {
   TopUpRequest,
   type TopUpStatus,
 } from '@/modules/top-up/top-up-request.entity';
+import type { RateSource } from '@/modules/top-up/top-up.schema';
 import type {
   ITopUpRequestRepository,
   PendingTopUpRequestItem,
@@ -32,6 +34,8 @@ export class DrizzleTopUpRequestRepository
       id: row.id,
       userId: row.userId,
       exchangeRateId: row.exchangeRateId,
+      lockedIrrPerUsd: row.lockedIrrPerUsd,
+      rateSource: row.rateSource as RateSource,
       usdAmount: row.usdAmount,
       irrAmount: row.irrAmount,
       status: row.status as TopUpStatus,
@@ -222,7 +226,9 @@ export class DrizzleTopUpRequestRepository
   public async insert(
     data: {
       userId: string;
-      exchangeRateId: string;
+      exchangeRateId?: string | null;
+      lockedIrrPerUsd?: bigint | number;
+      rateSource?: RateSource;
       usdAmount: UsdAmount | string;
       irrAmount: IrrAmount | bigint;
       status: TopUpStatus;
@@ -240,11 +246,29 @@ export class DrizzleTopUpRequestRepository
         ? data.irrAmount.toBigInt()
         : data.irrAmount;
 
+    const usdVo = new UsdAmount(usdStr);
+    const irrVo = new IrrAmount(irrBigInt);
+    const lockedIrr =
+      data.lockedIrrPerUsd !== undefined && data.lockedIrrPerUsd !== null
+        ? BigInt(data.lockedIrrPerUsd)
+        : usdVo.toDecimal().isZero()
+          ? 0n
+          : BigInt(
+              new Decimal(irrVo.toString())
+                .dividedBy(usdVo.toDecimal())
+                .round()
+                .toFixed(0)
+            );
+
+    const rateSource = data.rateSource ?? 'MANUAL';
+
     const [row] = await db
       .insert(topUpRequests)
       .values({
         userId: data.userId,
-        exchangeRateId: data.exchangeRateId,
+        exchangeRateId: data.exchangeRateId ?? null,
+        lockedIrrPerUsd: lockedIrr,
+        rateSource: rateSource,
         usdAmount: usdStr,
         irrAmount: irrBigInt,
         status: data.status,

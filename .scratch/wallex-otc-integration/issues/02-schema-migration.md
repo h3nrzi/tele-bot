@@ -10,13 +10,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Drizzle migration creates `exchange_rate_config` table with all columns and seeds defaults
-- [ ] Drizzle migration adds `locked_irr_per_usd` and `rate_source` to `top_up_requests`, makes `exchange_rate_id` nullable
-- [ ] Backfill populates `locked_irr_per_usd` from joined `exchange_rates` and sets `rate_source = 'MANUAL'` for all existing rows
-- [ ] NOT NULL constraints applied to new columns after backfill
-- [ ] Drizzle migration creates `wallex_otc_purchases` table with partial unique index
-- [ ] Drizzle schema files and entity types added for all new/modified tables
-- [ ] Schema barrel (`core/database/schema.ts`) and DI tokens updated
-- [ ] Existing tests still pass — app boots identically in Manual mode
+- [x] Drizzle migration creates `exchange_rate_config` table with all columns and seeds defaults
+- [x] Drizzle migration adds `locked_irr_per_usd` and `rate_source` to `top_up_requests`, makes `exchange_rate_id` nullable
+- [x] Backfill populates `locked_irr_per_usd` from joined `exchange_rates` and sets `rate_source = 'MANUAL'` for all existing rows
+- [x] NOT NULL constraints applied to new columns after backfill
+- [x] Drizzle migration creates `wallex_otc_purchases` table with partial unique index
+- [x] Drizzle schema files and entity types added for all new/modified tables
+- [x] Schema barrel (`core/database/schema.ts`) and DI tokens updated
+- [x] Existing tests still pass — app boots identically in Manual mode

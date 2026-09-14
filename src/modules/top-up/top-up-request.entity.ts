@@ -1,9 +1,11 @@
+import Decimal from 'decimal.js';
 import { UsdAmount, IrrAmount } from '@/core/shared/money.vo';
 import {
   TopUpRequestExpiredError,
   TopUpRequestNotPendingError,
   CannotCancelPendingTopUpError,
 } from '@/modules/top-up/top-up.errors';
+import type { RateSource } from '@/modules/top-up/top-up.schema';
 
 export type TopUpStatus =
   | 'INITIATED'
@@ -16,7 +18,9 @@ export type TopUpStatus =
 export interface TopUpRequestProps {
   id: string;
   userId: string;
-  exchangeRateId: string;
+  exchangeRateId?: string | null;
+  lockedIrrPerUsd?: bigint | number | string | null;
+  rateSource?: RateSource;
   usdAmount: string | UsdAmount;
   irrAmount: bigint | number | string | IrrAmount;
   status: TopUpStatus;
@@ -37,7 +41,9 @@ export interface TopUpRequestProps {
 export class TopUpRequest {
   public readonly id: string;
   public readonly userId: string;
-  public readonly exchangeRateId: string;
+  public readonly exchangeRateId: string | null;
+  public readonly lockedIrrPerUsd: bigint;
+  public readonly rateSource: RateSource;
   private readonly _usdAmount: UsdAmount;
   private readonly _irrAmount: IrrAmount;
   private _status: TopUpStatus;
@@ -53,7 +59,7 @@ export class TopUpRequest {
   constructor(props: TopUpRequestProps) {
     this.id = props.id;
     this.userId = props.userId;
-    this.exchangeRateId = props.exchangeRateId;
+    this.exchangeRateId = props.exchangeRateId ?? null;
     this._usdAmount =
       props.usdAmount instanceof UsdAmount
         ? props.usdAmount
@@ -62,6 +68,18 @@ export class TopUpRequest {
       props.irrAmount instanceof IrrAmount
         ? props.irrAmount
         : new IrrAmount(props.irrAmount);
+    this.lockedIrrPerUsd =
+      props.lockedIrrPerUsd !== undefined && props.lockedIrrPerUsd !== null
+        ? BigInt(props.lockedIrrPerUsd)
+        : this._usdAmount.toDecimal().isZero()
+          ? 0n
+          : BigInt(
+              new Decimal(this._irrAmount.toString())
+                .dividedBy(this._usdAmount.toDecimal())
+                .round()
+                .toFixed(0)
+            );
+    this.rateSource = props.rateSource ?? 'MANUAL';
     this._status = props.status;
     this._receiptFileId = props.receiptFileId ?? null;
     this._receiptCaption = props.receiptCaption ?? null;
@@ -87,6 +105,10 @@ export class TopUpRequest {
 
   public get irrAmountVo(): IrrAmount {
     return this._irrAmount;
+  }
+
+  public get lockedIrrPerUsdVo(): IrrAmount {
+    return new IrrAmount(this.lockedIrrPerUsd);
   }
 
   public get status(): TopUpStatus {

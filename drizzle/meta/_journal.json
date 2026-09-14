@@ -43,6 +43,13 @@
       "when": 1788107821312,
       "tag": "0005_friendly_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788200000000,
+      "tag": "0006_wallex_otc_schema",
+      "breakpoints": true
     }
   ]
 }
