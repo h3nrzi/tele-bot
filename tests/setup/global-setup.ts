@@ -25,8 +25,20 @@ export async function setup(): Promise<void> {
     const migrationsFolder = path.resolve(__dirname, '../../drizzle');
     await applyMigrations(db, migrationsFolder);
   } catch (err: any) {
-    if (err?.code === 'ECONNREFUSED' || err?.message?.includes('ECONNREFUSED')) {
-      console.warn('⚠️ Warning: PostgreSQL database is offline. Database-dependent tests will fail until PostgreSQL is running.');
+    const isOffline =
+      err?.code === 'ECONNREFUSED' ||
+      err?.code === 'EPERM' ||
+      err?.message?.includes('ECONNREFUSED') ||
+      err?.message?.includes('EPERM') ||
+      (typeof AggregateError !== 'undefined' &&
+        err instanceof AggregateError &&
+        err.errors.some(
+          (e: any) => e?.code === 'ECONNREFUSED' || e?.code === 'EPERM'
+        ));
+    if (isOffline) {
+      console.warn(
+        '⚠️ Warning: PostgreSQL database is offline. Database-dependent tests will fail until PostgreSQL is running.'
+      );
     } else {
       throw err;
     }

@@ -4,6 +4,7 @@ import type { AdminOrderQueueItem } from '@/modules/order/dtos/order.dto';
 import { isAdmin } from '@/bot/middleware/admin.middleware';
 import { formatUsd } from '@/core/shared/currency.utils';
 import { formatTimeAgo } from '@/core/shared/date.utils';
+import { escapeMarkdown } from '@/core/shared/telegram.utils';
 import {
   getAdminOrderQueueItemKeyboard,
   formatAdminDisplay,
@@ -24,7 +25,7 @@ export function formatAdminOrderQueueItemMessage(
 ): string {
   const shortOrderId = item.id.slice(0, 8);
   const buyerDisplay = item.buyerTelegramUsername
-    ? `@${item.buyerTelegramUsername} (شناسه: ${item.buyerTelegramChatId})`
+    ? `@${escapeMarkdown(item.buyerTelegramUsername)} (شناسه: ${item.buyerTelegramChatId})`
     : `شناسه: ${item.buyerTelegramChatId}`;
   const priceDisplay = formatUsd(item.usdPriceSnapshot);
   const timeDisplay = formatTimeAgo(item.createdAt, now);
@@ -44,15 +45,15 @@ export function formatAdminOrderQueueItemMessage(
     if (isClaimedByMe) {
       claimDisplay = '\n👤 *مسئول پردازش:* شما';
     } else if (item.claimedByAdminUsername) {
-      claimDisplay = `\n👤 *مسئول پردازش:* ${formatAdminDisplay(item.claimedByAdminUsername)}`;
+      claimDisplay = `\n👤 *مسئول پردازش:* ${escapeMarkdown(formatAdminDisplay(item.claimedByAdminUsername))}`;
     } else if (item.claimedByAdminTelegramId) {
-      claimDisplay = `\n👤 *مسئول پردازش:* ${formatAdminDisplay(String(item.claimedByAdminTelegramId))}`;
+      claimDisplay = `\n👤 *مسئول پردازش:* ${escapeMarkdown(formatAdminDisplay(String(item.claimedByAdminTelegramId)))}`;
     }
   }
 
   return (
     `📦 *سفارش #${shortOrderId}*\n\n` +
-    `🛍️ *خدمت:* ${item.catalogItemName}\n` +
+    `🛍️ *خدمت:* ${escapeMarkdown(item.catalogItemName)}\n` +
     `💰 *مبلغ:* ${priceDisplay}\n` +
     `👤 *خریدار:* ${buyerDisplay}\n` +
     `📊 *وضعیت:* ${statusDisplay}` +
@@ -100,9 +101,19 @@ export async function handleOrdersCommand(
       claimedByAdminDisplay: item.claimedByAdminUsername ?? undefined,
     });
 
-    await ctx.reply(messageText, {
-      parse_mode: 'Markdown',
-      reply_markup: keyboard,
-    });
+    try {
+      await ctx.reply(messageText, {
+        parse_mode: 'Markdown',
+        reply_markup: keyboard,
+      });
+    } catch (replyErr: any) {
+      if (replyErr?.message?.includes("can't parse entities")) {
+        await ctx.reply(messageText.replace(/[*_`\\]/g, ''), {
+          reply_markup: keyboard,
+        });
+      } else {
+        throw replyErr;
+      }
+    }
   }
 }

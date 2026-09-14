@@ -1,7 +1,7 @@
 import type { Context } from 'grammy';
 import type { BotConversation } from '@/bot/context';
 import type { OrderService } from '@/modules/order/order.service';
-import { isCancelCommand } from '@/core/shared/telegram.utils';
+import { isCancelCommand, escapeMarkdown } from '@/core/shared/telegram.utils';
 import {
   ORDER_REJECTION_CATEGORIES,
   type OrderRejectionCategoryCode,
@@ -191,16 +191,27 @@ export function createRejectOrderConversation(orderService: OrderService) {
                 `❌ *سفارش شما رد شد*\n\n` +
                 `📦 شناسه سفارش: #${shortOrderId}\n` +
                 `📋 علت رد: ${categoryInfo.label} (${categoryInfo.labelEn})\n` +
-                `${note ? `💬 توضیحات: ${note}\n` : ''}\n` +
+                `${note ? `💬 توضیحات: ${escapeMarkdown(note)}\n` : ''}\n` +
                 `💵 مبلغ برگشت داده شده به کیف پول: $${refundAmount}\n` +
                 `💰 موجودی فعلی کیف پول شما: $${updatedBalance}\n\n` +
                 `مبلغ سفارش به موجودی حساب شما برگشت داده شد.`;
 
-              await ctx.api.sendMessage(
-                buyer.telegramChatId.toString(),
-                buyerMessage,
-                { parse_mode: 'Markdown' }
-              );
+              try {
+                await ctx.api.sendMessage(
+                  buyer.telegramChatId.toString(),
+                  buyerMessage,
+                  { parse_mode: 'Markdown' }
+                );
+              } catch (sendErr: any) {
+                if (sendErr?.message?.includes("can't parse entities")) {
+                  await ctx.api.sendMessage(
+                    buyer.telegramChatId.toString(),
+                    buyerMessage.replace(/[*_`\\]/g, '')
+                  );
+                } else {
+                  throw sendErr;
+                }
+              }
             },
             updateAdminNotifications: async ({ notifications }) => {
               const rejectedKeyboard =

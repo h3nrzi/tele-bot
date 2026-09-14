@@ -3,6 +3,11 @@ import type { Order, OrderStatus } from '@/modules/order/order.entity';
 import type { CatalogItem } from '@/modules/catalog/catalog.entity';
 import { formatUsd } from '@/core/shared/currency.utils';
 import { formatPersianDateTime } from '@/core/shared/date.utils';
+import { escapeMarkdown } from '@/core/shared/telegram.utils';
+import {
+  ORDER_REJECTION_CATEGORIES,
+  type OrderRejectionCategoryCode,
+} from '@/bot/handlers/admin/order.keyboards';
 
 export interface MyOrderViewResult {
   messageText: string;
@@ -39,17 +44,48 @@ export function buildMyOrderView(
   let messageText =
     `📦 *وضعیت آخرین سفارش شما:*\n\n` +
     `🆔 شناسه سفارش: #${order.id}\n` +
-    `🛍️ نام خدمت: ${itemName}\n` +
+    `🛍️ نام خدمت: ${escapeMarkdown(itemName)}\n` +
     `💵 مبلغ سفارش: ${formatUsd(order.usdPriceSnapshot)}\n` +
     `📊 وضعیت: ${statusLabel}\n` +
     `📅 تاریخ ثبت: ${formatPersianDateTime(order.createdAt)}`;
 
   if (order.status === 'PROCESSING') {
     messageText += `\n\nℹ️ سفارش شما در حال حاضر در حال پردازش توسط ادمین است و امکان لغو آن وجود ندارد.`;
-  } else if (order.status === 'REJECTED' && order.rejectionCategory) {
-    messageText += `\n\nعلت رد سفارش: ${order.rejectionNote || order.rejectionCategory}`;
+  } else if (order.status === 'REJECTED') {
+    const categoryInfo =
+      order.rejectionCategory &&
+      order.rejectionCategory in ORDER_REJECTION_CATEGORIES
+        ? ORDER_REJECTION_CATEGORIES[
+            order.rejectionCategory as OrderRejectionCategoryCode
+          ]
+        : null;
+
+    let reasonText = '';
+    if (categoryInfo) {
+      if (categoryInfo.code === 'OTHER') {
+        reasonText = order.rejectionNote
+          ? escapeMarkdown(order.rejectionNote)
+          : categoryInfo.label;
+      } else {
+        reasonText = categoryInfo.label;
+        if (order.rejectionNote) {
+          reasonText += `\n💬 توضیحات: ${escapeMarkdown(order.rejectionNote)}`;
+        }
+      }
+    } else if (order.rejectionCategory) {
+      reasonText = escapeMarkdown(order.rejectionCategory);
+      if (order.rejectionNote) {
+        reasonText += `\n💬 توضیحات: ${escapeMarkdown(order.rejectionNote)}`;
+      }
+    } else if (order.rejectionNote) {
+      reasonText = escapeMarkdown(order.rejectionNote);
+    }
+
+    if (reasonText) {
+      messageText += `\n\nعلت رد سفارش: ${reasonText}`;
+    }
   } else if (order.status === 'FULFILLED' && order.deliveryContent) {
-    messageText += `\n\n📦 مشخصات تحویل:\n${order.deliveryContent}`;
+    messageText += `\n\n📦 مشخصات تحویل:\n${escapeMarkdown(order.deliveryContent)}`;
   }
 
   const keyboard = new InlineKeyboard();

@@ -40,10 +40,20 @@ export async function handleMyOrderCommand(
     latestResult?.catalogItem ?? null
   );
 
-  await ctx.reply(messageText, {
-    parse_mode: 'Markdown',
-    reply_markup: keyboard,
-  });
+  try {
+    await ctx.reply(messageText, {
+      parse_mode: 'Markdown',
+      reply_markup: keyboard,
+    });
+  } catch (replyErr: any) {
+    if (replyErr?.message?.includes("can't parse entities")) {
+      await ctx.reply(messageText.replace(/[*_`\\]/g, ''), {
+        reply_markup: keyboard,
+      });
+    } else {
+      throw replyErr;
+    }
+  }
 }
 
 /**

@@ -37,4 +37,15 @@ export function isValidUuid(id: string): boolean {
   );
 }
 
+/**
+ * Escapes special Telegram Markdown (legacy v1) characters in dynamic text.
+ * Characters '_', '*', '`', '[' and '\' are escaped with a preceding backslash.
+ */
+export function escapeMarkdown(text: string): string {
+  if (!text) {
+    return '';
+  }
+  return text.replace(/([\\_*`\[])/g, '\\$1');
+}
+
 

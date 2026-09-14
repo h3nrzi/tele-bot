@@ -181,6 +181,84 @@ describe('Buyer /myorder Command & Order Cancellation Flow (Ticket 08)', () => {
       expect(hasCancelButton).toBe(false);
       expect(keyboard.inline_keyboard.flat()).toHaveLength(0);
     });
+
+    it('renders Persian rejection category when status is REJECTED without note (e.g. CANNOT_VERIFY)', () => {
+      const order = {
+        id: '1a583732-5669-4a21-9aa4-ad441301a047',
+        usdPriceSnapshot: '35.00',
+        status: 'REJECTED',
+        rejectionCategory: 'CANNOT_VERIFY',
+        rejectionNote: null,
+        createdAt: new Date(),
+      } as any;
+
+      const catalogItem = {
+        id: 'cat-1',
+        name: 'اشتراک Chatgpt یک ماهه',
+      } as any;
+
+      const { messageText, keyboard, hasCancelButton } = buildMyOrderView(order, catalogItem);
+      expect(messageText).toContain('وضعیت: رد شده');
+      expect(messageText).toContain('علت رد سفارش: عدم امکان احراز اصالت سفارش');
+      expect(messageText).not.toContain('CANNOT_VERIFY');
+      expect(hasCancelButton).toBe(false);
+      expect(keyboard.inline_keyboard.flat()).toHaveLength(0);
+    });
+
+    it('renders rejection category and escaped note when status is REJECTED with note', () => {
+      const order = {
+        id: '1a583732-5669-4a21-9aa4-ad441301a047',
+        usdPriceSnapshot: '35.00',
+        status: 'REJECTED',
+        rejectionCategory: 'OUT_OF_STOCK',
+        rejectionNote: 'item_out_of_stock_temporary',
+        createdAt: new Date(),
+      } as any;
+
+      const catalogItem = {
+        id: 'cat-1',
+        name: 'Service Name',
+      } as any;
+
+      const { messageText } = buildMyOrderView(order, catalogItem);
+      expect(messageText).toContain('علت رد سفارش: عدم موجودی / ناموجود موقت');
+      expect(messageText).toContain('item\\_out\\_of\\_stock\\_temporary');
+    });
+
+    it('renders OTHER rejection note properly', () => {
+      const order = {
+        id: '1a583732-5669-4a21-9aa4-ad441301a047',
+        usdPriceSnapshot: '35.00',
+        status: 'REJECTED',
+        rejectionCategory: 'OTHER',
+        rejectionNote: 'custom_reason_text',
+        createdAt: new Date(),
+      } as any;
+
+      const { messageText } = buildMyOrderView(order, null);
+      expect(messageText).toContain('علت رد سفارش: custom\\_reason\\_text');
+    });
+
+    it('renders fulfilled order with escaped delivery content and escaped item name', () => {
+      const order = {
+        id: '1a583732-5669-4a21-9aa4-ad441301a047',
+        usdPriceSnapshot: '35.00',
+        status: 'FULFILLED',
+        deliveryContent: 'username: user_name_123\nkey: test*secret',
+        createdAt: new Date(),
+      } as any;
+
+      const catalogItem = {
+        id: 'cat-1',
+        name: 'Special_Item*Plan',
+      } as any;
+
+      const { messageText, hasCancelButton } = buildMyOrderView(order, catalogItem);
+      expect(messageText).toContain('Special\\_Item\\*Plan');
+      expect(messageText).toContain('user\\_name\\_123');
+      expect(messageText).toContain('test\\*secret');
+      expect(hasCancelButton).toBe(false);
+    });
   });
 
   describe('/myorder Command via bot.handleUpdate', () => {
