@@ -13,7 +13,7 @@ export interface InitiateTopUpInput {
 
 export interface InitiateTopUpResult {
   request: TopUpRequest;
-  exchangeRate: ExchangeRate;
+  exchangeRate?: ExchangeRate | null | undefined;
 }
 
 export interface SubmitReceiptInput {

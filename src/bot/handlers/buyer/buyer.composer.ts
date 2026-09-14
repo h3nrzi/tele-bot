@@ -21,6 +21,7 @@ import { BuyerService } from '@/modules/buyer/buyer.service';
 import { WalletService } from '@/modules/wallet/wallet.service';
 import { TopUpService } from '@/modules/top-up/top-up.service';
 import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import { CatalogService } from '@/modules/catalog/catalog.service';
 import { OrderService } from '@/modules/order/order.service';
@@ -31,6 +32,7 @@ export interface BuyerComposerOptions {
   walletService?: WalletService | undefined;
   topUpService?: TopUpService | undefined;
   exchangeRateService?: ExchangeRateService | undefined;
+  exchangeRateConfigService?: ExchangeRateConfigService | undefined;
   bankAccountService?: BankAccountService | undefined;
   catalogService?: CatalogService | undefined;
   orderService?: OrderService | undefined;
@@ -52,6 +54,8 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     options?.topUpService ?? container?.resolve(TopUpService);
   const exchangeRateService =
     options?.exchangeRateService ?? container?.resolve(ExchangeRateService);
+  const exchangeRateConfigService =
+    options?.exchangeRateConfigService ?? container?.resolve(ExchangeRateConfigService);
   const bankAccountService =
     options?.bankAccountService ?? container?.resolve(BankAccountService);
   const catalogService =
@@ -91,6 +95,7 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
   composer.command('topup', async (ctx) => {
     await handleTopUpCommand(ctx, {
       exchangeRateService,
+      exchangeRateConfigService,
       bankAccountService,
       buyerService,
       topUpService,
@@ -138,6 +143,7 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
     async (ctx) => {
       await handleTopUpCommand(ctx, {
         exchangeRateService,
+        exchangeRateConfigService,
         bankAccountService,
         buyerService,
         topUpService,

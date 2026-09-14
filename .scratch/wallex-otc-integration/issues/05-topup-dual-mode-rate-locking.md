@@ -14,15 +14,15 @@
 
 **Blocked by:** 03 (needs ExchangeRateConfigService for mode/spread lookup and WallexClient).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `initiateTopUp()` branches on Rate Mode from `ExchangeRateConfigService`
-- [ ] AUTO_SYNC path fetches OTC Quote, applies Spread, stores `locked_irr_per_usd` and `rate_source = 'OTC_QUOTE'`
-- [ ] AUTO_SYNC fallback uses latest Baseline Rate with `rate_source = 'BASELINE_FALLBACK'`
-- [ ] MANUAL path stores `locked_irr_per_usd` from current rate with `rate_source = 'MANUAL'`
-- [ ] `exchange_rate_id` is NULL for OTC_QUOTE, populated for MANUAL and BASELINE_FALLBACK
-- [ ] Spread calculation uses decimal precision
-- [ ] `irr_amount` computed from `locked_irr_per_usd × usd_amount`
-- [ ] Buyer invoice display uses `locked_irr_per_usd` uniformly
-- [ ] Integration tests: AUTO_SYNC + successful quote, AUTO_SYNC + failed quote fallback, MANUAL mode unchanged
-- [ ] Spread calculation accuracy tests
+- [x] `initiateTopUp()` branches on Rate Mode from `ExchangeRateConfigService`
+- [x] AUTO_SYNC path fetches OTC Quote, applies Spread, stores `locked_irr_per_usd` and `rate_source = 'OTC_QUOTE'`
+- [x] AUTO_SYNC fallback uses latest Baseline Rate with `rate_source = 'BASELINE_FALLBACK'`
+- [x] MANUAL path stores `locked_irr_per_usd` from current rate with `rate_source = 'MANUAL'`
+- [x] `exchange_rate_id` is NULL for OTC_QUOTE, populated for MANUAL and BASELINE_FALLBACK
+- [x] Spread calculation uses decimal precision
+- [x] `irr_amount` computed from `locked_irr_per_usd × usd_amount`
+- [x] Buyer invoice display uses `locked_irr_per_usd` uniformly
+- [x] Integration tests: AUTO_SYNC + successful quote, AUTO_SYNC + failed quote fallback, MANUAL mode unchanged
+- [x] Spread calculation accuracy tests

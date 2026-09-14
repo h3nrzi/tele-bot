@@ -4,6 +4,7 @@ import {
   formatUsd,
   formatIrr,
   computeIrrAmount,
+  calculateSpreadAdjustedRate,
   validateTopUpAmount,
 } from '@/core/shared/currency.utils';
 import { TopUpLimits } from '@/modules/top-up/top-up.limits.vo';
@@ -43,6 +44,38 @@ describe('Currency & Amount Validation Utilities', () => {
     it('handles rounding to nearest integer without fractional Rial loss', () => {
       // 10.333333 * 600000 = 6,199,999.8 -> rounds to 6,200,000
       expect(computeIrrAmount('10.333333', 600000n)).toBe(6200000n);
+    });
+  });
+
+  describe('calculateSpreadAdjustedRate', () => {
+    it('returns exact rate when spread is 0%', () => {
+      expect(calculateSpreadAdjustedRate(600000n, '0.00')).toBe(600000n);
+      expect(calculateSpreadAdjustedRate(905000n, 0)).toBe(905000n);
+    });
+
+    it('calculates spread adjusted rate accurately with decimal precision: otc * (1 + spread / 100)', () => {
+      // 905,000 * (1 + 1.50 / 100) = 905,000 * 1.015 = 918,575
+      expect(calculateSpreadAdjustedRate(905000n, '1.50')).toBe(918575n);
+
+      // 600,000 * (1 + 2.33 / 100) = 600,000 * 1.0233 = 613,980
+      expect(calculateSpreadAdjustedRate(600000n, '2.33')).toBe(613980n);
+
+      // 1,000,000 * (1 + 10 / 100) = 1,100,000
+      expect(calculateSpreadAdjustedRate(1000000n, '10.00')).toBe(1100000n);
+    });
+
+    it('rounds to nearest integer accurately', () => {
+      // 905,001 * 1.015 = 918,576.015 -> 918,576
+      expect(calculateSpreadAdjustedRate(905001n, '1.50')).toBe(918576n);
+
+      // 905,000 * 1.01555 = 919,072.75 -> 919,073
+      expect(calculateSpreadAdjustedRate(905000n, '1.555')).toBe(919073n);
+    });
+
+    it('accepts string, number, and Decimal types for arguments', () => {
+      expect(calculateSpreadAdjustedRate('600000', new Decimal('2.5'))).toBe(615000n);
+      expect(calculateSpreadAdjustedRate(600000, 2.5)).toBe(615000n);
+      expect(calculateSpreadAdjustedRate(new Decimal(600000), '2.5')).toBe(615000n);
     });
   });
 

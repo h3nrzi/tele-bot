@@ -94,6 +94,7 @@ export function createTopUpConversation(
           request: {
             usdAmount: initResult.request.usdAmount,
             irrAmount: initResult.request.irrAmount,
+            lockedIrrPerUsd: initResult.request.lockedIrrPerUsd,
             expiresAt: initResult.request.expiresAt,
           },
           activeAccount: {
@@ -115,6 +116,7 @@ export function createTopUpConversation(
       await ctx.reply(
         `درخواست افزایش موجودی ثبت شد!\n\n` +
         `مبلغ: ${formatUsd(request.usdAmount)}\n` +
+        `نرخ ارز: ${formatIrr(request.lockedIrrPerUsd)} ریال\n` +
         `مبلغ پرداختی به ریال: ${formatIrr(request.irrAmount)} ریال\n\n` +
         `مشخصات حساب بانکی:\n` +
         `شماره کارت: ${activeAccount.cardNumber}\n` +

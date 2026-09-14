@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import { createMockFetch } from '@tests/helpers/mock-context';
 import { createBot } from '@/bot/bot';
 import { setTestRate, setTestActiveAccount } from '@tests/helpers/fixtures';
 import { topUpRequests } from '@/modules/top-up/top-up.schema';
+import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
+import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
+import { WallexNetworkError } from '@/modules/wallex/wallex.errors';
+import { TOKENS } from '@/core/di/tokens';
 import { eq, count } from 'drizzle-orm';
 
 describe('/topup Buyer Command & Conversation Flow', () => {
@@ -57,12 +61,15 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     } as any;
   }
 
-  function createTestBot() {
+  function createTestBot(options?: { wallexClient?: WallexClient }) {
+    if (options?.wallexClient) {
+      container.register(TOKENS.WallexClient, { useValue: options.wallexClient });
+    }
     const repliedMessages: string[] = [];
     const { fetch: mockFetch } = createMockFetch(repliedMessages);
     const bot = createBot({
       token: 'test_token',
-      dbClient: db,
+      container,
       adminIds: `${adminChatId},${adminChatId2}`,
       client: {
         fetch: mockFetch,
@@ -80,7 +87,7 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     return { bot, repliedMessages };
   }
 
-  it('walks Buyer through happy path /topup flow and creates INITIATED request with card details', async () => {
+  it('walks Buyer through happy path /topup flow and creates INITIATED request with Bank Account details', async () => {
     // Setup exchange rate and active card
     await setTestRate(container, BigInt(adminChatId), 620000n);
     await setTestActiveAccount(
@@ -311,6 +318,120 @@ describe('/topup Buyer Command & Conversation Flow', () => {
     await bot.handleUpdate(makeMessageUpdate(3, buyerChatId, '/topup'));
     expect(repliedMessages).toHaveLength(3);
     expect(repliedMessages[2]).toContain('یک درخواست افزایش موجودی فعال دارید');
+  });
+
+  it('initiates top-up in AUTO_SYNC mode and renders clean invoice with OTC-sourced rate without live market disclosure', async () => {
+    // 1. Setup active bank account
+    await setTestActiveAccount(
+      container,
+      {
+        cardNumber: '6037991234567890',
+        cardHolderName: 'Ali Reza',
+        bankName: 'Mellat Bank',
+      }
+    );
+
+    // 2. Configure AUTO_SYNC mode with 1.50% spread
+    const configService = container.resolve(ExchangeRateConfigService);
+    await configService.updateConfig({
+      mode: 'AUTO_SYNC',
+      spreadPercent: '1.50',
+    });
+
+    // 3. Mock Wallex OTC quote: 905,000 IRR (90,500 TMN)
+    const mockWallexClient: WallexClient = {
+      getOtcPrice: vi.fn().mockResolvedValue({
+        symbol: 'USDTTMN',
+        side: 'BUY',
+        priceIrr: 905000n,
+      }),
+      placeOtcOrder: vi.fn(),
+    };
+
+    const { bot, repliedMessages } = createTestBot({ wallexClient: mockWallexClient });
+
+    // Step 1: /topup
+    await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, '/topup'));
+    expect(repliedMessages).toHaveLength(1);
+
+    // Step 2: USD amount 100
+    await bot.handleUpdate(makeMessageUpdate(2, buyerChatId, '100'));
+    expect(repliedMessages).toHaveLength(2);
+
+    const invoice = repliedMessages[1];
+    // Expected rate: 905,000 * 1.015 = 918,575 IRR
+    // Expected IRR total: 100 * 918,575 = 91,857,500 IRR
+    expect(invoice).toContain('$100.00');
+    expect(invoice).toContain('918,575');
+    expect(invoice).toContain('91,857,500');
+    expect(invoice).toContain('6037991234567890');
+    expect(invoice).toContain('Ali Reza');
+    expect(invoice).toContain('Mellat Bank');
+
+    // Verify NO disclosure of rate source or live market label
+    expect(invoice).not.toContain('والکس');
+    expect(invoice).not.toContain('OTC');
+    expect(invoice).not.toContain('زنده');
+    expect(invoice).not.toContain('اسپرد');
+
+    // Verify database row
+    const [requestRow] = await db.select().from(topUpRequests);
+    expect(requestRow).toBeDefined();
+    expect(requestRow!.usdAmount).toBe('100.00');
+    expect(requestRow!.irrAmount).toBe(91857500n);
+    expect(requestRow!.lockedIrrPerUsd).toBe(918575n);
+    expect(requestRow!.rateSource).toBe('OTC_QUOTE');
+    expect(requestRow!.exchangeRateId).toBeNull();
+    expect(requestRow!.status).toBe('INITIATED');
+  });
+
+  it('initiates top-up in AUTO_SYNC mode with baseline fallback when Wallex OTC quote fails', async () => {
+    // 1. Setup active bank account & baseline exchange rate
+    await setTestActiveAccount(
+      container,
+      {
+        cardNumber: '6037991234567890',
+        cardHolderName: 'Ali Reza',
+        bankName: 'Mellat Bank',
+      }
+    );
+    const baselineRate = await setTestRate(container, BigInt(adminChatId), 620000n);
+
+    // 2. Configure AUTO_SYNC mode with 2.00% spread
+    const configService = container.resolve(ExchangeRateConfigService);
+    await configService.updateConfig({
+      mode: 'AUTO_SYNC',
+      spreadPercent: '2.00',
+    });
+
+    // 3. Mock Wallex OTC quote failure
+    const mockWallexClient: WallexClient = {
+      getOtcPrice: vi.fn().mockRejectedValue(
+        new WallexNetworkError('Wallex connection refused')
+      ),
+      placeOtcOrder: vi.fn(),
+    };
+
+    const { bot, repliedMessages } = createTestBot({ wallexClient: mockWallexClient });
+
+    await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, '/topup'));
+    await bot.handleUpdate(makeMessageUpdate(2, buyerChatId, '100'));
+
+    expect(repliedMessages).toHaveLength(2);
+    const invoice = repliedMessages[1];
+    // Sourced from baseline: 620,000 IRR, total: 62,000,000 IRR
+    expect(invoice).toContain('$100.00');
+    expect(invoice).toContain('620,000');
+    expect(invoice).toContain('62,000,000');
+
+    // Verify DB row
+    const [requestRow] = await db.select().from(topUpRequests);
+    expect(requestRow).toBeDefined();
+    expect(requestRow!.usdAmount).toBe('100.00');
+    expect(requestRow!.irrAmount).toBe(62000000n);
+    expect(requestRow!.lockedIrrPerUsd).toBe(620000n);
+    expect(requestRow!.rateSource).toBe('BASELINE_FALLBACK');
+    expect(requestRow!.exchangeRateId).toBe(baselineRate.id);
   });
 
   it('fails bot creation / startup when TOPUP_MIN_USD or TOPUP_MAX_USD is missing', () => {

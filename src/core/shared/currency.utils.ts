@@ -41,10 +41,15 @@ export function formatIrr(
  * Computes round(usd_amount * irr_per_usd) using decimal.js and returns a bigint.
  */
 export function computeIrrAmount(
-  usdAmount: string | Decimal,
+  usdAmount: string | Decimal | UsdAmount,
   irrPerUsd: bigint | number | string | Decimal
 ): bigint {
-  const usd = usdAmount instanceof Decimal ? usdAmount : new Decimal(usdAmount);
+  const usd =
+    usdAmount instanceof UsdAmount
+      ? usdAmount.toDecimal()
+      : usdAmount instanceof Decimal
+        ? usdAmount
+        : new Decimal(usdAmount);
   const rate =
     irrPerUsd instanceof Decimal
       ? irrPerUsd
@@ -52,6 +57,28 @@ export function computeIrrAmount(
 
   const computed = usd.times(rate).round();
   return BigInt(computed.toFixed(0));
+}
+
+/**
+ * Calculates the buyer-facing exchange rate with spread applied:
+ * buyer_rate = otc_irr_per_usd × (1 + spread_percent / 100), rounded to the nearest integer.
+ */
+export function calculateSpreadAdjustedRate(
+  otcIrrPerUsd: bigint | number | string | Decimal,
+  spreadPercent: number | string | Decimal
+): bigint {
+  const otcDec =
+    otcIrrPerUsd instanceof Decimal
+      ? otcIrrPerUsd
+      : new Decimal(otcIrrPerUsd.toString());
+  const spreadDec =
+    spreadPercent instanceof Decimal
+      ? spreadPercent
+      : new Decimal(spreadPercent.toString());
+
+  const spreadFactor = new Decimal(1).plus(spreadDec.dividedBy(100));
+  const buyerRateDec = otcDec.times(spreadFactor).round();
+  return BigInt(buyerRateDec.toFixed(0));
 }
 
 export type ValidateTopUpAmountResult =

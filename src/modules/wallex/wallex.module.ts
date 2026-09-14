@@ -38,13 +38,17 @@ export function registerWallexModule(container: DependencyContainer): void {
   // Register WallexClient factory
   container.register<WallexClient>(TOKENS.WallexClient, {
     useFactory: (c) => {
-      let config: WallexConfig;
-      if (c.isRegistered(TOKENS.WallexConfig)) {
-        config = c.resolve<WallexConfig>(TOKENS.WallexConfig);
-      } else {
-        config = WallexConfigVo.fromEnv();
+      try {
+        let config: WallexConfig;
+        if (c.isRegistered(TOKENS.WallexConfig)) {
+          config = c.resolve<WallexConfig>(TOKENS.WallexConfig);
+        } else {
+          config = WallexConfigVo.fromEnv();
+        }
+        return new WallexHttpClient(config);
+      } catch {
+        return undefined as unknown as WallexClient;
       }
-      return new WallexHttpClient(config);
     },
   });
 }

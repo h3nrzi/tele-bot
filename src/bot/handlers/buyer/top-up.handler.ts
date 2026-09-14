@@ -1,6 +1,7 @@
 import type { BotContext } from '@/bot/context';
 import { resolveAdminIds } from '@/bot/middleware/admin.middleware';
 import type { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import type { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import type { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import type { BuyerService } from '@/modules/buyer/buyer.service';
 import type { TopUpService } from '@/modules/top-up/top-up.service';
@@ -11,6 +12,7 @@ export interface TopUpHandlerDependencies {
   bankAccountService: BankAccountService;
   buyerService: BuyerService;
   topUpService: TopUpService;
+  exchangeRateConfigService?: ExchangeRateConfigService | undefined;
   adminIds?: string | Set<bigint> | undefined;
 }
 
@@ -26,11 +28,12 @@ export async function handleTopUpCommand(
     return;
   }
 
-  const { exchangeRateService, bankAccountService, buyerService, topUpService, adminIds } = deps;
+  const { exchangeRateService, exchangeRateConfigService, bankAccountService, buyerService, topUpService, adminIds } = deps;
 
   // 1. Check if Exchange Rate is configured
+  const isAutoSync = (await exchangeRateConfigService?.getConfig())?.isAutoSync() ?? false;
   const currentRate = await exchangeRateService.getCurrentRate();
-  if (!currentRate) {
+  if (!currentRate && !isAutoSync) {
     await ctx.reply('افزایش موجودی موقتاً در دسترس نیست. لطفاً بعداً تلاش کنید.');
 
     const resolvedAdminIds = resolveAdminIds(adminIds);
