@@ -20,6 +20,18 @@ export interface SyncBaselineRateDependencies {
   logger?: SyncLogger | undefined;
 }
 
+export interface BaselineRateSyncWorkerOptions {
+  exchangeRateService: ExchangeRateService;
+  exchangeRateConfigService: ExchangeRateConfigService;
+  wallexClient?: WallexClient | undefined;
+  botTelegramId?: bigint | number | undefined;
+  logger?: SyncLogger | undefined;
+}
+
+export interface StartSyncOptions {
+  runImmediately?: boolean | undefined;
+}
+
 /**
  * Standalone callable sync function for unit testing and execution without timers.
  * Fetches an OTC price quote from Wallex ('USDTTMN', 'BUY') and calls ExchangeRateService.setRate()
@@ -45,17 +57,6 @@ export async function syncBaselineRate(
   }
 }
 
-export interface BaselineRateSyncWorkerOptions {
-  exchangeRateService: ExchangeRateService;
-  exchangeRateConfigService: ExchangeRateConfigService;
-  wallexClient?: WallexClient | undefined;
-  botTelegramId?: bigint | number | undefined;
-  logger?: SyncLogger | undefined;
-}
-
-export interface StartSyncOptions {
-  runImmediately?: boolean | undefined;
-}
 
 /**
  * In-process background worker managing the periodic baseline rate sync timer.
@@ -122,10 +123,9 @@ export class BaselineRateSyncWorker {
     return this.currentIntervalMinutes;
   }
 
-  /**
-   * Executes a single baseline rate sync.
-   * Exported and accessible without timers.
-   */
+
+  // Executes a single baseline rate sync.
+  // Exported and accessible without timers.
   public async sync(): Promise<ExchangeRate | null> {
     if (this.isSyncing) {
       this.logger?.warn?.('Baseline rate sync is already in progress, skipping concurrent run.');
@@ -158,10 +158,9 @@ export class BaselineRateSyncWorker {
     }
   }
 
-  /**
-   * Starts the periodic background sync timer.
-   * Interval is sourced from the exchange_rate_config table if not explicitly provided.
-   */
+
+  // Starts the periodic background sync timer.
+  // Interval is sourced from the exchange_rate_config table if not explicitly provided.
   public async start(
     intervalMinutes?: number,
     options?: StartSyncOptions
@@ -212,9 +211,8 @@ export class BaselineRateSyncWorker {
     this.logger?.info?.(`Baseline rate sync worker started with interval of ${interval} minutes.`);
   }
 
-  /**
-   * Stops the periodic background sync timer.
-   */
+  // 
+  // Stops the periodic background sync timer.
   public stop(): void {
     if (this.timer) {
       clearInterval(this.timer);

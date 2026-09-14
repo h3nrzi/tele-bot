@@ -13,6 +13,18 @@ export interface RateModeHandlerDependencies {
   syncWorker?: BaselineRateSyncWorker | undefined;
 }
 
+async function editOrReply(ctx: Context, message: string): Promise<void> {
+  if (ctx.callbackQuery?.message) {
+    try {
+      await ctx.editMessageText(message, { parse_mode: 'Markdown' });
+      return;
+    } catch {
+      // If edit fails (e.g. content unchanged or timeout), fallback to reply
+    }
+  }
+  await ctx.reply(message, { parse_mode: 'Markdown' });
+}
+
 /**
  * Handles the /ratemode command and '🔄 حالت نرخ ارز' button.
  * Prompts the admin with the current Rate Mode and an inline confirmation button to switch modes.
@@ -95,7 +107,7 @@ export async function handleRateModeSwitchCallback(
             text: 'صرافی والکس پیکربندی نشده است.',
             show_alert: true,
           });
-        } catch {}
+        } catch { }
       }
       await editOrReply(
         ctx,
@@ -130,7 +142,7 @@ export async function handleRateModeSwitchCallback(
       if (ctx.callbackQuery) {
         try {
           await ctx.answerCallbackQuery({ text: 'حالت نرخ ارز با موفقیت به خودکار تغییر یافت.' });
-        } catch {}
+        } catch { }
       }
 
       await editOrReply(
@@ -146,7 +158,7 @@ export async function handleRateModeSwitchCallback(
             text: 'خطا در ارتباط با والکس. تغییر حالت لغو شد.',
             show_alert: true,
           });
-        } catch {}
+        } catch { }
       }
 
       const errorMessage = err?.message || 'خطای نامشخص در ارتباط با والکس';
@@ -170,7 +182,7 @@ export async function handleRateModeSwitchCallback(
     if (ctx.callbackQuery) {
       try {
         await ctx.answerCallbackQuery({ text: 'حالت نرخ ارز با موفقیت به دستی تغییر یافت.' });
-      } catch {}
+      } catch { }
     }
 
     await editOrReply(
@@ -188,19 +200,7 @@ export async function handleRateModeCancelCallback(ctx: Context): Promise<void> 
   if (ctx.callbackQuery) {
     try {
       await ctx.answerCallbackQuery();
-    } catch {}
+    } catch { }
   }
   await editOrReply(ctx, '❌ تغییر حالت نرخ ارز لغو شد.');
-}
-
-async function editOrReply(ctx: Context, message: string): Promise<void> {
-  if (ctx.callbackQuery?.message) {
-    try {
-      await ctx.editMessageText(message, { parse_mode: 'Markdown' });
-      return;
-    } catch {
-      // If edit fails (e.g. content unchanged or timeout), fallback to reply
-    }
-  }
-  await ctx.reply(message, { parse_mode: 'Markdown' });
 }
