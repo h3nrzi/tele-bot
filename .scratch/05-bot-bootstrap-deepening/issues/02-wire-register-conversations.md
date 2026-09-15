@@ -4,12 +4,12 @@
 
 **Blocked by:** 01 — Extract `registerConversations` to `src/bot/conversations.ts`
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `bot.ts` calls `bot.use(conversations())` then `registerConversations(bot, appContainer, limits)` in place of the nine scattered `bot.use(createConversation(…))` calls
-- [ ] All nine conversation-factory imports are removed from `bot.ts`
-- [ ] All seven service-class imports that were only used for conversation wiring are removed from `bot.ts`
-- [ ] `CreateBotOptions` interface is unchanged (same fields, same types, same optionality)
-- [ ] Return type of `createBot` is still `Bot<BotContext>`
-- [ ] TypeScript compiles with no errors (`tsc --noEmit` passes)
-- [ ] All existing bot-layer tests pass unmodified (`vitest run tests/bot/`)
+- [x] `bot.ts` calls `bot.use(conversations())` then `registerConversations(bot, appContainer, limits)` in place of the nine scattered `bot.use(createConversation(…))` calls
+- [x] All nine conversation-factory imports are removed from `bot.ts`
+- [x] All seven service-class imports that were only used for conversation wiring are removed from `bot.ts`
+- [x] `CreateBotOptions` interface is unchanged (same fields, same types, same optionality)
+- [x] Return type of `createBot` is still `Bot<BotContext>`
+- [x] TypeScript compiles with no errors (`tsc --noEmit` passes)
+- [x] All existing bot-layer tests pass unmodified (`vitest run tests/bot/`)
