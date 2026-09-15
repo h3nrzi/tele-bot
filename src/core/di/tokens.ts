@@ -37,6 +37,7 @@ export const TOKENS = {
   TopUpService: Symbol('TopUpService'),
   CatalogService: Symbol('CatalogService'),
   OrderService: Symbol('OrderService'),
+  OrderNotifier: Symbol('OrderNotifier'),
   OtcPurchaseService: Symbol('OtcPurchaseService'),
   OtcPurchaseNotifier: Symbol('OtcPurchaseNotifier'),
   BaselineRateSyncWorker: Symbol('BaselineRateSyncWorker'),

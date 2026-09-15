@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Create `src/modules/order/order.notifier.interface.ts` exporting `IOrderNotifier` with five async methods.
-- [ ] Each method's context type is defined in the same file (they will move into `TelegramOrderNotifier` as private shapes in ticket 04).
-- [ ] Add `OrderNotifier: Symbol('OrderNotifier')` to `TOKENS` in `src/core/di/tokens.ts`.
-- [ ] No existing files other than `tokens.ts` are modified.
-- [ ] TypeScript compiles cleanly with no new errors.
+- [x] Create `src/modules/order/order.notifier.interface.ts` exporting `IOrderNotifier` with five async methods.
+- [x] Each method's context type is defined in the same file (they will move into `TelegramOrderNotifier` as private shapes in ticket 04).
+- [x] Add `OrderNotifier: Symbol('OrderNotifier')` to `TOKENS` in `src/core/di/tokens.ts`.
+- [x] No existing files other than `tokens.ts` are modified.
+- [x] TypeScript compiles cleanly with no new errors.
