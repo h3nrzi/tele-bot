@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import 'reflect-metadata';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestDatabase } from '@tests/helpers/test-db';
 import {
   createTestBuyer,
@@ -14,14 +15,21 @@ import {
   InvalidOrderStatusError,
   OrderNotOwnedByBuyerError,
 } from '@/modules/order/order.errors';
-import { orders } from '@/modules/order/order.schema';
+import { orders, orderAdminNotifications } from '@/modules/order/order.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
 import { eq } from 'drizzle-orm';
-import type { OrderAdminNotificationPayload } from '@/modules/order/dtos/order.dto';
+import { InMemoryOrderNotifier } from '@tests/helpers/in-memory-order-notifier';
+import { TOKENS } from '@/core/di/tokens';
 
 describe('Order Cancellation Service (Ticket 08)', () => {
   const { db, container } = setupTestDatabase();
+  let notifier: InMemoryOrderNotifier;
+
+  beforeEach(() => {
+    notifier = new InMemoryOrderNotifier();
+    container.register(TOKENS.OrderNotifier, { useValue: notifier });
+  });
 
   it('happy path from PLACED: refund ledger written, balance restored, status -> CANCELLED, cancelledAt set, reversed_by link set', async () => {
     const { buyer, wallet } = await createTestBuyer(container, {
@@ -345,55 +353,29 @@ describe('Order Cancellation Service (Ticket 08)', () => {
       isActive: true,
     });
 
-    const mockAdminPayloads: OrderAdminNotificationPayload[] = [
-      { adminTelegramId: 1001n, chatId: 1001n, messageId: 9001n },
-      { adminTelegramId: 1002n, chatId: 1002n, messageId: 9002n },
-    ];
+    const { order: placedOrder } = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
 
-    const { order: placedOrder } = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => mockAdminPayloads,
-      }
-    );
+    await db.insert(orderAdminNotifications).values([
+      { orderId: placedOrder.id, adminTelegramId: 1001n, chatId: 1001n, messageId: 9001n },
+      { orderId: placedOrder.id, adminTelegramId: 1002n, chatId: 1002n, messageId: 9002n },
+    ]);
 
-    let capturedBuyerContext: any = null;
-    let capturedAdminContext: any = null;
+    const result = await cancelTestOrder(container, {
+      orderId: placedOrder.id,
+      userId: buyer.id,
+    });
 
-    const result = await cancelTestOrder(
-      container,
-      {
-        orderId: placedOrder.id,
-        userId: buyer.id,
-      },
-      {
-        notifyBuyer: async (ctx) => {
-          capturedBuyerContext = ctx;
-        },
-        updateAdminNotifications: async (ctx) => {
-          capturedAdminContext = ctx;
-        },
-      }
-    );
-
-    // 1. Assert buyer notification context
-    expect(capturedBuyerContext).toBeDefined();
-    expect(capturedBuyerContext.order.id).toBe(placedOrder.id);
-    expect(capturedBuyerContext.buyer.id).toBe(buyer.id);
-    expect(capturedBuyerContext.refundAmount).toBe('10.00');
-    expect(capturedBuyerContext.updatedBalance).toBe('50.00');
-
-    // 2. Assert admin notification context
-    expect(capturedAdminContext).toBeDefined();
-    expect(capturedAdminContext.order.id).toBe(placedOrder.id);
-    expect(capturedAdminContext.order.status).toBe('CANCELLED');
-    expect(capturedAdminContext.refundAmount).toBe('10.00');
-    expect(capturedAdminContext.updatedBalance).toBe('50.00');
-    expect(capturedAdminContext.notifications).toHaveLength(2);
+    // 1. Assert buyer and admin notification context recorded on notifier
+    expect(notifier.recordedCancelled).toHaveLength(1);
+    const recorded = notifier.recordedCancelled[0]!;
+    expect(recorded.order.id).toBe(placedOrder.id);
+    expect(recorded.buyer.id).toBe(buyer.id);
+    expect(recorded.refundAmount).toBe('10.00');
+    expect(recorded.updatedBalance).toBe('50.00');
+    expect(recorded.notifications).toHaveLength(2);
 
     expect(result.adminNotifications).toHaveLength(2);
   });
@@ -420,21 +402,14 @@ describe('Order Cancellation Service (Ticket 08)', () => {
       catalogItemId: item.id,
     });
 
-    const result = await cancelTestOrder(
-      container,
-      {
-        orderId: placedOrder.id,
-        userId: buyer.id,
-      },
-      {
-        notifyBuyer: async () => {
-          throw new Error('Buyer blocked bot');
-        },
-        updateAdminNotifications: async () => {
-          throw new Error('Telegram network error');
-        },
-      }
+    vi.spyOn(notifier, 'onOrderCancelled').mockRejectedValueOnce(
+      new Error('Telegram network error')
     );
+
+    const result = await cancelTestOrder(container, {
+      orderId: placedOrder.id,
+      userId: buyer.id,
+    });
 
     // Cancellation still committed
     expect(result.order.status).toBe('CANCELLED');

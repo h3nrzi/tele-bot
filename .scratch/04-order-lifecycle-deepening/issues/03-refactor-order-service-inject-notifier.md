@@ -4,12 +4,12 @@
 
 **Blocked by:** 01 (`IOrderNotifier` interface), 02 (`InMemoryOrderNotifier` test double).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Add optional `@inject(TOKENS.OrderNotifier) private readonly notifier?: IOrderNotifier` to `OrderService` constructor.
-- [ ] Remove the `dependencies?` second parameter from `placeOrder`, `claimOrder`, `fulfilOrder`, `rejectOrder`, and `cancelOrder`.
-- [ ] Replace each `if (dependencies?.notify*)` block with `if (this.notifier)` calling the appropriate `IOrderNotifier` method.
-- [ ] Remove `PlaceOrderDependencies`, `ClaimOrderDependencies`, `FulfilOrderDependencies`, `RejectOrderDependencies`, `CancelOrderDependencies` from `order.dto.ts`.
-- [ ] Remove the `*NotificationContext` types from `order.dto.ts` (private shapes move to `TelegramOrderNotifier` in ticket 04).
-- [ ] Update all five service tests — inject `InMemoryOrderNotifier` at construction and assert on recorded calls instead of callback mocks.
-- [ ] TypeScript compiles cleanly; all updated tests pass.
+- [x] Add optional `@inject(TOKENS.OrderNotifier) private readonly notifier?: IOrderNotifier` to `OrderService` constructor.
+- [x] Remove the `dependencies?` second parameter from `placeOrder`, `claimOrder`, `fulfilOrder`, `rejectOrder`, and `cancelOrder`.
+- [x] Replace each `if (dependencies?.notify*)` block with `if (this.notifier)` calling the appropriate `IOrderNotifier` method.
+- [x] Remove `PlaceOrderDependencies`, `ClaimOrderDependencies`, `FulfilOrderDependencies`, `RejectOrderDependencies`, `CancelOrderDependencies` from `order.dto.ts`.
+- [x] Remove the `*NotificationContext` types from `order.dto.ts` (private shapes move to `TelegramOrderNotifier` in ticket 04).
+- [x] Update all five service tests — inject `InMemoryOrderNotifier` at construction and assert on recorded calls instead of callback mocks.
+- [x] TypeScript compiles cleanly; all updated tests pass.

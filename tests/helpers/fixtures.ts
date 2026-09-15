@@ -1,45 +1,40 @@
-import type { DependencyContainer } from 'tsyringe';
-import { BuyerService } from '@/modules/buyer/buyer.service';
-import type { RegisterBuyerInput, RegisterBuyerResult } from '@/modules/buyer/dtos/register-buyer.dto';
+import type { DbClient } from '@/core/database/client';
+import { createAppContainer } from '@/core/di/container';
+import type { BankAccount } from '@/modules/bank-account/bank-account.entity';
 import { BankAccountService } from '@/modules/bank-account/bank-account.service';
 import type { SetActiveAccountInput } from '@/modules/bank-account/dtos/set-active-account.dto';
-import type { BankAccount } from '@/modules/bank-account/bank-account.entity';
-import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
+import { BuyerService } from '@/modules/buyer/buyer.service';
+import type { RegisterBuyerInput, RegisterBuyerResult } from '@/modules/buyer/dtos/register-buyer.dto';
+import type { CatalogItem } from '@/modules/catalog/catalog.entity';
+import { CatalogService } from '@/modules/catalog/catalog.service';
+import type { CreateCatalogItemInput } from '@/modules/catalog/dtos/create-catalog-item.dto';
 import type { SetRateInput } from '@/modules/exchange-rate/dtos/set-rate.dto';
 import type { ExchangeRate } from '@/modules/exchange-rate/exchange-rate.entity';
-import { WalletService } from '@/modules/wallet/wallet.service';
-import type { GetBuyerWalletInput, BuyerWalletResult } from '@/modules/wallet/dtos/get-buyer-wallet.dto';
-import { TopUpService } from '@/modules/top-up/top-up.service';
+import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
 import type {
   InitiateTopUpInput,
   InitiateTopUpResult,
 } from '@/modules/top-up/dtos/top-up.dto';
-import { CatalogService } from '@/modules/catalog/catalog.service';
-import type { CreateCatalogItemInput } from '@/modules/catalog/dtos/create-catalog-item.dto';
-import type { CatalogItem } from '@/modules/catalog/catalog.entity';
-import type { DbClient } from '@/core/database/client';
-import { createAppContainer } from '@/core/di/container';
+import { TopUpService } from '@/modules/top-up/top-up.service';
+import type { BuyerWalletResult, GetBuyerWalletInput } from '@/modules/wallet/dtos/get-buyer-wallet.dto';
+import { WalletService } from '@/modules/wallet/wallet.service';
+import type { DependencyContainer } from 'tsyringe';
 
-import { OrderService } from '@/modules/order/order.service';
 import type {
-  PlaceOrderInput,
-  PlaceOrderDependencies,
-  PlaceOrderResult,
+  BuyerLatestOrderResult,
+  CancelOrderInput,
+  CancelOrderResult,
   ClaimOrderInput,
-  ClaimOrderDependencies,
   ClaimOrderResult,
   FulfilOrderInput,
-  FulfilOrderDependencies,
   FulfilOrderResult,
-  RejectOrderInput,
-  RejectOrderDependencies,
-  RejectOrderResult,
-  CancelOrderInput,
-  CancelOrderDependencies,
-  CancelOrderResult,
   GetLatestOrderInput,
-  BuyerLatestOrderResult,
+  PlaceOrderInput,
+  PlaceOrderResult,
+  RejectOrderInput,
+  RejectOrderResult,
 } from '@/modules/order/dtos/order.dto';
+import { OrderService } from '@/modules/order/order.service';
 
 
 function getContainer(containerOrDb: DependencyContainer | DbClient): DependencyContainer {
@@ -134,51 +129,51 @@ export async function listTestCatalogItems(
 export async function placeTestOrder(
   containerOrDb: DependencyContainer | DbClient,
   input: PlaceOrderInput,
-  dependencies?: PlaceOrderDependencies
+  legacyDeps?: any
 ): Promise<PlaceOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.placeOrder(input, dependencies);
+  return await service.placeOrder(input, legacyDeps);
 }
 
 export async function claimTestOrder(
   containerOrDb: DependencyContainer | DbClient,
   input: ClaimOrderInput,
-  dependencies?: ClaimOrderDependencies
+  legacyDeps?: any
 ): Promise<ClaimOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.claimOrder(input, dependencies);
+  return await service.claimOrder(input, legacyDeps);
 }
 
 export async function fulfilTestOrder(
   containerOrDb: DependencyContainer | DbClient,
   input: FulfilOrderInput,
-  dependencies?: FulfilOrderDependencies
+  legacyDeps?: any
 ): Promise<FulfilOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.fulfilOrder(input, dependencies);
+  return await service.fulfilOrder(input, legacyDeps);
 }
 
 export async function rejectTestOrder(
   containerOrDb: DependencyContainer | DbClient,
   input: RejectOrderInput,
-  dependencies?: RejectOrderDependencies
+  legacyDeps?: any
 ): Promise<RejectOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.rejectOrder(input, dependencies);
+  return await service.rejectOrder(input, legacyDeps);
 }
 
 export async function cancelTestOrder(
   containerOrDb: DependencyContainer | DbClient,
   input: CancelOrderInput,
-  dependencies?: CancelOrderDependencies
+  legacyDeps?: any
 ): Promise<CancelOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.cancelOrder(input, dependencies);
+  return await service.cancelOrder(input, legacyDeps);
 }
 
 export async function getTestLatestOrderForBuyer(

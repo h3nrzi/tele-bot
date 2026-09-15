@@ -1,26 +1,35 @@
-import { describe, it, expect } from 'vitest';
-import { setupTestDatabase } from '@tests/helpers/test-db';
+import 'reflect-metadata';
+import { TOKENS } from '@/core/di/tokens';
+import { ledgerEntries, ledgerTransactions } from '@/modules/ledger/ledger.schema';
 import {
+  InvalidOrderStatusError,
+  OrderNotFoundError,
+  OrderRejectionNoteRequiredError,
+} from '@/modules/order/order.errors';
+import { orderAdminNotifications, orders } from '@/modules/order/order.schema';
+import { OrderService } from '@/modules/order/order.service';
+import { wallets } from '@/modules/wallet/wallet.schema';
+import {
+  claimTestOrder,
   createTestBuyer,
   createTestCatalogItem,
   placeTestOrder,
-  claimTestOrder,
   rejectTestOrder,
 } from '@tests/helpers/fixtures';
-import { OrderService } from '@/modules/order/order.service';
-import {
-  OrderNotFoundError,
-  InvalidOrderStatusError,
-  OrderRejectionNoteRequiredError,
-} from '@/modules/order/order.errors';
-import { orders } from '@/modules/order/order.schema';
-import { wallets } from '@/modules/wallet/wallet.schema';
-import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
+import { InMemoryOrderNotifier } from '@tests/helpers/in-memory-order-notifier';
+import { setupTestDatabase } from '@tests/helpers/test-db';
 import { eq } from 'drizzle-orm';
-import type { OrderAdminNotificationPayload } from '@/modules/order/dtos/order.dto';
+import 'reflect-metadata';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Order Rejection Service (Ticket 07)', () => {
   const { db, container } = setupTestDatabase();
+  let notifier: InMemoryOrderNotifier;
+
+  beforeEach(() => {
+    notifier = new InMemoryOrderNotifier();
+    container.register(TOKENS.OrderNotifier, { useValue: notifier });
+  });
 
   it('happy path from PLACED: refund ledger written, balance restored, status -> REJECTED, reversed_by link set', async () => {
     const { buyer, wallet } = await createTestBuyer(container, {
@@ -366,64 +375,34 @@ describe('Order Rejection Service (Ticket 07)', () => {
       isActive: true,
     });
 
-    const mockAdminPayloads: OrderAdminNotificationPayload[] = [
-      { adminTelegramId: 1001n, chatId: 1001n, messageId: 9001n },
-      { adminTelegramId: 1002n, chatId: 1002n, messageId: 9002n },
-    ];
+    const { order: placedOrder } = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
 
-    const { order: placedOrder } = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => mockAdminPayloads,
-      }
-    );
+    await db.insert(orderAdminNotifications).values([
+      { orderId: placedOrder.id, adminTelegramId: 1001n, chatId: 1001n, messageId: 9001n },
+      { orderId: placedOrder.id, adminTelegramId: 1002n, chatId: 1002n, messageId: 9002n },
+    ]);
 
-    let capturedBuyerContext: any = null;
-    let capturedAdminContext: any = null;
+    const result = await rejectTestOrder(container, {
+      orderId: placedOrder.id,
+      adminTelegramId: 1001n,
+      rejectionCategory: 'CANNOT_VERIFY',
+      rejectionNote: 'Unable to verify payment legitimacy.',
+    });
 
-    const result = await rejectTestOrder(
-      container,
-      {
-        orderId: placedOrder.id,
-        adminTelegramId: 1001n,
-        rejectionCategory: 'CANNOT_VERIFY',
-        rejectionNote: 'Unable to verify payment legitimacy.',
-      },
-      {
-        notifyBuyer: async (ctx) => {
-          capturedBuyerContext = ctx;
-        },
-        updateAdminNotifications: async (ctx) => {
-          capturedAdminContext = ctx;
-        },
-      }
-    );
-
-    // 1. Assert buyer notification context
-    expect(capturedBuyerContext).toBeDefined();
-    expect(capturedBuyerContext.order.id).toBe(placedOrder.id);
-    expect(capturedBuyerContext.buyer.id).toBe(buyer.id);
-    expect(capturedBuyerContext.rejectionCategory).toBe('CANNOT_VERIFY');
-    expect(capturedBuyerContext.rejectionNote).toBe(
-      'Unable to verify payment legitimacy.'
-    );
-    expect(capturedBuyerContext.refundAmount).toBe('10.00');
-    expect(capturedBuyerContext.updatedBalance).toBe('50.00');
-
-    // 2. Assert admin notification context
-    expect(capturedAdminContext).toBeDefined();
-    expect(capturedAdminContext.order.id).toBe(placedOrder.id);
-    expect(capturedAdminContext.order.status).toBe('REJECTED');
-    expect(capturedAdminContext.rejectionCategory).toBe('CANNOT_VERIFY');
-    expect(capturedAdminContext.rejectionNote).toBe(
-      'Unable to verify payment legitimacy.'
-    );
-    expect(capturedAdminContext.adminTelegramId).toBe(1001n);
-    expect(capturedAdminContext.notifications).toHaveLength(2);
+    // 1. Assert notifier received correct context
+    expect(notifier.recordedRejected).toHaveLength(1);
+    const recorded = notifier.recordedRejected[0]!;
+    expect(recorded.order.id).toBe(placedOrder.id);
+    expect(recorded.buyer.id).toBe(buyer.id);
+    expect(recorded.rejectionCategory).toBe('CANNOT_VERIFY');
+    expect(recorded.rejectionNote).toBe('Unable to verify payment legitimacy.');
+    expect(recorded.refundAmount).toBe('10.00');
+    expect(recorded.updatedBalance).toBe('50.00');
+    expect(recorded.adminTelegramId).toBe(1001n);
+    expect(recorded.notifications).toHaveLength(2);
 
     expect(result.adminNotifications).toHaveLength(2);
   });
@@ -450,22 +429,15 @@ describe('Order Rejection Service (Ticket 07)', () => {
       catalogItemId: item.id,
     });
 
-    const result = await rejectTestOrder(
-      container,
-      {
-        orderId: placedOrder.id,
-        adminTelegramId: 1001n,
-        rejectionCategory: 'POLICY_VIOLATION',
-      },
-      {
-        notifyBuyer: async () => {
-          throw new Error('Buyer blocked bot');
-        },
-        updateAdminNotifications: async () => {
-          throw new Error('Telegram network error');
-        },
-      }
+    vi.spyOn(notifier, 'onOrderRejected').mockRejectedValueOnce(
+      new Error('Telegram network error')
     );
+
+    const result = await rejectTestOrder(container, {
+      orderId: placedOrder.id,
+      adminTelegramId: 1001n,
+      rejectionCategory: 'POLICY_VIOLATION',
+    });
 
     // Rejection still committed
     expect(result.order.status).toBe('REJECTED');

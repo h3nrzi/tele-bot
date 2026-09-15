@@ -1,25 +1,34 @@
-import { describe, it, expect } from 'vitest';
-import { setupTestDatabase } from '@tests/helpers/test-db';
+import 'reflect-metadata';
+import { TOKENS } from '@/core/di/tokens';
 import {
+  InvalidOrderStatusError,
+  OrderNotClaimedByAdminError,
+  OrderNotFoundError,
+} from '@/modules/order/order.errors';
+import { orderAdminNotifications, orders } from '@/modules/order/order.schema';
+import { OrderService } from '@/modules/order/order.service';
+import { wallets } from '@/modules/wallet/wallet.schema';
+import {
+  claimTestOrder,
   createTestBuyer,
   createTestCatalogItem,
-  placeTestOrder,
-  claimTestOrder,
   fulfilTestOrder,
+  placeTestOrder,
 } from '@tests/helpers/fixtures';
-import { OrderService } from '@/modules/order/order.service';
-import {
-  OrderNotFoundError,
-  OrderNotClaimedByAdminError,
-  InvalidOrderStatusError,
-} from '@/modules/order/order.errors';
-import { orders } from '@/modules/order/order.schema';
-import { wallets } from '@/modules/wallet/wallet.schema';
+import { InMemoryOrderNotifier } from '@tests/helpers/in-memory-order-notifier';
+import { setupTestDatabase } from '@tests/helpers/test-db';
 import { eq } from 'drizzle-orm';
-import type { OrderAdminNotificationPayload } from '@/modules/order/dtos/order.dto';
+import 'reflect-metadata';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Order Fulfilment Service (Ticket 06)', () => {
   const { db, container } = setupTestDatabase();
+  let notifier: InMemoryOrderNotifier;
+
+  beforeEach(() => {
+    notifier = new InMemoryOrderNotifier();
+    container.register(TOKENS.OrderNotifier, { useValue: notifier });
+  });
 
   it('happy path: claiming admin fulfils order -> delivery_content written, status transitions to FULFILLED, fulfilled_at set', async () => {
     const { buyer, wallet } = await createTestBuyer(container, {
@@ -285,26 +294,20 @@ describe('Order Fulfilment Service (Ticket 06)', () => {
       .where(eq(wallets.id, wallet.id));
 
     const item = await createTestCatalogItem(container, {
-      name: 'ChatGPT Plus 1 Month',
-      usdPrice: '20.00',
+      name: 'VPN 1 Month',
+      usdPrice: '5.00',
       isActive: true,
     });
 
-    const mockAdminPayloads: OrderAdminNotificationPayload[] = [
-      { adminTelegramId: 1001n, chatId: 1001n, messageId: 9001n },
-      { adminTelegramId: 1002n, chatId: 1002n, messageId: 9002n },
-    ];
+    const { order: placedOrder } = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
 
-    const { order: placedOrder } = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => mockAdminPayloads,
-      }
-    );
+    await db.insert(orderAdminNotifications).values([
+      { orderId: placedOrder.id, adminTelegramId: 1001n, chatId: 1001n, messageId: 9001n },
+      { orderId: placedOrder.id, adminTelegramId: 1002n, chatId: 1002n, messageId: 9002n },
+    ]);
 
     const adminTelegramId = 1001n;
 
@@ -314,41 +317,22 @@ describe('Order Fulfilment Service (Ticket 06)', () => {
       adminUsername: 'pro_admin',
     });
 
-    let capturedBuyerContext: any = null;
-    let capturedAdminContext: any = null;
-
     const deliveryContent = 'Here is your licence key: ABC-123-XYZ';
 
-    const result = await fulfilTestOrder(
-      container,
-      {
-        orderId: placedOrder.id,
-        adminTelegramId,
-        deliveryContent,
-      },
-      {
-        notifyBuyer: async (ctx) => {
-          capturedBuyerContext = ctx;
-        },
-        updateAdminNotifications: async (ctx) => {
-          capturedAdminContext = ctx;
-        },
-      }
-    );
+    const result = await fulfilTestOrder(container, {
+      orderId: placedOrder.id,
+      adminTelegramId,
+      deliveryContent,
+    });
 
-    // 1. Assert buyer notification context
-    expect(capturedBuyerContext).toBeDefined();
-    expect(capturedBuyerContext.order.id).toBe(placedOrder.id);
-    expect(capturedBuyerContext.buyer.id).toBe(buyer.id);
-    expect(capturedBuyerContext.deliveryContent).toBe(deliveryContent);
-
-    // 2. Assert admin notification context
-    expect(capturedAdminContext).toBeDefined();
-    expect(capturedAdminContext.order.id).toBe(placedOrder.id);
-    expect(capturedAdminContext.order.status).toBe('FULFILLED');
-    expect(capturedAdminContext.deliveryContent).toBe(deliveryContent);
-    expect(capturedAdminContext.adminTelegramId).toBe(adminTelegramId);
-    expect(capturedAdminContext.notifications).toHaveLength(2);
+    expect(notifier.recordedFulfilled).toHaveLength(1);
+    const recorded = notifier.recordedFulfilled[0]!;
+    expect(recorded.order.id).toBe(placedOrder.id);
+    expect(recorded.order.status).toBe('FULFILLED');
+    expect(recorded.buyer.id).toBe(buyer.id);
+    expect(recorded.deliveryContent).toBe(deliveryContent);
+    expect(recorded.adminTelegramId).toBe(adminTelegramId);
+    expect(recorded.notifications).toHaveLength(2);
 
     expect(result.adminNotifications).toHaveLength(2);
   });
@@ -384,22 +368,15 @@ describe('Order Fulfilment Service (Ticket 06)', () => {
 
     const deliveryContent = 'Secret token: 998877';
 
-    const result = await fulfilTestOrder(
-      container,
-      {
-        orderId: placedOrder.id,
-        adminTelegramId,
-        deliveryContent,
-      },
-      {
-        notifyBuyer: async () => {
-          throw new Error('Buyer blocked bot');
-        },
-        updateAdminNotifications: async () => {
-          throw new Error('Telegram network outage');
-        },
-      }
+    vi.spyOn(notifier, 'onOrderFulfilled').mockRejectedValueOnce(
+      new Error('Telegram network outage')
     );
+
+    const result = await fulfilTestOrder(container, {
+      orderId: placedOrder.id,
+      adminTelegramId,
+      deliveryContent,
+    });
 
     // Assert fulfilment succeeded despite notification errors
     expect(result.order.status).toBe('FULFILLED');

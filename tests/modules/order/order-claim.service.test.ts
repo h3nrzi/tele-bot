@@ -1,24 +1,33 @@
-import { describe, it, expect } from 'vitest';
-import { setupTestDatabase } from '@tests/helpers/test-db';
+import 'reflect-metadata';
+import { TOKENS } from '@/core/di/tokens';
 import {
+  InvalidOrderStatusError,
+  OrderAlreadyClaimedError,
+  OrderNotFoundError,
+} from '@/modules/order/order.errors';
+import { orderAdminNotifications, orders } from '@/modules/order/order.schema';
+import { OrderService } from '@/modules/order/order.service';
+import { wallets } from '@/modules/wallet/wallet.schema';
+import {
+  claimTestOrder,
   createTestBuyer,
   createTestCatalogItem,
   placeTestOrder,
-  claimTestOrder,
 } from '@tests/helpers/fixtures';
-import { OrderService } from '@/modules/order/order.service';
-import {
-  OrderAlreadyClaimedError,
-  InvalidOrderStatusError,
-  OrderNotFoundError,
-} from '@/modules/order/order.errors';
-import { orders, orderAdminNotifications } from '@/modules/order/order.schema';
-import { wallets } from '@/modules/wallet/wallet.schema';
+import { InMemoryOrderNotifier } from '@tests/helpers/in-memory-order-notifier';
+import { setupTestDatabase } from '@tests/helpers/test-db';
 import { eq } from 'drizzle-orm';
-import type { OrderAdminNotificationPayload } from '@/modules/order/dtos/order.dto';
+import 'reflect-metadata';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Order Claim Service (Ticket 05)', () => {
   const { db, container } = setupTestDatabase();
+  let notifier: InMemoryOrderNotifier;
+
+  beforeEach(() => {
+    notifier = new InMemoryOrderNotifier();
+    container.register(TOKENS.OrderNotifier, { useValue: notifier });
+  });
 
   it('happy path: transitions PLACED order to PROCESSING and sets claimed_by_admin_telegram_id and claimed_at', async () => {
     const { buyer, wallet } = await createTestBuyer(container, {
@@ -285,49 +294,34 @@ describe('Order Claim Service (Ticket 05)', () => {
       isActive: true,
     });
 
-    const mockAdminPayloads: OrderAdminNotificationPayload[] = [
-      { adminTelegramId: 1001n, chatId: 1001n, messageId: 8001n },
-      { adminTelegramId: 1002n, chatId: 1002n, messageId: 8002n },
-    ];
+    const { order: placedOrder } = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
 
-    const { order: placedOrder } = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => mockAdminPayloads,
-      }
-    );
+    await db.insert(orderAdminNotifications).values([
+      { orderId: placedOrder.id, adminTelegramId: 1001n, chatId: 1001n, messageId: 8001n },
+      { orderId: placedOrder.id, adminTelegramId: 1002n, chatId: 1002n, messageId: 8002n },
+    ]);
 
-    let capturedNotificationContext: any = null;
+    const claimResult = await claimTestOrder(container, {
+      orderId: placedOrder.id,
+      adminTelegramId: 1001n,
+      adminUsername: 'superadmin',
+    });
 
-    const claimResult = await claimTestOrder(
-      container,
-      {
-        orderId: placedOrder.id,
-        adminTelegramId: 1001n,
-        adminUsername: 'superadmin',
-      },
-      {
-        updateAdminNotifications: async (ctx) => {
-          capturedNotificationContext = ctx;
-        },
-      }
-    );
-
-    expect(capturedNotificationContext).toBeDefined();
-    expect(capturedNotificationContext.order.id).toBe(placedOrder.id);
-    expect(capturedNotificationContext.order.status).toBe('PROCESSING');
-    expect(capturedNotificationContext.claimedByAdminTelegramId).toBe(1001n);
-    expect(capturedNotificationContext.claimedByAdminUsername).toBe('superadmin');
-    expect(capturedNotificationContext.notifications).toHaveLength(2);
+    expect(notifier.recordedClaimed).toHaveLength(1);
+    const recorded = notifier.recordedClaimed[0]!;
+    expect(recorded.order.id).toBe(placedOrder.id);
+    expect(recorded.order.status).toBe('PROCESSING');
+    expect(recorded.claimedByAdminTelegramId).toBe(1001n);
+    expect(recorded.claimedByAdminUsername).toBe('superadmin');
+    expect(recorded.notifications).toHaveLength(2);
 
     expect(claimResult.adminNotifications).toHaveLength(2);
   });
 
-  it('completes claim successfully even if updateAdminNotifications callback throws', async () => {
+  it('completes claim successfully even if onOrderClaimed throws', async () => {
     const { buyer, wallet } = await createTestBuyer(container, {
       telegramChatId: 66778899,
       telegramUsername: 'error_notif_buyer',
@@ -349,18 +343,14 @@ describe('Order Claim Service (Ticket 05)', () => {
       catalogItemId: item.id,
     });
 
-    const claimResult = await claimTestOrder(
-      container,
-      {
-        orderId: placedOrder.id,
-        adminTelegramId: 1001n,
-      },
-      {
-        updateAdminNotifications: async () => {
-          throw new Error('Telegram API connection timeout');
-        },
-      }
+    vi.spyOn(notifier, 'onOrderClaimed').mockRejectedValueOnce(
+      new Error('Telegram API connection timeout')
     );
+
+    const claimResult = await claimTestOrder(container, {
+      orderId: placedOrder.id,
+      adminTelegramId: 1001n,
+    });
 
     expect(claimResult.order.status).toBe('PROCESSING');
 

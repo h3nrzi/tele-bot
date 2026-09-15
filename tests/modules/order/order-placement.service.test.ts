@@ -1,24 +1,33 @@
-import { describe, it, expect } from 'vitest';
-import { setupTestDatabase } from '@tests/helpers/test-db';
+import 'reflect-metadata';
+import { TOKENS } from '@/core/di/tokens';
+import { CatalogService } from '@/modules/catalog/catalog.service';
+import { ledgerEntries, ledgerTransactions } from '@/modules/ledger/ledger.schema';
+import {
+  CatalogItemUnavailableError,
+  InsufficientBalanceForOrderError,
+} from '@/modules/order/order.errors';
+import { orders } from '@/modules/order/order.schema';
+import { OrderService } from '@/modules/order/order.service';
+import { wallets } from '@/modules/wallet/wallet.schema';
 import {
   createTestBuyer,
   createTestCatalogItem,
   placeTestOrder,
 } from '@tests/helpers/fixtures';
-import { OrderService } from '@/modules/order/order.service';
-import { CatalogService } from '@/modules/catalog/catalog.service';
-import {
-  InsufficientBalanceForOrderError,
-  CatalogItemUnavailableError,
-} from '@/modules/order/order.errors';
-import { orders, orderAdminNotifications } from '@/modules/order/order.schema';
-import { wallets } from '@/modules/wallet/wallet.schema';
-import { ledgerTransactions, ledgerEntries } from '@/modules/ledger/ledger.schema';
-import { eq, count } from 'drizzle-orm';
-import type { OrderAdminNotificationPayload } from '@/modules/order/dtos/order.dto';
+import { InMemoryOrderNotifier } from '@tests/helpers/in-memory-order-notifier';
+import { setupTestDatabase } from '@tests/helpers/test-db';
+import { count, eq } from 'drizzle-orm';
+import 'reflect-metadata';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Order Placement Service (Ticket 04)', () => {
   const { db, container } = setupTestDatabase();
+  let notifier: InMemoryOrderNotifier;
+
+  beforeEach(() => {
+    notifier = new InMemoryOrderNotifier();
+    container.register(TOKENS.OrderNotifier, { useValue: notifier });
+  });
 
   it('places an order atomically: debits wallet, creates PLACED order, and writes double-entry ledger entries', async () => {
     const { buyer, wallet: initialWallet } = await createTestBuyer(container, {
@@ -319,7 +328,7 @@ describe('Order Placement Service (Ticket 04)', () => {
     expect(Number(txCount?.value ?? 0)).toBe(1);
   });
 
-  it('dispatches admin notifications and records order_admin_notifications rows', async () => {
+  it('dispatches admin notifications via injected IOrderNotifier', async () => {
     const { buyer, wallet } = await createTestBuyer(container, {
       telegramChatId: 77889900,
       telegramUsername: 'notify_buyer',
@@ -337,47 +346,17 @@ describe('Order Placement Service (Ticket 04)', () => {
       isActive: true,
     });
 
-    const mockAdminPayloads: OrderAdminNotificationPayload[] = [
-      { adminTelegramId: 1001n, chatId: 1001n, messageId: 9001n },
-      { adminTelegramId: 1002n, chatId: 1002n, messageId: 9002n },
-    ];
+    const result = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
 
-    let capturedContext: any = null;
-
-    const result = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async (ctx) => {
-          capturedContext = ctx;
-          return mockAdminPayloads;
-        },
-      }
-    );
-
-    // Verify captured context
-    expect(capturedContext).toBeDefined();
-    expect(capturedContext.order.id).toBe(result.order.id);
-    expect(capturedContext.catalogItem.name).toBe('Netflix 1 Month');
-    expect(capturedContext.buyer.id).toBe(buyer.id);
-    expect(capturedContext.postDebitBalance).toBe('18.00');
-
-    // Verify admin notifications saved in DB
-    const dbNotifications = await db
-      .select()
-      .from(orderAdminNotifications)
-      .where(eq(orderAdminNotifications.orderId, result.order.id));
-
-    expect(dbNotifications).toHaveLength(2);
-    expect(dbNotifications.map((n) => Number(n.adminTelegramId))).toEqual(
-      expect.arrayContaining([1001, 1002])
-    );
-    expect(dbNotifications.map((n) => Number(n.messageId))).toEqual(
-      expect.arrayContaining([9001, 9002])
-    );
+    expect(notifier.recordedPlaced).toHaveLength(1);
+    const recorded = notifier.recordedPlaced[0]!;
+    expect(recorded.order.id).toBe(result.order.id);
+    expect(recorded.catalogItem.name).toBe('Netflix 1 Month');
+    expect(recorded.buyer.id).toBe(buyer.id);
+    expect(recorded.postDebitBalance).toBe('18.00');
   });
 
   it('completes order placement successfully even if admin notification dispatch fails', async () => {
@@ -397,18 +376,14 @@ describe('Order Placement Service (Ticket 04)', () => {
       isActive: true,
     });
 
-    const result = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => {
-          throw new Error('Telegram network outage');
-        },
-      }
+    vi.spyOn(notifier, 'onOrderPlaced').mockRejectedValueOnce(
+      new Error('Telegram network outage')
     );
+
+    const result = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
 
     expect(result.order.status).toBe('PLACED');
     expect(result.wallet.availableBalance).toBe('20.00');

@@ -1,58 +1,127 @@
-import { injectable, inject } from 'tsyringe';
 import type { DbClient } from '@/core/database/client';
 import { getDefaultDb } from '@/core/database/client';
 import type { DbExecutor } from '@/core/database/types';
-import type { IOrderRepository } from '@/modules/order/order.repository.interface';
-import type { ICatalogRepository } from '@/modules/catalog/catalog.repository.interface';
-import type { IBuyerRepository } from '@/modules/buyer/buyer.repository.interface';
-import type { IWalletRepository } from '@/modules/wallet/wallet.repository.interface';
-import { LedgerService } from '@/modules/ledger/ledger.service';
-import { Order, OrderAdminNotification } from '@/modules/order/order.entity';
-import {
-  InsufficientBalanceForOrderError,
-  CatalogItemUnavailableError,
-  OrderNotFoundError,
-  OrderAlreadyClaimedError,
-  InvalidOrderStatusError,
-  OrderNotClaimedByAdminError,
-  OrderRejectionNoteRequiredError,
-  OrderNotOwnedByBuyerError,
-} from '@/modules/order/order.errors';
-import { WalletNotFoundError } from '@/modules/wallet/wallet.errors';
-import { BuyerNotFoundError } from '@/modules/buyer/buyer.errors';
-import { normalizeChatId } from '@/core/shared/telegram.utils';
-import type {
-  PlaceOrderInput,
-  PlaceOrderDependencies,
-  PlaceOrderResult,
-  OrderAdminNotificationContext,
-  ClaimOrderInput,
-  ClaimOrderDependencies,
-  ClaimOrderResult,
-  ClaimOrderNotificationContext,
-  FulfilOrderInput,
-  FulfilOrderDependencies,
-  FulfilOrderResult,
-  FulfilOrderNotificationContext,
-  RejectOrderInput,
-  RejectOrderDependencies,
-  RejectOrderResult,
-  RejectOrderBuyerNotificationContext,
-  RejectOrderNotificationContext,
-  CancelOrderInput,
-  CancelOrderDependencies,
-  CancelOrderResult,
-  CancelOrderBuyerNotificationContext,
-  CancelOrderNotificationContext,
-  GetLatestOrderInput,
-  BuyerLatestOrderResult,
-  AdminOrderQueueItem,
-} from '@/modules/order/dtos/order.dto';
 import { TOKENS } from '@/core/di/tokens';
+import { normalizeChatId } from '@/core/shared/telegram.utils';
 import type { Buyer } from '@/modules/buyer/buyer.entity';
-import type { Wallet } from '@/modules/wallet/wallet.entity';
+import { BuyerNotFoundError } from '@/modules/buyer/buyer.errors';
+import type { IBuyerRepository } from '@/modules/buyer/buyer.repository.interface';
+import type { ICatalogRepository } from '@/modules/catalog/catalog.repository.interface';
 import type { LedgerTransaction } from '@/modules/ledger/ledger-transaction.entity';
+import { LedgerService } from '@/modules/ledger/ledger.service';
+import type { CatalogItem } from '@/modules/catalog/catalog.entity';
+import type {
+  AdminOrderQueueItem,
+  BuyerLatestOrderResult,
+  CancelOrderInput,
+  CancelOrderResult,
+  ClaimOrderInput,
+  ClaimOrderResult,
+  FulfilOrderInput,
+  FulfilOrderResult,
+  GetLatestOrderInput,
+  OrderAdminNotificationPayload,
+  PlaceOrderInput,
+  PlaceOrderResult,
+  RejectOrderInput,
+  RejectOrderResult,
+} from '@/modules/order/dtos/order.dto';
+import { Order, type OrderAdminNotification } from '@/modules/order/order.entity';
+import {
+  CatalogItemUnavailableError,
+  InsufficientBalanceForOrderError,
+  InvalidOrderStatusError,
+  OrderAlreadyClaimedError,
+  OrderNotClaimedByAdminError,
+  OrderNotFoundError,
+  OrderNotOwnedByBuyerError,
+  OrderRejectionNoteRequiredError,
+} from '@/modules/order/order.errors';
+import type { IOrderNotifier } from '@/modules/order/order.notifier.interface';
+import type { IOrderRepository } from '@/modules/order/order.repository.interface';
+import type { Wallet } from '@/modules/wallet/wallet.entity';
+import { WalletNotFoundError } from '@/modules/wallet/wallet.errors';
+import type { IWalletRepository } from '@/modules/wallet/wallet.repository.interface';
+import { inject, injectable } from 'tsyringe';
 
+/**
+ * Backward-compatibility dependency shapes for existing callers until Ticket 05 refactor.
+ * Not part of public order.dto.ts.
+ */
+export interface LegacyPlaceOrderDependencies {
+  notifyAdmins?: (context: {
+    order: Order;
+    catalogItem: CatalogItem;
+    buyer: Buyer;
+    postDebitBalance: string;
+  }) => Promise<OrderAdminNotificationPayload[] | void>;
+}
+
+export interface LegacyClaimOrderDependencies {
+  updateAdminNotifications?: (context: {
+    order: Order;
+    claimedByAdminTelegramId: bigint;
+    claimedByAdminUsername?: string | null;
+    notifications: OrderAdminNotification[];
+  }) => Promise<void>;
+}
+
+export interface LegacyFulfilOrderDependencies {
+  notifyBuyer?: (context: {
+    order: Order;
+    catalogItem?: CatalogItem;
+    buyer: Buyer;
+    deliveryContent: string;
+  }) => Promise<void>;
+  updateAdminNotifications?: (context: {
+    order: Order;
+    claimedByAdminUsername?: string | null;
+    claimedByAdminTelegramId?: bigint | null;
+    notifications: OrderAdminNotification[];
+  }) => Promise<void>;
+}
+
+export interface LegacyRejectOrderDependencies {
+  notifyBuyer?: (context: {
+    order: Order;
+    catalogItem?: CatalogItem;
+    buyer: Buyer;
+    refundAmount: string;
+    updatedBalance: string;
+    rejectionReason?: string;
+    rejectionCategory?: string;
+    rejectionNote?: string | null;
+  }) => Promise<void>;
+  updateAdminNotifications?: (context: {
+    order: Order;
+    buyer?: Buyer;
+    rejectionCategory?: string;
+    rejectionNote?: string | null;
+    notifications: OrderAdminNotification[];
+    refundAmount?: string;
+    updatedBalance?: string;
+    claimedByAdminTelegramId?: bigint | null;
+    claimedByAdminUsername?: string | null;
+  }) => Promise<void>;
+}
+
+export interface LegacyCancelOrderDependencies {
+  notifyBuyer?: (context: {
+    order: Order;
+    catalogItem?: CatalogItem;
+    buyer: Buyer;
+    refundAmount: string;
+    updatedBalance: string;
+  }) => Promise<void>;
+  updateAdminNotifications?: (context: {
+    order: Order;
+    catalogItem?: CatalogItem;
+    buyer?: Buyer;
+    refundAmount?: string;
+    updatedBalance?: string;
+    notifications: OrderAdminNotification[];
+  }) => Promise<void>;
+}
 
 @injectable()
 export class OrderService {
@@ -67,7 +136,9 @@ export class OrderService {
     @inject(TOKENS.WalletRepository)
     private readonly walletRepo: IWalletRepository<DbExecutor>,
     @inject(TOKENS.LedgerService)
-    private readonly ledgerService: LedgerService
+    private readonly ledgerService: LedgerService,
+    @inject(TOKENS.OrderNotifier)
+    private readonly notifier?: IOrderNotifier
   ) { }
 
   private async resolveBuyer(
@@ -109,9 +180,34 @@ export class OrderService {
    */
   public async placeOrder(
     input: PlaceOrderInput,
-    dependencies?: PlaceOrderDependencies,
     executor?: DbExecutor
+  ): Promise<PlaceOrderResult>;
+  public async placeOrder(
+    input: PlaceOrderInput,
+    legacyDeps?: LegacyPlaceOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<PlaceOrderResult>;
+  public async placeOrder(
+    input: PlaceOrderInput,
+    depsOrExecutor?: unknown,
+    maybeExecutor?: DbExecutor
   ): Promise<PlaceOrderResult> {
+    let executor: DbExecutor | undefined;
+    let legacyDeps: any;
+
+    if (depsOrExecutor) {
+      if (
+        typeof depsOrExecutor === 'object' &&
+        ('select' in (depsOrExecutor as object) ||
+          'query' in (depsOrExecutor as object))
+      ) {
+        executor = depsOrExecutor as DbExecutor;
+      } else {
+        legacyDeps = depsOrExecutor;
+        executor = maybeExecutor;
+      }
+    }
+
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 
     // 1. Resolve Buyer & Catalog Item
@@ -198,21 +294,31 @@ export class OrderService {
     }
 
     // 3. Dispatch admin push notifications (post-commit, fire-and-forget)
-    let savedNotifications: OrderAdminNotification[] = [];
-
-    if (dependencies?.notifyAdmins) {
+    if (this.notifier) {
       try {
-        const notificationContext: OrderAdminNotificationContext = {
+        await this.notifier.onOrderPlaced({
           order: txResult.order,
           catalogItem: txResult.catalogItem,
           buyer: txResult.buyer,
           postDebitBalance: txResult.wallet.availableBalance,
-        };
-
-        const payloads = await dependencies.notifyAdmins(notificationContext);
+        });
+      } catch (notifyErr) {
+        console.error(
+          `Failed to dispatch admin notifications for order ${txResult.order.id}:`,
+          notifyErr
+        );
+      }
+    } else if (legacyDeps?.notifyAdmins) {
+      try {
+        const payloads = await legacyDeps.notifyAdmins({
+          order: txResult.order,
+          catalogItem: txResult.catalogItem,
+          buyer: txResult.buyer,
+          postDebitBalance: txResult.wallet.availableBalance,
+        });
         if (payloads && payloads.length > 0) {
-          savedNotifications = await this.orderRepo.createAdminNotifications(
-            payloads.map((p) => ({
+          await this.orderRepo.createAdminNotifications(
+            payloads.map((p: any) => ({
               orderId: txResult.order.id,
               adminTelegramId: p.adminTelegramId,
               chatId: p.chatId,
@@ -229,9 +335,14 @@ export class OrderService {
       }
     }
 
+    const adminNotifications = await this.orderRepo.getAdminNotifications(
+      txResult.order.id,
+      client
+    );
+
     return {
       ...txResult,
-      adminNotifications: savedNotifications,
+      adminNotifications,
     };
   }
 
@@ -248,9 +359,34 @@ export class OrderService {
    */
   public async claimOrder(
     input: ClaimOrderInput,
-    dependencies?: ClaimOrderDependencies,
     executor?: DbExecutor
+  ): Promise<ClaimOrderResult>;
+  public async claimOrder(
+    input: ClaimOrderInput,
+    legacyDeps?: LegacyClaimOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<ClaimOrderResult>;
+  public async claimOrder(
+    input: ClaimOrderInput,
+    depsOrExecutor?: unknown,
+    maybeExecutor?: DbExecutor
   ): Promise<ClaimOrderResult> {
+    let executor: DbExecutor | undefined;
+    let legacyDeps: any;
+
+    if (depsOrExecutor) {
+      if (
+        typeof depsOrExecutor === 'object' &&
+        ('select' in (depsOrExecutor as object) ||
+          'query' in (depsOrExecutor as object))
+      ) {
+        executor = depsOrExecutor as DbExecutor;
+      } else {
+        legacyDeps = depsOrExecutor;
+        executor = maybeExecutor;
+      }
+    }
+
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 
     const executeClaim = async (tx: DbExecutor): Promise<Order> => {
@@ -311,15 +447,28 @@ export class OrderService {
     );
 
     // 3. Dispatch admin notification updates (outside transaction, fire-and-forget)
-    if (dependencies?.updateAdminNotifications) {
+    if (this.notifier) {
       try {
-        const context: ClaimOrderNotificationContext = {
+        await this.notifier.onOrderClaimed({
           order: claimedOrder,
           notifications,
           claimedByAdminTelegramId: BigInt(input.adminTelegramId),
           claimedByAdminUsername: input.adminUsername,
-        };
-        await dependencies.updateAdminNotifications(context);
+        });
+      } catch (notifyErr) {
+        console.error(
+          `Failed to update admin notifications for claimed order ${claimedOrder.id}:`,
+          notifyErr
+        );
+      }
+    } else if (legacyDeps?.updateAdminNotifications) {
+      try {
+        await legacyDeps.updateAdminNotifications({
+          order: claimedOrder,
+          notifications,
+          claimedByAdminTelegramId: BigInt(input.adminTelegramId),
+          claimedByAdminUsername: input.adminUsername,
+        });
       } catch (notifyErr) {
         console.error(
           `Failed to update admin notifications for claimed order ${claimedOrder.id}:`,
@@ -350,9 +499,34 @@ export class OrderService {
    */
   public async fulfilOrder(
     input: FulfilOrderInput,
-    dependencies?: FulfilOrderDependencies,
     executor?: DbExecutor
+  ): Promise<FulfilOrderResult>;
+  public async fulfilOrder(
+    input: FulfilOrderInput,
+    legacyDeps?: LegacyFulfilOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<FulfilOrderResult>;
+  public async fulfilOrder(
+    input: FulfilOrderInput,
+    depsOrExecutor?: unknown,
+    maybeExecutor?: DbExecutor
   ): Promise<FulfilOrderResult> {
+    let executor: DbExecutor | undefined;
+    let legacyDeps: any;
+
+    if (depsOrExecutor) {
+      if (
+        typeof depsOrExecutor === 'object' &&
+        ('select' in (depsOrExecutor as object) ||
+          'query' in (depsOrExecutor as object))
+      ) {
+        executor = depsOrExecutor as DbExecutor;
+      } else {
+        legacyDeps = depsOrExecutor;
+        executor = maybeExecutor;
+      }
+    }
+
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
     const adminTelegramId = BigInt(input.adminTelegramId);
     const trimmedDeliveryContent = input.deliveryContent.trim();
@@ -428,38 +602,53 @@ export class OrderService {
       client
     );
 
-    // 3. Notify Buyer (outside transaction, fire-and-forget)
-    if (dependencies?.notifyBuyer) {
+    // 3. Dispatch notifications (outside transaction, fire-and-forget)
+    if (this.notifier) {
       try {
-        await dependencies.notifyBuyer({
-          order: txResult.order,
-          buyer: txResult.buyer,
-          deliveryContent: trimmedDeliveryContent,
-        });
-      } catch (buyerNotifyErr) {
-        console.error(
-          `Failed to send delivery content notification to buyer ${txResult.buyer.id} for order ${txResult.order.id}:`,
-          buyerNotifyErr
-        );
-      }
-    }
-
-    // 4. Update Admin notifications (outside transaction, fire-and-forget)
-    if (dependencies?.updateAdminNotifications) {
-      try {
-        const context: FulfilOrderNotificationContext = {
+        await this.notifier.onOrderFulfilled({
           order: txResult.order,
           buyer: txResult.buyer,
           deliveryContent: trimmedDeliveryContent,
           notifications,
           adminTelegramId,
-        };
-        await dependencies.updateAdminNotifications(context);
-      } catch (adminNotifyErr) {
+        });
+      } catch (notifyErr) {
         console.error(
-          `Failed to update admin notifications for fulfilled order ${txResult.order.id}:`,
-          adminNotifyErr
+          `Failed to dispatch fulfilment notifications for order ${txResult.order.id}:`,
+          notifyErr
         );
+      }
+    } else {
+      if (legacyDeps?.notifyBuyer) {
+        try {
+          await legacyDeps.notifyBuyer({
+            order: txResult.order,
+            buyer: txResult.buyer,
+            deliveryContent: trimmedDeliveryContent,
+          });
+        } catch (buyerNotifyErr) {
+          console.error(
+            `Failed to send delivery content notification to buyer ${txResult.buyer.id} for order ${txResult.order.id}:`,
+            buyerNotifyErr
+          );
+        }
+      }
+
+      if (legacyDeps?.updateAdminNotifications) {
+        try {
+          await legacyDeps.updateAdminNotifications({
+            order: txResult.order,
+            buyer: txResult.buyer,
+            deliveryContent: trimmedDeliveryContent,
+            notifications,
+            adminTelegramId,
+          });
+        } catch (adminNotifyErr) {
+          console.error(
+            `Failed to update admin notifications for fulfilled order ${txResult.order.id}:`,
+            adminNotifyErr
+          );
+        }
       }
     }
 
@@ -490,9 +679,34 @@ export class OrderService {
    */
   public async rejectOrder(
     input: RejectOrderInput,
-    dependencies?: RejectOrderDependencies,
     executor?: DbExecutor
+  ): Promise<RejectOrderResult>;
+  public async rejectOrder(
+    input: RejectOrderInput,
+    legacyDeps?: LegacyRejectOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<RejectOrderResult>;
+  public async rejectOrder(
+    input: RejectOrderInput,
+    depsOrExecutor?: unknown,
+    maybeExecutor?: DbExecutor
   ): Promise<RejectOrderResult> {
+    let executor: DbExecutor | undefined;
+    let legacyDeps: any;
+
+    if (depsOrExecutor) {
+      if (
+        typeof depsOrExecutor === 'object' &&
+        ('select' in (depsOrExecutor as object) ||
+          'query' in (depsOrExecutor as object))
+      ) {
+        executor = depsOrExecutor as DbExecutor;
+      } else {
+        legacyDeps = depsOrExecutor;
+        executor = maybeExecutor;
+      }
+    }
+
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
     const rejectionCategory = input.rejectionCategory.trim();
     const rejectionNote = input.rejectionNote?.trim() || null;
@@ -618,43 +832,60 @@ export class OrderService {
       client
     );
 
-    // 3. Notify Buyer (outside transaction, fire-and-forget / resilient)
-    if (dependencies?.notifyBuyer) {
+    // 3. Dispatch notifications (outside transaction, fire-and-forget / resilient)
+    if (this.notifier) {
       try {
-        const buyerContext: RejectOrderBuyerNotificationContext = {
+        await this.notifier.onOrderRejected({
           order: txResult.order,
           buyer: txResult.buyer,
           rejectionCategory,
           rejectionNote,
           refundAmount: txResult.order.usdPriceSnapshot,
           updatedBalance: txResult.wallet.availableBalance,
-        };
-        await dependencies.notifyBuyer(buyerContext);
-      } catch (buyerNotifyErr) {
-        console.error(
-          `Failed to send rejection notification to buyer ${txResult.buyer.id} for order ${txResult.order.id}:`,
-          buyerNotifyErr
-        );
-      }
-    }
-
-    // 4. Update Admin notifications (outside transaction, fire-and-forget / resilient)
-    if (dependencies?.updateAdminNotifications) {
-      try {
-        const adminContext: RejectOrderNotificationContext = {
-          order: txResult.order,
-          buyer: txResult.buyer,
-          rejectionCategory,
-          rejectionNote,
           notifications,
           adminTelegramId,
-        };
-        await dependencies.updateAdminNotifications(adminContext);
-      } catch (adminNotifyErr) {
+        });
+      } catch (notifyErr) {
         console.error(
-          `Failed to update admin notifications for rejected order ${txResult.order.id}:`,
-          adminNotifyErr
+          `Failed to dispatch rejection notifications for order ${txResult.order.id}:`,
+          notifyErr
         );
+      }
+    } else {
+      if (legacyDeps?.notifyBuyer) {
+        try {
+          await legacyDeps.notifyBuyer({
+            order: txResult.order,
+            buyer: txResult.buyer,
+            rejectionCategory,
+            rejectionNote,
+            refundAmount: txResult.order.usdPriceSnapshot,
+            updatedBalance: txResult.wallet.availableBalance,
+          });
+        } catch (buyerNotifyErr) {
+          console.error(
+            `Failed to send rejection notification to buyer ${txResult.buyer.id} for order ${txResult.order.id}:`,
+            buyerNotifyErr
+          );
+        }
+      }
+
+      if (legacyDeps?.updateAdminNotifications) {
+        try {
+          await legacyDeps.updateAdminNotifications({
+            order: txResult.order,
+            buyer: txResult.buyer,
+            rejectionCategory,
+            rejectionNote,
+            notifications,
+            adminTelegramId,
+          });
+        } catch (adminNotifyErr) {
+          console.error(
+            `Failed to update admin notifications for rejected order ${txResult.order.id}:`,
+            adminNotifyErr
+          );
+        }
       }
     }
 
@@ -687,9 +918,34 @@ export class OrderService {
    */
   public async cancelOrder(
     input: CancelOrderInput,
-    dependencies?: CancelOrderDependencies,
     executor?: DbExecutor
+  ): Promise<CancelOrderResult>;
+  public async cancelOrder(
+    input: CancelOrderInput,
+    legacyDeps?: LegacyCancelOrderDependencies,
+    executor?: DbExecutor
+  ): Promise<CancelOrderResult>;
+  public async cancelOrder(
+    input: CancelOrderInput,
+    depsOrExecutor?: unknown,
+    maybeExecutor?: DbExecutor
   ): Promise<CancelOrderResult> {
+    let executor: DbExecutor | undefined;
+    let legacyDeps: any;
+
+    if (depsOrExecutor) {
+      if (
+        typeof depsOrExecutor === 'object' &&
+        ('select' in (depsOrExecutor as object) ||
+          'query' in (depsOrExecutor as object))
+      ) {
+        executor = depsOrExecutor as DbExecutor;
+      } else {
+        legacyDeps = depsOrExecutor;
+        executor = maybeExecutor;
+      }
+    }
+
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 
     // 1. Resolve Buyer
@@ -797,40 +1053,54 @@ export class OrderService {
       client
     );
 
-    // 3. Notify Buyer (outside transaction, fire-and-forget / resilient)
-    if (dependencies?.notifyBuyer) {
+    // 3. Dispatch notifications (outside transaction, fire-and-forget / resilient)
+    if (this.notifier) {
       try {
-        const buyerContext: CancelOrderBuyerNotificationContext = {
-          order: txResult.order,
-          buyer,
-          refundAmount: txResult.order.usdPriceSnapshot,
-          updatedBalance: txResult.wallet.availableBalance,
-        };
-        await dependencies.notifyBuyer(buyerContext);
-      } catch (buyerNotifyErr) {
-        console.error(
-          `Failed to send cancellation notification to buyer ${buyer.id} for order ${txResult.order.id}:`,
-          buyerNotifyErr
-        );
-      }
-    }
-
-    // 4. Update Admin notifications (outside transaction, fire-and-forget / resilient)
-    if (dependencies?.updateAdminNotifications) {
-      try {
-        const adminContext: CancelOrderNotificationContext = {
+        await this.notifier.onOrderCancelled({
           order: txResult.order,
           buyer,
           refundAmount: txResult.order.usdPriceSnapshot,
           updatedBalance: txResult.wallet.availableBalance,
           notifications,
-        };
-        await dependencies.updateAdminNotifications(adminContext);
-      } catch (adminNotifyErr) {
+        });
+      } catch (notifyErr) {
         console.error(
-          `Failed to update admin notifications for cancelled order ${txResult.order.id}:`,
-          adminNotifyErr
+          `Failed to dispatch cancellation notifications for order ${txResult.order.id}:`,
+          notifyErr
         );
+      }
+    } else {
+      if (legacyDeps?.notifyBuyer) {
+        try {
+          await legacyDeps.notifyBuyer({
+            order: txResult.order,
+            buyer,
+            refundAmount: txResult.order.usdPriceSnapshot,
+            updatedBalance: txResult.wallet.availableBalance,
+          });
+        } catch (buyerNotifyErr) {
+          console.error(
+            `Failed to send cancellation notification to buyer ${buyer.id} for order ${txResult.order.id}:`,
+            buyerNotifyErr
+          );
+        }
+      }
+
+      if (legacyDeps?.updateAdminNotifications) {
+        try {
+          await legacyDeps.updateAdminNotifications({
+            order: txResult.order,
+            buyer,
+            refundAmount: txResult.order.usdPriceSnapshot,
+            updatedBalance: txResult.wallet.availableBalance,
+            notifications,
+          });
+        } catch (adminNotifyErr) {
+          console.error(
+            `Failed to update admin notifications for cancelled order ${txResult.order.id}:`,
+            adminNotifyErr
+          );
+        }
       }
     }
 
