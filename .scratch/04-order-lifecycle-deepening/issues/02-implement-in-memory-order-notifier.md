@@ -4,11 +4,11 @@
 
 **Blocked by:** 01 — `IOrderNotifier` interface must exist first.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Create the `InMemoryOrderNotifier` class, placed alongside other test helpers (e.g. `tests/helpers/in-memory-order-notifier.ts`), implementing `IOrderNotifier`.
-- [ ] Each method pushes its argument onto a typed array (e.g. `recordedPlaced: OnOrderPlacedContext[]`).
-- [ ] Expose a `reset()` method to clear all recorded arrays between test cases.
-- [ ] Write unit tests confirming each method records its argument and that `reset()` clears the arrays.
-- [ ] No production source files are modified.
-- [ ] TypeScript compiles cleanly.
+- [x] Create the `InMemoryOrderNotifier` class, placed alongside other test helpers (e.g. `tests/helpers/in-memory-order-notifier.ts`), implementing `IOrderNotifier`.
+- [x] Each method pushes its argument onto a typed array (e.g. `recordedPlaced: OnOrderPlacedContext[]`).
+- [x] Expose a `reset()` method to clear all recorded arrays between test cases.
+- [x] Write unit tests confirming each method records its argument and that `reset()` clears the arrays.
+- [x] No production source files are modified.
+- [x] TypeScript compiles cleanly.
