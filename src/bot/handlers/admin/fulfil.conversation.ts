@@ -141,6 +141,7 @@ export function createFulfilOrderConversation(orderService: OrderService) {
           {
             orderId,
             adminTelegramId: sender.id,
+            adminUsername: adminDisplay,
             deliveryContent,
           },
           {

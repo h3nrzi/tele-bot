@@ -182,6 +182,7 @@ export function createRejectOrderConversation(orderService: OrderService) {
           {
             orderId,
             adminTelegramId: sender.id,
+            adminUsername: adminDisplay,
             rejectionCategory: selectedCategoryCode,
             rejectionNote,
           },

@@ -22,6 +22,7 @@ export interface OnOrderFulfilledContext {
   deliveryContent: string;
   notifications: OrderAdminNotification[];
   adminTelegramId: bigint;
+  adminUsername?: string | null | undefined;
 }
 
 export interface OnOrderRejectedContext {
@@ -33,6 +34,7 @@ export interface OnOrderRejectedContext {
   updatedBalance: string;
   notifications: OrderAdminNotification[];
   adminTelegramId?: bigint | undefined;
+  adminUsername?: string | null | undefined;
 }
 
 export interface OnOrderCancelledContext {

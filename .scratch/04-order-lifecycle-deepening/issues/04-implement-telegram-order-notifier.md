@@ -4,12 +4,12 @@
 
 **Blocked by:** 03 — `OrderService` must accept `IOrderNotifier` before the adapter can be wired in.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Create `src/bot/handlers/admin/order.notifier.ts` exporting `TelegramOrderNotifier implements IOrderNotifier`.
-- [ ] Constructor accepts `Bot<BotContext>` (or `Api`) and the admin IDs collection; re-uses existing keyboard builders — no new keyboard layouts introduced.
-- [ ] `onOrderPlaced` sends Telegram push messages to each admin and calls `orderRepo.createAdminNotifications` to persist rows.
-- [ ] `onOrderClaimed`, `onOrderFulfilled`, `onOrderRejected`, `onOrderCancelled` call the appropriate keyboard-edit helpers for each `OrderAdminNotification` in context.
-- [ ] Register `TelegramOrderNotifier` in the DI container using `TOKENS.OrderNotifier`, constructed after the bot is created so `bot.api` is available, before `OrderService` is resolved.
-- [ ] Write isolated unit tests with a mock `Api` verifying message text and keyboard output per event.
-- [ ] TypeScript compiles cleanly; unit tests pass.
+- [x] Create `src/bot/handlers/admin/order.notifier.ts` exporting `TelegramOrderNotifier implements IOrderNotifier`.
+- [x] Constructor accepts `Bot<BotContext>` (or `Api`) and the admin IDs collection; re-uses existing keyboard builders — no new keyboard layouts introduced.
+- [x] `onOrderPlaced` sends Telegram push messages to each admin and calls `orderRepo.createAdminNotifications` to persist rows.
+- [x] `onOrderClaimed`, `onOrderFulfilled`, `onOrderRejected`, `onOrderCancelled` call the appropriate keyboard-edit helpers for each `OrderAdminNotification` in context.
+- [x] Register `TelegramOrderNotifier` in the DI container using `TOKENS.OrderNotifier`, constructed after the bot is created so `bot.api` is available, before `OrderService` is resolved.
+- [x] Write isolated unit tests with a mock `Api` verifying message text and keyboard output per event.
+- [x] TypeScript compiles cleanly; unit tests pass.

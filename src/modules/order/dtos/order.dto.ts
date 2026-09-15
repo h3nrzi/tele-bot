@@ -41,6 +41,7 @@ export interface ClaimOrderResult {
 export interface FulfilOrderInput {
   orderId: string;
   adminTelegramId: bigint | number | string;
+  adminUsername?: string | null | undefined;
   deliveryContent: string;
 }
 
@@ -53,6 +54,7 @@ export interface FulfilOrderResult {
 export interface RejectOrderInput {
   orderId: string;
   adminTelegramId?: bigint | number | string | undefined;
+  adminUsername?: string | null | undefined;
   rejectionCategory: string;
   rejectionNote?: string | null | undefined;
 }

@@ -611,6 +611,7 @@ export class OrderService {
           deliveryContent: trimmedDeliveryContent,
           notifications,
           adminTelegramId,
+          adminUsername: input.adminUsername,
         });
       } catch (notifyErr) {
         console.error(
@@ -844,6 +845,7 @@ export class OrderService {
           updatedBalance: txResult.wallet.availableBalance,
           notifications,
           adminTelegramId,
+          adminUsername: input.adminUsername,
         });
       } catch (notifyErr) {
         console.error(

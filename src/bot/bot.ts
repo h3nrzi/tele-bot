@@ -15,6 +15,8 @@ import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.servi
 import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
 import { OtcPurchaseService } from '@/modules/otc-purchase/otc-purchase.service';
 import { TelegramOtcPurchaseNotifier } from '@/bot/handlers/admin/otc-purchase.notifier';
+import { TelegramOrderNotifier } from '@/bot/handlers/admin/order.notifier';
+import type { IOrderRepository } from '@/modules/order/order.repository.interface';
 import { TOKENS } from '@/core/di/tokens';
 
 import {
@@ -92,14 +94,6 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
     }
   }
 
-  const bankAccountService = appContainer.resolve(BankAccountService);
-  const topUpService = appContainer.resolve(TopUpService);
-  const buyerService = appContainer.resolve(BuyerService);
-  const catalogService = appContainer.resolve(CatalogService);
-  const orderService = appContainer.resolve(OrderService);
-  const exchangeRateService = appContainer.resolve(ExchangeRateService);
-  const exchangeRateConfigService = appContainer.resolve(ExchangeRateConfigService);
-
   const botConfig: BotConfig<BotContext> = {};
   if (options?.botInfo) {
     botConfig.botInfo = options.botInfo;
@@ -109,6 +103,13 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
   }
 
   const bot = new Bot<BotContext>(token, botConfig);
+
+  const orderNotifier = new TelegramOrderNotifier({
+    api: bot.api,
+    adminIds: options?.adminIds ?? process.env.ADMIN_IDS,
+    orderRepo: appContainer.resolve<IOrderRepository>(TOKENS.OrderRepository),
+  });
+  appContainer.register(TOKENS.OrderNotifier, { useValue: orderNotifier });
 
   const otcNotifier = new TelegramOtcPurchaseNotifier({
     api: bot.api,
@@ -125,6 +126,14 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
       otcService.setNotifier(otcNotifier);
     } catch {}
   }
+
+  const bankAccountService = appContainer.resolve(BankAccountService);
+  const topUpService = appContainer.resolve(TopUpService);
+  const buyerService = appContainer.resolve(BuyerService);
+  const catalogService = appContainer.resolve(CatalogService);
+  const orderService = appContainer.resolve(OrderService);
+  const exchangeRateService = appContainer.resolve(ExchangeRateService);
+  const exchangeRateConfigService = appContainer.resolve(ExchangeRateConfigService);
 
 
   // 1. Plugins & Conversations
