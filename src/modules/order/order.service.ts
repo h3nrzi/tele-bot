@@ -9,7 +9,6 @@ import type { IBuyerRepository } from '@/modules/buyer/buyer.repository.interfac
 import type { ICatalogRepository } from '@/modules/catalog/catalog.repository.interface';
 import type { LedgerTransaction } from '@/modules/ledger/ledger-transaction.entity';
 import { LedgerService } from '@/modules/ledger/ledger.service';
-import type { CatalogItem } from '@/modules/catalog/catalog.entity';
 import type {
   AdminOrderQueueItem,
   BuyerLatestOrderResult,
@@ -20,13 +19,12 @@ import type {
   FulfilOrderInput,
   FulfilOrderResult,
   GetLatestOrderInput,
-  OrderAdminNotificationPayload,
   PlaceOrderInput,
   PlaceOrderResult,
   RejectOrderInput,
-  RejectOrderResult,
+  RejectOrderResult
 } from '@/modules/order/dtos/order.dto';
-import { Order, type OrderAdminNotification } from '@/modules/order/order.entity';
+import { Order } from '@/modules/order/order.entity';
 import {
   CatalogItemUnavailableError,
   InsufficientBalanceForOrderError,
@@ -44,84 +42,6 @@ import { WalletNotFoundError } from '@/modules/wallet/wallet.errors';
 import type { IWalletRepository } from '@/modules/wallet/wallet.repository.interface';
 import { inject, injectable } from 'tsyringe';
 
-/**
- * Backward-compatibility dependency shapes for existing callers until Ticket 05 refactor.
- * Not part of public order.dto.ts.
- */
-export interface LegacyPlaceOrderDependencies {
-  notifyAdmins?: (context: {
-    order: Order;
-    catalogItem: CatalogItem;
-    buyer: Buyer;
-    postDebitBalance: string;
-  }) => Promise<OrderAdminNotificationPayload[] | void>;
-}
-
-export interface LegacyClaimOrderDependencies {
-  updateAdminNotifications?: (context: {
-    order: Order;
-    claimedByAdminTelegramId: bigint;
-    claimedByAdminUsername?: string | null;
-    notifications: OrderAdminNotification[];
-  }) => Promise<void>;
-}
-
-export interface LegacyFulfilOrderDependencies {
-  notifyBuyer?: (context: {
-    order: Order;
-    catalogItem?: CatalogItem;
-    buyer: Buyer;
-    deliveryContent: string;
-  }) => Promise<void>;
-  updateAdminNotifications?: (context: {
-    order: Order;
-    claimedByAdminUsername?: string | null;
-    claimedByAdminTelegramId?: bigint | null;
-    notifications: OrderAdminNotification[];
-  }) => Promise<void>;
-}
-
-export interface LegacyRejectOrderDependencies {
-  notifyBuyer?: (context: {
-    order: Order;
-    catalogItem?: CatalogItem;
-    buyer: Buyer;
-    refundAmount: string;
-    updatedBalance: string;
-    rejectionReason?: string;
-    rejectionCategory?: string;
-    rejectionNote?: string | null;
-  }) => Promise<void>;
-  updateAdminNotifications?: (context: {
-    order: Order;
-    buyer?: Buyer;
-    rejectionCategory?: string;
-    rejectionNote?: string | null;
-    notifications: OrderAdminNotification[];
-    refundAmount?: string;
-    updatedBalance?: string;
-    claimedByAdminTelegramId?: bigint | null;
-    claimedByAdminUsername?: string | null;
-  }) => Promise<void>;
-}
-
-export interface LegacyCancelOrderDependencies {
-  notifyBuyer?: (context: {
-    order: Order;
-    catalogItem?: CatalogItem;
-    buyer: Buyer;
-    refundAmount: string;
-    updatedBalance: string;
-  }) => Promise<void>;
-  updateAdminNotifications?: (context: {
-    order: Order;
-    catalogItem?: CatalogItem;
-    buyer?: Buyer;
-    refundAmount?: string;
-    updatedBalance?: string;
-    notifications: OrderAdminNotification[];
-  }) => Promise<void>;
-}
 
 @injectable()
 export class OrderService {
@@ -181,33 +101,7 @@ export class OrderService {
   public async placeOrder(
     input: PlaceOrderInput,
     executor?: DbExecutor
-  ): Promise<PlaceOrderResult>;
-  public async placeOrder(
-    input: PlaceOrderInput,
-    legacyDeps?: LegacyPlaceOrderDependencies,
-    executor?: DbExecutor
-  ): Promise<PlaceOrderResult>;
-  public async placeOrder(
-    input: PlaceOrderInput,
-    depsOrExecutor?: unknown,
-    maybeExecutor?: DbExecutor
   ): Promise<PlaceOrderResult> {
-    let executor: DbExecutor | undefined;
-    let legacyDeps: any;
-
-    if (depsOrExecutor) {
-      if (
-        typeof depsOrExecutor === 'object' &&
-        ('select' in (depsOrExecutor as object) ||
-          'query' in (depsOrExecutor as object))
-      ) {
-        executor = depsOrExecutor as DbExecutor;
-      } else {
-        legacyDeps = depsOrExecutor;
-        executor = maybeExecutor;
-      }
-    }
-
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 
     // 1. Resolve Buyer & Catalog Item
@@ -308,31 +202,6 @@ export class OrderService {
           notifyErr
         );
       }
-    } else if (legacyDeps?.notifyAdmins) {
-      try {
-        const payloads = await legacyDeps.notifyAdmins({
-          order: txResult.order,
-          catalogItem: txResult.catalogItem,
-          buyer: txResult.buyer,
-          postDebitBalance: txResult.wallet.availableBalance,
-        });
-        if (payloads && payloads.length > 0) {
-          await this.orderRepo.createAdminNotifications(
-            payloads.map((p: any) => ({
-              orderId: txResult.order.id,
-              adminTelegramId: p.adminTelegramId,
-              chatId: p.chatId,
-              messageId: p.messageId,
-            })),
-            client
-          );
-        }
-      } catch (notifyErr) {
-        console.error(
-          `Failed to dispatch admin notifications for order ${txResult.order.id}:`,
-          notifyErr
-        );
-      }
     }
 
     const adminNotifications = await this.orderRepo.getAdminNotifications(
@@ -360,33 +229,7 @@ export class OrderService {
   public async claimOrder(
     input: ClaimOrderInput,
     executor?: DbExecutor
-  ): Promise<ClaimOrderResult>;
-  public async claimOrder(
-    input: ClaimOrderInput,
-    legacyDeps?: LegacyClaimOrderDependencies,
-    executor?: DbExecutor
-  ): Promise<ClaimOrderResult>;
-  public async claimOrder(
-    input: ClaimOrderInput,
-    depsOrExecutor?: unknown,
-    maybeExecutor?: DbExecutor
   ): Promise<ClaimOrderResult> {
-    let executor: DbExecutor | undefined;
-    let legacyDeps: any;
-
-    if (depsOrExecutor) {
-      if (
-        typeof depsOrExecutor === 'object' &&
-        ('select' in (depsOrExecutor as object) ||
-          'query' in (depsOrExecutor as object))
-      ) {
-        executor = depsOrExecutor as DbExecutor;
-      } else {
-        legacyDeps = depsOrExecutor;
-        executor = maybeExecutor;
-      }
-    }
-
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 
     const executeClaim = async (tx: DbExecutor): Promise<Order> => {
@@ -461,20 +304,6 @@ export class OrderService {
           notifyErr
         );
       }
-    } else if (legacyDeps?.updateAdminNotifications) {
-      try {
-        await legacyDeps.updateAdminNotifications({
-          order: claimedOrder,
-          notifications,
-          claimedByAdminTelegramId: BigInt(input.adminTelegramId),
-          claimedByAdminUsername: input.adminUsername,
-        });
-      } catch (notifyErr) {
-        console.error(
-          `Failed to update admin notifications for claimed order ${claimedOrder.id}:`,
-          notifyErr
-        );
-      }
     }
 
     return {
@@ -500,33 +329,7 @@ export class OrderService {
   public async fulfilOrder(
     input: FulfilOrderInput,
     executor?: DbExecutor
-  ): Promise<FulfilOrderResult>;
-  public async fulfilOrder(
-    input: FulfilOrderInput,
-    legacyDeps?: LegacyFulfilOrderDependencies,
-    executor?: DbExecutor
-  ): Promise<FulfilOrderResult>;
-  public async fulfilOrder(
-    input: FulfilOrderInput,
-    depsOrExecutor?: unknown,
-    maybeExecutor?: DbExecutor
   ): Promise<FulfilOrderResult> {
-    let executor: DbExecutor | undefined;
-    let legacyDeps: any;
-
-    if (depsOrExecutor) {
-      if (
-        typeof depsOrExecutor === 'object' &&
-        ('select' in (depsOrExecutor as object) ||
-          'query' in (depsOrExecutor as object))
-      ) {
-        executor = depsOrExecutor as DbExecutor;
-      } else {
-        legacyDeps = depsOrExecutor;
-        executor = maybeExecutor;
-      }
-    }
-
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
     const adminTelegramId = BigInt(input.adminTelegramId);
     const trimmedDeliveryContent = input.deliveryContent.trim();
@@ -619,38 +422,6 @@ export class OrderService {
           notifyErr
         );
       }
-    } else {
-      if (legacyDeps?.notifyBuyer) {
-        try {
-          await legacyDeps.notifyBuyer({
-            order: txResult.order,
-            buyer: txResult.buyer,
-            deliveryContent: trimmedDeliveryContent,
-          });
-        } catch (buyerNotifyErr) {
-          console.error(
-            `Failed to send delivery content notification to buyer ${txResult.buyer.id} for order ${txResult.order.id}:`,
-            buyerNotifyErr
-          );
-        }
-      }
-
-      if (legacyDeps?.updateAdminNotifications) {
-        try {
-          await legacyDeps.updateAdminNotifications({
-            order: txResult.order,
-            buyer: txResult.buyer,
-            deliveryContent: trimmedDeliveryContent,
-            notifications,
-            adminTelegramId,
-          });
-        } catch (adminNotifyErr) {
-          console.error(
-            `Failed to update admin notifications for fulfilled order ${txResult.order.id}:`,
-            adminNotifyErr
-          );
-        }
-      }
     }
 
     return {
@@ -681,33 +452,7 @@ export class OrderService {
   public async rejectOrder(
     input: RejectOrderInput,
     executor?: DbExecutor
-  ): Promise<RejectOrderResult>;
-  public async rejectOrder(
-    input: RejectOrderInput,
-    legacyDeps?: LegacyRejectOrderDependencies,
-    executor?: DbExecutor
-  ): Promise<RejectOrderResult>;
-  public async rejectOrder(
-    input: RejectOrderInput,
-    depsOrExecutor?: unknown,
-    maybeExecutor?: DbExecutor
   ): Promise<RejectOrderResult> {
-    let executor: DbExecutor | undefined;
-    let legacyDeps: any;
-
-    if (depsOrExecutor) {
-      if (
-        typeof depsOrExecutor === 'object' &&
-        ('select' in (depsOrExecutor as object) ||
-          'query' in (depsOrExecutor as object))
-      ) {
-        executor = depsOrExecutor as DbExecutor;
-      } else {
-        legacyDeps = depsOrExecutor;
-        executor = maybeExecutor;
-      }
-    }
-
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
     const rejectionCategory = input.rejectionCategory.trim();
     const rejectionNote = input.rejectionNote?.trim() || null;
@@ -853,42 +598,6 @@ export class OrderService {
           notifyErr
         );
       }
-    } else {
-      if (legacyDeps?.notifyBuyer) {
-        try {
-          await legacyDeps.notifyBuyer({
-            order: txResult.order,
-            buyer: txResult.buyer,
-            rejectionCategory,
-            rejectionNote,
-            refundAmount: txResult.order.usdPriceSnapshot,
-            updatedBalance: txResult.wallet.availableBalance,
-          });
-        } catch (buyerNotifyErr) {
-          console.error(
-            `Failed to send rejection notification to buyer ${txResult.buyer.id} for order ${txResult.order.id}:`,
-            buyerNotifyErr
-          );
-        }
-      }
-
-      if (legacyDeps?.updateAdminNotifications) {
-        try {
-          await legacyDeps.updateAdminNotifications({
-            order: txResult.order,
-            buyer: txResult.buyer,
-            rejectionCategory,
-            rejectionNote,
-            notifications,
-            adminTelegramId,
-          });
-        } catch (adminNotifyErr) {
-          console.error(
-            `Failed to update admin notifications for rejected order ${txResult.order.id}:`,
-            adminNotifyErr
-          );
-        }
-      }
     }
 
     return {
@@ -921,33 +630,7 @@ export class OrderService {
   public async cancelOrder(
     input: CancelOrderInput,
     executor?: DbExecutor
-  ): Promise<CancelOrderResult>;
-  public async cancelOrder(
-    input: CancelOrderInput,
-    legacyDeps?: LegacyCancelOrderDependencies,
-    executor?: DbExecutor
-  ): Promise<CancelOrderResult>;
-  public async cancelOrder(
-    input: CancelOrderInput,
-    depsOrExecutor?: unknown,
-    maybeExecutor?: DbExecutor
   ): Promise<CancelOrderResult> {
-    let executor: DbExecutor | undefined;
-    let legacyDeps: any;
-
-    if (depsOrExecutor) {
-      if (
-        typeof depsOrExecutor === 'object' &&
-        ('select' in (depsOrExecutor as object) ||
-          'query' in (depsOrExecutor as object))
-      ) {
-        executor = depsOrExecutor as DbExecutor;
-      } else {
-        legacyDeps = depsOrExecutor;
-        executor = maybeExecutor;
-      }
-    }
-
     const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 
     // 1. Resolve Buyer
@@ -1070,39 +753,6 @@ export class OrderService {
           `Failed to dispatch cancellation notifications for order ${txResult.order.id}:`,
           notifyErr
         );
-      }
-    } else {
-      if (legacyDeps?.notifyBuyer) {
-        try {
-          await legacyDeps.notifyBuyer({
-            order: txResult.order,
-            buyer,
-            refundAmount: txResult.order.usdPriceSnapshot,
-            updatedBalance: txResult.wallet.availableBalance,
-          });
-        } catch (buyerNotifyErr) {
-          console.error(
-            `Failed to send cancellation notification to buyer ${buyer.id} for order ${txResult.order.id}:`,
-            buyerNotifyErr
-          );
-        }
-      }
-
-      if (legacyDeps?.updateAdminNotifications) {
-        try {
-          await legacyDeps.updateAdminNotifications({
-            order: txResult.order,
-            buyer,
-            refundAmount: txResult.order.usdPriceSnapshot,
-            updatedBalance: txResult.wallet.availableBalance,
-            notifications,
-          });
-        } catch (adminNotifyErr) {
-          console.error(
-            `Failed to update admin notifications for cancelled order ${txResult.order.id}:`,
-            adminNotifyErr
-          );
-        }
       }
     }
 

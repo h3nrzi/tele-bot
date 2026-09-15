@@ -409,17 +409,17 @@ describe('Buyer /myorder Command & Order Cancellation Flow (Ticket 08)', () => {
         {
           userId: buyer.id,
           catalogItemId: item.id,
-        },
-        {
-          notifyAdmins: async () => [
-            {
-              adminTelegramId: BigInt(adminChatId),
-              chatId: BigInt(adminChatId),
-              messageId: 8888n,
-            },
-          ],
         }
       );
+
+      await db.insert(orderAdminNotifications).values([
+        {
+          orderId: order.id,
+          adminTelegramId: BigInt(adminChatId),
+          chatId: BigInt(adminChatId),
+          messageId: 8888n,
+        },
+      ]);
 
       // Verify wallet balance is 80.00
       const [walletAfterPlacement] = await db

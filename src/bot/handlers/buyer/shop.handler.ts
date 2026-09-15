@@ -7,14 +7,11 @@ import {
   buildShopView,
   buildOrderConfirmationView,
 } from '@/bot/handlers/buyer/shop.keyboards';
-import { getAdminOrderNotificationKeyboard } from '@/bot/handlers/admin/order.keyboards';
-import { resolveAdminIds } from '@/bot/middleware/admin.middleware';
 import { formatUsd } from '@/core/shared/currency.utils';
 import {
   InsufficientBalanceForOrderError,
   CatalogItemUnavailableError,
 } from '@/modules/order/order.errors';
-import type { OrderAdminNotificationPayload } from '@/modules/order/dtos/order.dto';
 
 export interface ShopItemDependencies {
   catalogService: CatalogService;
@@ -144,62 +141,13 @@ export async function handleShopConfirmCallback(
   }
 
   const itemId = match[1];
-  const { orderService, adminIds } = deps;
+  const { orderService } = deps;
 
   try {
-    const result = await orderService.placeOrder(
-      {
-        telegramChatId: sender.id,
-        catalogItemId: itemId,
-      },
-      {
-        notifyAdmins: async (context) => {
-          const resolvedAdminIds = resolveAdminIds(adminIds);
-          const buyerDisplay = context.buyer.telegramUsername
-            ? `@${context.buyer.telegramUsername} (شناسه: ${context.buyer.telegramChatId})`
-            : `شناسه: ${context.buyer.telegramChatId}`;
-          const descriptionLine = context.catalogItem.description
-            ? `\n📝 توضیحات: ${context.catalogItem.description}`
-            : '';
-
-          const adminMessage =
-            `📦 سفارش جدید ثبت شد\n\n` +
-            `🆔 شناسه سفارش: #${context.order.id}\n` +
-            `👤 خریدار: ${buyerDisplay}\n` +
-            `🛍️ نام خدمت: ${context.catalogItem.name}` +
-            descriptionLine +
-            `\n💵 مبلغ سفارش: ${formatUsd(context.order.usdPriceSnapshot)}\n` +
-            `💰 موجودی باقی‌مانده خریدار: ${formatUsd(context.postDebitBalance)}`;
-
-          const keyboard = getAdminOrderNotificationKeyboard(context.order.id);
-          const notificationPayloads: OrderAdminNotificationPayload[] = [];
-
-          for (const adminId of resolvedAdminIds) {
-            try {
-              const sentMessage = await ctx.api.sendMessage(
-                Number(adminId),
-                adminMessage,
-                {
-                  reply_markup: keyboard,
-                }
-              );
-              notificationPayloads.push({
-                adminTelegramId: adminId,
-                chatId: BigInt(sentMessage.chat.id),
-                messageId: BigInt(sentMessage.message_id),
-              });
-            } catch (err) {
-              console.error(
-                `Failed to send order notification to admin ${adminId}:`,
-                err
-              );
-            }
-          }
-
-          return notificationPayloads;
-        },
-      }
-    );
+    const result = await orderService.placeOrder({
+      telegramChatId: sender.id,
+      catalogItemId: itemId,
+    });
 
     const buyerSuccessMessage =
       `✅ سفارش شما با موفقیت ثبت شد!\n\n` +

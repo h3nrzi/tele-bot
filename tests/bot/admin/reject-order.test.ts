@@ -8,7 +8,7 @@ import {
   placeTestOrder,
   claimTestOrder,
 } from '@tests/helpers/fixtures';
-import { orders } from '@/modules/order/order.schema';
+import { orders, orderAdminNotifications } from '@/modules/order/order.schema';
 import { wallets } from '@/modules/wallet/wallet.schema';
 import { eq } from 'drizzle-orm';
 import {
@@ -231,19 +231,15 @@ describe('Admin Order Rejection Handler & Conversation (Ticket 07)', () => {
       isActive: true,
     });
 
-    const { order: placedOrder } = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => [
-          { adminTelegramId: BigInt(adminChatId1), chatId: BigInt(adminChatId1), messageId: 801n },
-          { adminTelegramId: BigInt(adminChatId2), chatId: BigInt(adminChatId2), messageId: 802n },
-        ],
-      }
-    );
+    const { order: placedOrder } = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
+
+    await db.insert(orderAdminNotifications).values([
+      { adminTelegramId: BigInt(adminChatId1), chatId: BigInt(adminChatId1), messageId: 801n, orderId: placedOrder.id },
+      { adminTelegramId: BigInt(adminChatId2), chatId: BigInt(adminChatId2), messageId: 802n, orderId: placedOrder.id },
+    ]);
 
     const { bot, repliedMessages, editedMessages, sentMessages } = createTestBot();
 
@@ -360,19 +356,15 @@ describe('Admin Order Rejection Handler & Conversation (Ticket 07)', () => {
       isActive: true,
     });
 
-    const { order: placedOrder } = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => [
-          { adminTelegramId: BigInt(adminChatId1), chatId: BigInt(adminChatId1), messageId: 801n },
-          { adminTelegramId: BigInt(adminChatId2), chatId: BigInt(adminChatId2), messageId: 802n },
-        ],
-      }
-    );
+    const { order: placedOrder } = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
+
+    await db.insert(orderAdminNotifications).values([
+      { adminTelegramId: BigInt(adminChatId1), chatId: BigInt(adminChatId1), messageId: 801n, orderId: placedOrder.id },
+      { adminTelegramId: BigInt(adminChatId2), chatId: BigInt(adminChatId2), messageId: 802n, orderId: placedOrder.id },
+    ]);
 
     // Admin 1 claims
     await claimTestOrder(container, {

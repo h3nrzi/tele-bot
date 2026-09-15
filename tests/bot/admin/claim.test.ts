@@ -138,19 +138,15 @@ describe('Admin Order Claim & Start Processing Callback Handler (Ticket 05)', ()
     });
 
     // Place order with notification records for both admin 1 and admin 2
-    const { order: placedOrder } = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => [
-          { adminTelegramId: BigInt(adminChatId1), chatId: BigInt(adminChatId1), messageId: 801n },
-          { adminTelegramId: BigInt(adminChatId2), chatId: BigInt(adminChatId2), messageId: 802n },
-        ],
-      }
-    );
+    const { order: placedOrder } = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
+
+    await db.insert(orderAdminNotifications).values([
+      { adminTelegramId: BigInt(adminChatId1), chatId: BigInt(adminChatId1), messageId: 801n, orderId: placedOrder.id },
+      { adminTelegramId: BigInt(adminChatId2), chatId: BigInt(adminChatId2), messageId: 802n, orderId: placedOrder.id },
+    ]);
 
     const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
 
@@ -219,19 +215,15 @@ describe('Admin Order Claim & Start Processing Callback Handler (Ticket 05)', ()
       isActive: true,
     });
 
-    const { order: placedOrder } = await placeTestOrder(
-      container,
-      {
-        userId: buyer.id,
-        catalogItemId: item.id,
-      },
-      {
-        notifyAdmins: async () => [
-          { adminTelegramId: BigInt(adminChatId1), chatId: BigInt(adminChatId1), messageId: 801n },
-          { adminTelegramId: BigInt(adminChatId2), chatId: BigInt(adminChatId2), messageId: 802n },
-        ],
-      }
-    );
+    const { order: placedOrder } = await placeTestOrder(container, {
+      userId: buyer.id,
+      catalogItemId: item.id,
+    });
+
+    await db.insert(orderAdminNotifications).values([
+      { adminTelegramId: BigInt(adminChatId1), chatId: BigInt(adminChatId1), messageId: 801n, orderId: placedOrder.id },
+      { adminTelegramId: BigInt(adminChatId2), chatId: BigInt(adminChatId2), messageId: 802n, orderId: placedOrder.id },
+    ]);
 
     const { bot, answeredCallbackQueries } = createTestBot();
 

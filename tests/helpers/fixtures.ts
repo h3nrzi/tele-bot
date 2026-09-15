@@ -128,52 +128,47 @@ export async function listTestCatalogItems(
 
 export async function placeTestOrder(
   containerOrDb: DependencyContainer | DbClient,
-  input: PlaceOrderInput,
-  legacyDeps?: any
+  input: PlaceOrderInput
 ): Promise<PlaceOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.placeOrder(input, legacyDeps);
+  return await service.placeOrder(input);
 }
 
 export async function claimTestOrder(
   containerOrDb: DependencyContainer | DbClient,
-  input: ClaimOrderInput,
-  legacyDeps?: any
+  input: ClaimOrderInput
 ): Promise<ClaimOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.claimOrder(input, legacyDeps);
+  return await service.claimOrder(input);
 }
 
 export async function fulfilTestOrder(
   containerOrDb: DependencyContainer | DbClient,
-  input: FulfilOrderInput,
-  legacyDeps?: any
+  input: FulfilOrderInput
 ): Promise<FulfilOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.fulfilOrder(input, legacyDeps);
+  return await service.fulfilOrder(input);
 }
 
 export async function rejectTestOrder(
   containerOrDb: DependencyContainer | DbClient,
-  input: RejectOrderInput,
-  legacyDeps?: any
+  input: RejectOrderInput
 ): Promise<RejectOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.rejectOrder(input, legacyDeps);
+  return await service.rejectOrder(input);
 }
 
 export async function cancelTestOrder(
   containerOrDb: DependencyContainer | DbClient,
-  input: CancelOrderInput,
-  legacyDeps?: any
+  input: CancelOrderInput
 ): Promise<CancelOrderResult> {
   const container = getContainer(containerOrDb);
   const service = container.resolve(OrderService);
-  return await service.cancelOrder(input, legacyDeps);
+  return await service.cancelOrder(input);
 }
 
 export async function getTestLatestOrderForBuyer(

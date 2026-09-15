@@ -4,10 +4,10 @@
 
 **Blocked by:** 04 — `TelegramOrderNotifier` must be wired before callers can safely drop their closures.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Delete all `dependencies` object literals passed to `orderService.*` across `fulfil.conversation.ts`, `order-reject.conversation.ts`, `claim.handler.ts`, `shop.handler.ts`, and `cancel.handler.ts`.
-- [ ] Remove now-unused keyboard builder imports from `fulfil.conversation.ts` and `order-reject.conversation.ts` that were only imported for notification closures.
-- [ ] Update bot-layer tests (`tests/bot/admin/orders.test.ts`, `tests/bot/admin/reject-order.test.ts`, and any others) to remove closure injection and related assertions.
-- [ ] Verify no handler or conversation file retains any import of a `*Dependencies` or `*NotificationContext` type from `order.dto.ts`.
-- [ ] `tsc --noEmit` reports zero errors; all updated tests pass.
+- [x] Delete all `dependencies` object literals passed to `orderService.*` across `fulfil.conversation.ts`, `order-reject.conversation.ts`, `claim.handler.ts`, `shop.handler.ts`, and `cancel.handler.ts`.
+- [x] Remove now-unused keyboard builder imports from `fulfil.conversation.ts` and `order-reject.conversation.ts` that were only imported for notification closures.
+- [x] Update bot-layer tests (`tests/bot/admin/orders.test.ts`, `tests/bot/admin/reject-order.test.ts`, and any others) to remove closure injection and related assertions.
+- [x] Verify no handler or conversation file retains any import of a `*Dependencies` or `*NotificationContext` type from `order.dto.ts`.
+- [x] `tsc --noEmit` reports zero errors; all updated tests pass.

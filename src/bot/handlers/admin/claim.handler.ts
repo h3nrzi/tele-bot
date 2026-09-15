@@ -1,6 +1,5 @@
 import type { Context } from 'grammy';
 import type { OrderService } from '@/modules/order/order.service';
-import { getAdminOrderProcessingKeyboard } from '@/bot/handlers/admin/order.keyboards';
 import {
   OrderAlreadyClaimedError,
   InvalidOrderStatusError,
@@ -54,41 +53,11 @@ export async function handleClaimOrderCallback(
   }
 
   try {
-    await orderService.claimOrder(
-      {
-        orderId,
-        adminTelegramId: sender.id,
-        adminUsername,
-      },
-      {
-        updateAdminNotifications: async (context) => {
-          const displayHandle =
-            context.claimedByAdminUsername ||
-            String(context.claimedByAdminTelegramId);
-          const processingKeyboard = getAdminOrderProcessingKeyboard(
-            context.order.id,
-            displayHandle
-          );
-
-          for (const notif of context.notifications) {
-            try {
-              await ctx.api.editMessageReplyMarkup(
-                Number(notif.chatId),
-                Number(notif.messageId),
-                {
-                  reply_markup: processingKeyboard,
-                }
-              );
-            } catch (editErr) {
-              console.error(
-                `Failed to edit notification for admin ${notif.adminTelegramId}:`,
-                editErr
-              );
-            }
-          }
-        },
-      }
-    );
+    await orderService.claimOrder({
+      orderId,
+      adminTelegramId: sender.id,
+      adminUsername,
+    });
 
     // Answer callback query with confirmation
     await ctx.answerCallbackQuery({

@@ -2,10 +2,6 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import type { OrderService } from '@/modules/order/order.service';
 import { buildMyOrderView } from '@/bot/handlers/buyer/order.keyboards';
-import {
-  getAdminOrderCancelledKeyboard,
-  editAdminOrderNotificationMessages,
-} from '@/bot/handlers/admin/order.keyboards';
 import { formatUsd } from '@/core/shared/currency.utils';
 import { isValidUuid } from '@/core/shared/telegram.utils';
 import {
@@ -90,22 +86,10 @@ export async function handleBuyerCancelOrderCallback(
   }
 
   try {
-    const result = await orderService.cancelOrder(
-      {
-        orderId,
-        telegramChatId: sender.id,
-      },
-      {
-        updateAdminNotifications: async (context) => {
-          const cancelledKeyboard = getAdminOrderCancelledKeyboard();
-          await editAdminOrderNotificationMessages(
-            ctx.api,
-            context.notifications,
-            cancelledKeyboard
-          );
-        },
-      }
-    );
+    const result = await orderService.cancelOrder({
+      orderId,
+      telegramChatId: sender.id,
+    });
 
     const successMessage =
       `✅ *سفارش شما با موفقیت لغو شد*\n\n` +

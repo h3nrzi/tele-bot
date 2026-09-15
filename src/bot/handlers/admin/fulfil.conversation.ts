@@ -5,7 +5,6 @@ import type { OrderService } from '@/modules/order/order.service';
 import { isCancelCommand } from '@/core/shared/telegram.utils';
 import {
   getFulfilOrderConfirmationKeyboard,
-  getAdminOrderFulfilledKeyboard,
 } from '@/bot/handlers/admin/order.keyboards';
 
 export type FulfilOrderConversation = BotConversation;
@@ -137,47 +136,12 @@ export function createFulfilOrderConversation(orderService: OrderService) {
     // Step 3: Commit
     try {
       await conversation.external(async () => {
-        await orderService.fulfilOrder(
-          {
-            orderId,
-            adminTelegramId: sender.id,
-            adminUsername: adminDisplay,
-            deliveryContent,
-          },
-          {
-            notifyBuyer: async ({ buyer, deliveryContent: content }) => {
-              const buyerMessage =
-                `📦 سفارش شما با موفقیت تحویل داده شد!\n\n` +
-                `اطلاعات تحویل سفارش:\n` +
-                `${content}\n\n` +
-                `با تشکر از خرید شما.`;
-              await ctx.api.sendMessage(
-                buyer.telegramChatId.toString(),
-                buyerMessage
-              );
-            },
-            updateAdminNotifications: async ({ notifications }) => {
-              const fulfilledKeyboard =
-                getAdminOrderFulfilledKeyboard(adminDisplay);
-              for (const notif of notifications) {
-                try {
-                  await ctx.api.editMessageReplyMarkup(
-                    Number(notif.chatId),
-                    Number(notif.messageId),
-                    {
-                      reply_markup: fulfilledKeyboard,
-                    }
-                  );
-                } catch (editErr) {
-                  console.error(
-                    `Failed to edit notification for admin ${notif.adminTelegramId}:`,
-                    editErr
-                  );
-                }
-              }
-            },
-          }
-        );
+        await orderService.fulfilOrder({
+          orderId,
+          adminTelegramId: sender.id,
+          adminUsername: adminDisplay,
+          deliveryContent,
+        });
       });
 
       await ctx.reply('✅ سفارش با موفقیت تحویل داده شد و محتوا برای خریدار ارسال گردید.');
