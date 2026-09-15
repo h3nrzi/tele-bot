@@ -1,7 +1,7 @@
 import type { Context } from 'grammy';
 import type { BotConversation } from '@/bot/context';
 import type { OrderService } from '@/modules/order/order.service';
-import { isCancelCommand } from '@/core/shared/telegram.utils';
+import { isCancelCommand, formatUserDisplayName } from '@/core/shared/telegram.utils';
 import {
   ORDER_REJECTION_CATEGORIES,
   type OrderRejectionCategoryCode,
@@ -44,9 +44,7 @@ export function createRejectOrderConversation(orderService: OrderService) {
 
     const orderId = match[1];
     const shortOrderId = orderId.slice(0, 8);
-    const adminDisplay = sender.username
-      ? `@${sender.username}`
-      : sender.first_name || String(sender.id);
+    const adminDisplay = formatUserDisplayName(sender);
 
     if (ctx.callbackQuery) {
       try {

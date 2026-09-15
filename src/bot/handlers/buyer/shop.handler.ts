@@ -20,8 +20,6 @@ export interface ShopItemDependencies {
 
 export interface ShopConfirmDependencies {
   orderService: OrderService;
-  buyerService?: BuyerService | undefined;
-  adminIds?: string | Set<bigint> | undefined;
 }
 
 /**

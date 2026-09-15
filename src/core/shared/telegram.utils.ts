@@ -63,4 +63,19 @@ export function parseBotIdFromToken(token?: string | null): bigint | null {
   return BigInt(match[1]);
 }
 
+/**
+ * Formats a Telegram user's display name or handle.
+ * Prefers `@username`, then `first_name`, and falls back to string representation of `id`.
+ */
+export function formatUserDisplayName(user: {
+  id: number | bigint;
+  username?: string | null | undefined;
+  first_name?: string | null | undefined;
+}): string {
+  if (user.username) {
+    return `@${user.username}`;
+  }
+  return user.first_name || String(user.id);
+}
+
 

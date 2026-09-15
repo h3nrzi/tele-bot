@@ -4,6 +4,7 @@ import {
   isValidUuid,
   isCancelCommand,
   normalizeChatId,
+  formatUserDisplayName,
 } from '@/core/shared/telegram.utils';
 
 describe('telegram.utils', () => {
@@ -73,6 +74,35 @@ describe('telegram.utils', () => {
       expect(isCancelCommand('❌ انصراف')).toBe(true);
       expect(isCancelCommand('لغو')).toBe(true);
       expect(isCancelCommand('سلام')).toBe(false);
+    });
+  });
+
+  describe('formatUserDisplayName', () => {
+    it('prefers username with @ prefix when username is present', () => {
+      expect(
+        formatUserDisplayName({
+          id: 12345,
+          username: 'alice',
+          first_name: 'Alice',
+        })
+      ).toBe('@alice');
+    });
+
+    it('falls back to first_name when username is absent', () => {
+      expect(
+        formatUserDisplayName({
+          id: 12345,
+          first_name: 'Bob',
+        })
+      ).toBe('Bob');
+    });
+
+    it('falls back to string id when neither username nor first_name is present', () => {
+      expect(
+        formatUserDisplayName({
+          id: 99887766,
+        })
+      ).toBe('99887766');
     });
   });
 });

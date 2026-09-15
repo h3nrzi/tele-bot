@@ -179,8 +179,6 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
   composer.callbackQuery(/^shop:confirm:(.+)$/, async (ctx) => {
     await handleShopConfirmCallback(ctx, {
       orderService,
-      buyerService,
-      adminIds: options?.adminIds,
     });
   });
 

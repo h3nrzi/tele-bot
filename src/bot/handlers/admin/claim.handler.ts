@@ -1,5 +1,6 @@
 import type { Context } from 'grammy';
 import type { OrderService } from '@/modules/order/order.service';
+import { formatUserDisplayName } from '@/core/shared/telegram.utils';
 import {
   OrderAlreadyClaimedError,
   InvalidOrderStatusError,
@@ -36,9 +37,7 @@ export async function handleClaimOrderCallback(
 
   const orderId = match[1];
   const { orderService } = deps;
-  const adminUsername = sender.username
-    ? `@${sender.username}`
-    : sender.first_name || String(sender.id);
+  const adminUsername = formatUserDisplayName(sender);
 
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(

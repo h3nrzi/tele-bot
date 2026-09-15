@@ -2,7 +2,7 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import type { BotConversation } from '@/bot/context';
 import type { OrderService } from '@/modules/order/order.service';
-import { isCancelCommand } from '@/core/shared/telegram.utils';
+import { isCancelCommand, formatUserDisplayName } from '@/core/shared/telegram.utils';
 import {
   getFulfilOrderConfirmationKeyboard,
 } from '@/bot/handlers/admin/order.keyboards';
@@ -33,9 +33,7 @@ export function createFulfilOrderConversation(orderService: OrderService) {
     }
 
     const orderId = match[1];
-    const adminDisplay = sender.username
-      ? `@${sender.username}`
-      : sender.first_name || String(sender.id);
+    const adminDisplay = formatUserDisplayName(sender);
 
     if (ctx.callbackQuery) {
       try {
