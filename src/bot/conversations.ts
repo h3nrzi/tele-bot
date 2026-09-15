@@ -46,11 +46,7 @@ import {
   REJECT_ORDER_CONVERSATION_ID,
 } from '@/bot/handlers/admin/order-reject.conversation';
 
-export interface ConversationRegistrar {
-  use(...middleware: any[]): unknown;
-}
-
-export interface ConversationDescriptor {
+interface ConversationDescriptor {
   id: string;
   factory: (
     container: DependencyContainer,
@@ -58,7 +54,7 @@ export interface ConversationDescriptor {
   ) => ConversationBuilder<BotContext, Context>;
 }
 
-export const conversationDescriptors: readonly ConversationDescriptor[] = [
+const conversationDescriptors: readonly ConversationDescriptor[] = [
   {
     id: SETRATE_CONVERSATION_ID,
     factory: (container) =>
@@ -114,13 +110,11 @@ export const conversationDescriptors: readonly ConversationDescriptor[] = [
   },
 ];
 
-export const CONVERSATION_DESCRIPTORS = conversationDescriptors;
-
 /**
  * Registers all conversations with the bot using their respective descriptors.
  */
 export function registerConversations(
-  bot: Bot<BotContext> | ConversationRegistrar,
+  bot: Bot<BotContext>,
   container: DependencyContainer,
   limits?: TopUpLimits
 ): void {
