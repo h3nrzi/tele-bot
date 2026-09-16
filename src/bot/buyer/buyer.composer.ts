@@ -1,19 +1,19 @@
 import { Composer } from "grammy";
 import type { DependencyContainer } from "tsyringe";
 import type { BotContext } from "@/bot/context";
-import { handleStart } from "@/bot/handlers/buyer/handlers/start.handler";
-import { handleBalance } from "@/bot/handlers/buyer/handlers/balance.handler";
-import { handleTopUpCommand } from "@/bot/handlers/buyer/handlers/top-up.handler";
-import { handleCancelCommand } from "@/bot/handlers/buyer/handlers/cancel.handler";
-import { handleStatusCommand } from "@/bot/handlers/buyer/handlers/status.handler";
-import { handlePhotoMessage } from "@/bot/handlers/buyer/handlers/receipt.handler";
+import { handleStart } from "@/bot/buyer/handlers/start.handler";
+import { handleBalance } from "@/bot/buyer/handlers/balance.handler";
+import { handleTopUpCommand } from "@/bot/buyer/handlers/top-up.handler";
+import { handleCancelCommand } from "@/bot/buyer/handlers/cancel.handler";
+import { handleStatusCommand } from "@/bot/buyer/handlers/status.handler";
+import { handlePhotoMessage } from "@/bot/buyer/handlers/receipt.handler";
 import {
 	handleShopCommand,
 	handleShopItemCallback,
 	handleShopCancelCallback,
 	handleShopConfirmCallback,
-} from "@/bot/handlers/buyer/handlers/shop.handler";
-import { handleMyOrderCommand, handleBuyerCancelOrderCallback } from "@/bot/handlers/buyer/handlers/myorder.handler";
+} from "@/bot/buyer/handlers/shop.handler";
+import { handleMyOrderCommand, handleBuyerCancelOrderCallback } from "@/bot/buyer/handlers/myorder.handler";
 import { BuyerService } from "@/modules/buyer/buyer.service";
 import { WalletService } from "@/modules/wallet/wallet.service";
 import { TopUpService } from "@/modules/top-up/top-up.service";

@@ -11,22 +11,25 @@ import { OrderService } from "@/modules/order/order.service";
 import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 
-import { createSetCardConversation, SETCARD_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/set-card.conversation";
-import { createSetRateConversation, SETRATE_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/set-rate.conversation";
-import { createSpreadConversation, SPREAD_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/spread.conversation";
-import { createTopUpConversation, TOPUP_CONVERSATION_ID } from "@/bot/handlers/buyer/top-up.conversation";
-import { createRejectConversation, REJECT_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/reject.conversation";
+import { createSetCardConversation, SETCARD_CONVERSATION_ID } from "@/bot/admin/conversations/set-card.conversation";
+import { createSetRateConversation, SETRATE_CONVERSATION_ID } from "@/bot/admin/conversations/set-rate.conversation";
+import { createSpreadConversation, SPREAD_CONVERSATION_ID } from "@/bot/admin/conversations/spread.conversation";
+import { createTopUpConversation, TOPUP_CONVERSATION_ID } from "@/bot/buyer/top-up.conversation";
+import { createRejectConversation, REJECT_CONVERSATION_ID } from "@/bot/admin/conversations/reject.conversation";
 import {
 	createAddCatalogItemConversation,
 	ADD_CATALOG_ITEM_CONVERSATION_ID,
 	createEditCatalogItemConversation,
 	EDIT_CATALOG_ITEM_CONVERSATION_ID,
-} from "@/bot/handlers/admin/conversations/catalog.conversation";
-import { createFulfilOrderConversation, FULFIL_ORDER_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/fulfil.conversation";
+} from "@/bot/admin/conversations/catalog.conversation";
+import {
+	createFulfilOrderConversation,
+	FULFIL_ORDER_CONVERSATION_ID,
+} from "@/bot/admin/conversations/fulfil.conversation";
 import {
 	createRejectOrderConversation,
 	REJECT_ORDER_CONVERSATION_ID,
-} from "@/bot/handlers/admin/conversations/order-reject.conversation";
+} from "@/bot/admin/conversations/order-reject.conversation";
 
 interface ConversationDescriptor {
 	id: string;

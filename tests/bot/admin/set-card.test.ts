@@ -4,7 +4,7 @@ import { createMockFetch } from "@tests/helpers/mock-context";
 import { createBot } from "@/bot/bot";
 import { bankAccounts } from "@/modules/bank-account/bank-account.schema";
 import { setTestActiveAccount, getTestActiveAccount } from "@tests/helpers/fixtures";
-import { isValidCardNumber, cleanCardNumber, isCancelCommand, isSkipCommand } from "@/bot/handlers/admin";
+import { isValidCardNumber, cleanCardNumber, isCancelCommand, isSkipCommand } from "@/bot/admin";
 import { count } from "drizzle-orm";
 
 describe("/setcard Admin Command & Conversation", () => {

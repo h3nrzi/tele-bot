@@ -3,7 +3,7 @@ import { InlineKeyboard } from "grammy";
 import type { BotConversation } from "@/bot/context";
 import type { OrderService } from "@/modules/order/order.service";
 import { isCancelCommand, formatUserDisplayName } from "@/core/shared/telegram.utils";
-import { getFulfilOrderConfirmationKeyboard } from "@/bot/handlers/admin/keyboards/order.keyboards";
+import { getFulfilOrderConfirmationKeyboard } from "@/bot/admin/keyboards/order.keyboards";
 
 export type FulfilOrderConversation = BotConversation;
 export const FULFIL_ORDER_CONVERSATION_ID = "fulfil_order";

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
 import { createMockContext } from "@tests/helpers/mock-context";
-import { handleStatusCommand } from "@/bot/handlers/buyer";
+import { handleStatusCommand } from "@/bot/buyer";
 import { BuyerService } from "@/modules/buyer/buyer.service";
 import { createBot } from "@/bot/bot";
 import { createTestBuyer, setTestRate, initiateTestTopUp } from "@tests/helpers/fixtures";

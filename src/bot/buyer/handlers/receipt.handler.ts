@@ -4,7 +4,7 @@ import type { BuyerService } from "@/modules/buyer/buyer.service";
 import { TopUpRequestExpiredError, NoInitiatedTopUpRequestError } from "@/modules/top-up/top-up.errors";
 import { resolveAdminIds } from "@/bot/middleware/admin.middleware";
 import { formatUsd, formatIrr } from "@/core/shared/currency.utils";
-import { getAdminReceiptKeyboard } from "@/bot/handlers/admin";
+import { getAdminReceiptKeyboard } from "@/bot/admin";
 
 export interface PhotoHandlerDependencies {
 	buyerService: BuyerService;

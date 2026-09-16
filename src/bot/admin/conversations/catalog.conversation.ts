@@ -10,7 +10,7 @@ import {
 	getKeepInlineKeyboard,
 	getConfirmationInlineKeyboard,
 	type CatalogItemViewData,
-} from "@/bot/handlers/admin/keyboards/catalog.keyboards";
+} from "@/bot/admin/keyboards/catalog.keyboards";
 import type { CatalogItem } from "@/modules/catalog/catalog.entity";
 
 export type AddCatalogItemConversation = BotConversation;

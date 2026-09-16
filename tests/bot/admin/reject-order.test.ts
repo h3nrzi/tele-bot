@@ -11,7 +11,7 @@ import {
 	getOrderRejectionNotePromptKeyboard,
 	getAdminOrderRejectedKeyboard,
 	ORDER_REJECTION_CATEGORIES,
-} from "@/bot/handlers/admin/keyboards/order.keyboards";
+} from "@/bot/admin/keyboards/order.keyboards";
 
 describe("Admin Order Rejection Handler & Conversation (Ticket 07)", () => {
 	const { db, container } = setupTestDatabase();

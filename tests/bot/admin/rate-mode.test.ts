@@ -6,7 +6,7 @@ import {
 	handleRateModeCommand,
 	handleRateModeSwitchCallback,
 	handleRateModeCancelCallback,
-} from "@/bot/handlers/admin/handlers/rate-mode.handler";
+} from "@/bot/admin/handlers/rate-mode.handler";
 import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { exchangeRates } from "@/modules/exchange-rate/schemas/exchange-rate.schema";

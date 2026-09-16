@@ -3,6 +3,6 @@ export * from "@/bot/bot";
 export * from "@/bot/commands";
 export * from "@/bot/keyboards";
 export * from "@/bot/middleware";
-export * from "@/bot/handlers/buyer";
-export * from "@/bot/handlers/admin";
+export * from "@/bot/buyer";
+export * from "@/bot/admin";
 export * from "@/bot/notifications";

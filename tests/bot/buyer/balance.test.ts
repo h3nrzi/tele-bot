@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
 import { createMockContext } from "@tests/helpers/mock-context";
-import { handleBalance } from "@/bot/handlers/buyer";
+import { handleBalance } from "@/bot/buyer";
 import { WalletService } from "@/modules/wallet/wallet.service";
 import { createBot } from "@/bot/bot";
 import { createTestBuyer } from "@tests/helpers/fixtures";

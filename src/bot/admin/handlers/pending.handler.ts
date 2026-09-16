@@ -3,8 +3,8 @@ import { InlineKeyboard } from "grammy";
 import type { TopUpService } from "@/modules/top-up/top-up.service";
 import { formatUsd, formatIrr } from "@/core/shared/currency.utils";
 import { formatTimeAgo } from "@/core/shared/date.utils";
-import { getPendingQueueKeyboard } from "@/bot/handlers/admin/keyboards/pending.keyboards";
-import { getAdminReceiptKeyboard } from "@/bot/handlers/admin/keyboards/approval.keyboards";
+import { getPendingQueueKeyboard } from "@/bot/admin/keyboards/pending.keyboards";
+import { getAdminReceiptKeyboard } from "@/bot/admin/keyboards/approval.keyboards";
 
 export const PENDING_PAGE_SIZE = 10;
 

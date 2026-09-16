@@ -8,7 +8,7 @@ import {
 	getAdminOrderRejectedKeyboard,
 	ORDER_REJECTION_CATEGORIES,
 	type OrderRejectionCategoryCode,
-} from "@/bot/handlers/admin/keyboards/order.keyboards";
+} from "@/bot/admin/keyboards/order.keyboards";
 import { resolveAdminIds } from "@/bot/middleware/admin.middleware";
 import type { DbExecutor } from "@/core/database/types";
 import { formatUsd } from "@/core/shared/currency.utils";

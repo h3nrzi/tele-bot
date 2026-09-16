@@ -1,10 +1,10 @@
 import "reflect-metadata";
 import type { BotContext } from "@/bot/context";
 import { registerConversations } from "@/bot/conversations";
-import { createAdminComposer } from "@/bot/handlers/admin/admin.composer";
+import { createAdminComposer } from "@/bot/admin/admin.composer";
 import { TelegramOrderNotifier } from "@/bot/notifications/order.notifier";
 import { TelegramOtcPurchaseNotifier } from "@/bot/notifications/otc-purchase.notifier";
-import { createBuyerComposer } from "@/bot/handlers/buyer/buyer.composer";
+import { createBuyerComposer } from "@/bot/buyer/buyer.composer";
 import type { DbClient } from "@/core/database/client";
 import { createAppContainer } from "@/core/di/container";
 import { TOKENS } from "@/core/di/tokens";

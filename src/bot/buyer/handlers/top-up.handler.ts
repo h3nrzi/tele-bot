@@ -5,7 +5,7 @@ import type { ExchangeRateConfigService } from "@/modules/exchange-rate/services
 import type { BankAccountService } from "@/modules/bank-account/bank-account.service";
 import type { BuyerService } from "@/modules/buyer/buyer.service";
 import type { TopUpService } from "@/modules/top-up/top-up.service";
-import { TOPUP_CONVERSATION_ID } from "@/bot/handlers/buyer/top-up.conversation";
+import { TOPUP_CONVERSATION_ID } from "@/bot/buyer/top-up.conversation";
 
 export interface TopUpHandlerDependencies {
 	exchangeRateService: ExchangeRateService;

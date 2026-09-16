@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
 import { createMockContext, captureBotReplies } from "@tests/helpers/mock-context";
-import { handleRate } from "@/bot/handlers/admin";
+import { handleRate } from "@/bot/admin";
 import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { formatPersianDateTime } from "@/core/shared/date.utils";

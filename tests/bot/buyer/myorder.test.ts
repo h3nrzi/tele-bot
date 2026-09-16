@@ -6,7 +6,7 @@ import { createTestBuyer, createTestCatalogItem, placeTestOrder, claimTestOrder 
 import { wallets } from "@/modules/wallet/wallet.schema";
 import { orders, ledgerTransactions, orderAdminNotifications } from "@/core/database/schema";
 import { eq } from "drizzle-orm";
-import { buildMyOrderView } from "@/bot/handlers/buyer/keyboards/order.keyboards";
+import { buildMyOrderView } from "@/bot/buyer/keyboards/order.keyboards";
 
 describe("Buyer /myorder Command & Order Cancellation Flow (Ticket 08)", () => {
 	const { db, container } = setupTestDatabase();

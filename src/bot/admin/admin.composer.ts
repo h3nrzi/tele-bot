@@ -2,28 +2,28 @@ import { Composer } from "grammy";
 import type { DependencyContainer } from "tsyringe";
 import type { BotContext } from "@/bot/context";
 import { createAdminMiddleware } from "@/bot/middleware/admin.middleware";
-import { handleSetRate } from "@/bot/handlers/admin/handlers/set-rate.handler";
-import { handleRate } from "@/bot/handlers/admin/handlers/rate.handler";
-import { handleSetCardCommand } from "@/bot/handlers/admin/handlers/set-card.handler";
-import { handleApproveCallback } from "@/bot/handlers/admin/handlers/approve.handler";
-import { handleRejectCallback } from "@/bot/handlers/admin/handlers/reject.handler";
-import { handlePending, handlePendingPage, handleReviewCallback } from "@/bot/handlers/admin/handlers/pending.handler";
+import { handleSetRate } from "@/bot/admin/handlers/set-rate.handler";
+import { handleRate } from "@/bot/admin/handlers/rate.handler";
+import { handleSetCardCommand } from "@/bot/admin/handlers/set-card.handler";
+import { handleApproveCallback } from "@/bot/admin/handlers/approve.handler";
+import { handleRejectCallback } from "@/bot/admin/handlers/reject.handler";
+import { handlePending, handlePendingPage, handleReviewCallback } from "@/bot/admin/handlers/pending.handler";
 import {
 	handleCatalogCommand,
 	handleCatalogToggleCallback,
 	handleCatalogAddCallback,
 	handleCatalogEditCallback,
-} from "@/bot/handlers/admin/handlers/catalog.handler";
-import { handleOrdersCommand } from "@/bot/handlers/admin/handlers/orders.handler";
-import { handleClaimOrderCallback } from "@/bot/handlers/admin/handlers/claim.handler";
-import { handleFulfilOrderCallback } from "@/bot/handlers/admin/handlers/fulfil.handler";
-import { handleRejectOrderCallback } from "@/bot/handlers/admin/handlers/order-reject.handler";
+} from "@/bot/admin/handlers/catalog.handler";
+import { handleOrdersCommand } from "@/bot/admin/handlers/orders.handler";
+import { handleClaimOrderCallback } from "@/bot/admin/handlers/claim.handler";
+import { handleFulfilOrderCallback } from "@/bot/admin/handlers/fulfil.handler";
+import { handleRejectOrderCallback } from "@/bot/admin/handlers/order-reject.handler";
 import {
 	handleRateModeCommand,
 	handleRateModeSwitchCallback,
 	handleRateModeCancelCallback,
-} from "@/bot/handlers/admin/handlers/rate-mode.handler";
-import { SPREAD_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/spread.conversation";
+} from "@/bot/admin/handlers/rate-mode.handler";
+import { SPREAD_CONVERSATION_ID } from "@/bot/admin/conversations/spread.conversation";
 import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
@@ -34,7 +34,7 @@ import { TopUpService } from "@/modules/top-up/top-up.service";
 import { CatalogService } from "@/modules/catalog/catalog.service";
 import { OrderService } from "@/modules/order/order.service";
 import { OtcPurchaseService } from "@/modules/otc-purchase/otc-purchase.service";
-import { handleOtcRetryCallback } from "@/bot/handlers/admin/handlers/otc-retry.handler";
+import { handleOtcRetryCallback } from "@/bot/admin/handlers/otc-retry.handler";
 
 export interface AdminComposerOptions {
 	container?: DependencyContainer | undefined;

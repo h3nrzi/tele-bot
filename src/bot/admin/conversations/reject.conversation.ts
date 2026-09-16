@@ -4,7 +4,7 @@ import type { BotConversation } from "@/bot/context";
 import type { TopUpService } from "@/modules/top-up/top-up.service";
 import { TopUpRequestNotPendingError } from "@/modules/top-up/top-up.errors";
 import { isCancelCommand } from "@/core/shared/telegram.utils";
-import { PRESET_REJECTION_REASONS, getRejectionPresetsKeyboard } from "@/bot/handlers/admin/keyboards/rejection.keyboards";
+import { PRESET_REJECTION_REASONS, getRejectionPresetsKeyboard } from "@/bot/admin/keyboards/rejection.keyboards";
 
 export type RejectConversation = BotConversation;
 export const REJECT_CONVERSATION_ID = "reject_topup";

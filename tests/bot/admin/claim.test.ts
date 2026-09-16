@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import {
 	getAdminOrderNotificationKeyboard,
 	getAdminOrderProcessingKeyboard,
-} from "@/bot/handlers/admin/keyboards/order.keyboards";
+} from "@/bot/admin/keyboards/order.keyboards";
 
 describe("Admin Order Claim & Start Processing Callback Handler (Ticket 05)", () => {
 	const { db, container } = setupTestDatabase();
