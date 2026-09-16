@@ -107,3 +107,15 @@ export interface AdminOrderQueueItem {
 	createdAt: Date;
 	updatedAt: Date;
 }
+
+export interface RecentOrderWithCatalogItem {
+	order: Order;
+	catalogItemName: string;
+}
+
+export interface OrderCountBreakdownResult {
+	fulfilled: number;
+	inProgress: number;
+	cancelled: number;
+}
+

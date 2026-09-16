@@ -1,5 +1,5 @@
 import { injectable, inject } from "tsyringe";
-import { eq, desc, asc, inArray } from "drizzle-orm";
+import { eq, desc, asc, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { orders, orderAdminNotifications } from "@/modules/order/order.schema";
 import { catalogItems } from "@/modules/catalog/catalog.schema";
@@ -13,7 +13,7 @@ import type {
 	CreateOrderAdminNotificationParams,
 	UpdateOrderStatusFields,
 } from "@/modules/order/interfaces/order.repository.interface";
-import type { AdminOrderQueueItem } from "@/modules/order/dtos/order.dto";
+import type { AdminOrderQueueItem, RecentOrderWithCatalogItem, OrderCountBreakdownResult } from "@/modules/order/dtos/order.dto";
 import { UsdAmount } from "@/core/shared/money.vo";
 import { TOKENS } from "@/core/di/tokens";
 
@@ -82,6 +82,67 @@ export class DrizzleOrderRepository implements IOrderRepository<DbExecutor> {
 		}
 
 		return this.mapOrderToEntity(row);
+	}
+
+	public async findRecentByBuyerId(
+		buyerId: string,
+		limit: number,
+		executor?: DbExecutor,
+	): Promise<RecentOrderWithCatalogItem[]> {
+		const db = this.getDb(executor);
+		const rows = await db
+			.select({
+				order: orders,
+				catalogItemName: catalogItems.name,
+			})
+			.from(orders)
+			.innerJoin(catalogItems, eq(orders.catalogItemId, catalogItems.id))
+			.where(eq(orders.userId, buyerId))
+			.orderBy(desc(orders.createdAt), desc(orders.id))
+			.limit(limit);
+
+		return rows.map((r) => ({
+			order: this.mapOrderToEntity(r.order),
+			catalogItemName: r.catalogItemName,
+		}));
+	}
+
+	public async getCountBreakdownByBuyerId(
+		buyerId: string,
+		executor?: DbExecutor,
+	): Promise<OrderCountBreakdownResult> {
+		const db = this.getDb(executor);
+		const rows = await db
+			.select({
+				status: orders.status,
+				count: sql<number>`count(*)`,
+			})
+			.from(orders)
+			.where(eq(orders.userId, buyerId))
+			.groupBy(orders.status);
+
+		let fulfilled = 0;
+		let inProgress = 0;
+		let cancelled = 0;
+
+		for (const row of rows) {
+			const count = Number(row.count);
+			switch (row.status) {
+				case "FULFILLED":
+					fulfilled += count;
+					break;
+				case "PLACED":
+				case "PROCESSING":
+					inProgress += count;
+					break;
+				case "CANCELLED":
+				case "REJECTED":
+					cancelled += count;
+					break;
+			}
+		}
+
+		return { fulfilled, inProgress, cancelled };
 	}
 
 	public async findActiveOrders(executor?: DbExecutor): Promise<AdminOrderQueueItem[]> {

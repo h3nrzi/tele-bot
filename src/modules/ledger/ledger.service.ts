@@ -1,6 +1,11 @@
 import { injectable, inject } from "tsyringe";
 import type { DbExecutor } from "@/core/database/types";
-import type { ILedgerRepository, CreateLedgerTransactionResult } from "@/modules/ledger/ledger.repository.interface";
+import { getDefaultDb, type DbClient } from "@/core/database/client";
+import type {
+	ILedgerRepository,
+	CreateLedgerTransactionResult,
+	RecentWalletTransactionEntry,
+} from "@/modules/ledger/ledger.repository.interface";
 import { TOKENS } from "@/core/di/tokens";
 import { UsdAmount } from "@/core/shared/money.vo";
 
@@ -32,6 +37,7 @@ export class LedgerService {
 	constructor(
 		@inject(TOKENS.LedgerRepository)
 		private readonly ledgerRepo: ILedgerRepository<DbExecutor>,
+		@inject(TOKENS.DbClient) private readonly db?: DbClient,
 	) {}
 
 	/**
@@ -144,4 +150,18 @@ export class LedgerService {
 			originalTransactionId: originalTx ? originalTx.id : null,
 		};
 	}
+
+	/**
+	 * Retrieves the last N BUYER_WALLET Ledger Entries for a given wallet in descending date order,
+	 * joined with their parent Ledger Transaction's narrative.
+	 */
+	public async getRecentWalletTransactions(
+		walletId: string,
+		limit: number = 5,
+		executor?: DbExecutor,
+	): Promise<RecentWalletTransactionEntry[]> {
+		const client = executor ?? this.db ?? getDefaultDb();
+		return await this.ledgerRepo.findRecentByWalletId(walletId, limit, client);
+	}
 }
+

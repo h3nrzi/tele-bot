@@ -21,6 +21,8 @@ import type {
 	GetLatestOrderInput,
 	PlaceOrderInput,
 	PlaceOrderResult,
+	RecentOrderWithCatalogItem,
+	OrderCountBreakdownResult,
 	RejectOrderInput,
 	RejectOrderResult,
 } from "@/modules/order/dtos/order.dto";
@@ -709,5 +711,34 @@ export class OrderService {
 	public async getAdminOrderQueue(executor?: DbExecutor): Promise<AdminOrderQueueItem[]> {
 		const client = executor ?? this.db ?? getDefaultDb();
 		return await this.orderRepo.findActiveOrders(client);
+	}
+
+	/**
+	 * Retrieves the last N Orders for the Buyer in descending date order,
+	 * each joined with its Catalog Item name.
+	 */
+	public async getRecentOrdersForBuyer(
+		telegramChatId: bigint | number | string,
+		limit: number = 5,
+		executor?: DbExecutor,
+	): Promise<RecentOrderWithCatalogItem[]> {
+		const client = executor ?? this.db ?? getDefaultDb();
+		const buyer = await this.resolveBuyer({ telegramChatId }, client);
+		return await this.orderRepo.findRecentByBuyerId(buyer.id, limit, client);
+	}
+
+	/**
+	 * Retrieves order count breakdown for a Buyer, grouped into three buckets:
+	 * - fulfilled: FULFILLED
+	 * - inProgress: PLACED + PROCESSING
+	 * - cancelled: CANCELLED + REJECTED
+	 */
+	public async getOrderCountBreakdown(
+		telegramChatId: bigint | number | string,
+		executor?: DbExecutor,
+	): Promise<OrderCountBreakdownResult> {
+		const client = executor ?? this.db ?? getDefaultDb();
+		const buyer = await this.resolveBuyer({ telegramChatId }, client);
+		return await this.orderRepo.getCountBreakdownByBuyerId(buyer.id, client);
 	}
 }

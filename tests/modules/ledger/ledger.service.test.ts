@@ -58,6 +58,7 @@ describe("LedgerService", () => {
 			}),
 			findOriginalByOrderId: vi.fn(),
 			updateReversedBy: vi.fn(),
+			findRecentByWalletId: vi.fn(),
 		};
 
 		const service = new LedgerService(mockLedgerRepo);
@@ -120,6 +121,7 @@ describe("LedgerService", () => {
 			}),
 			findOriginalByOrderId: vi.fn(),
 			updateReversedBy: vi.fn(),
+			findRecentByWalletId: vi.fn(),
 		};
 
 		const service = new LedgerService(mockLedgerRepo);
@@ -186,6 +188,7 @@ describe("LedgerService", () => {
 			}),
 			findOriginalByOrderId: vi.fn(async () => originalDebitTx),
 			updateReversedBy: vi.fn(async () => {}),
+			findRecentByWalletId: vi.fn(),
 		};
 
 		const service = new LedgerService(mockLedgerRepo);

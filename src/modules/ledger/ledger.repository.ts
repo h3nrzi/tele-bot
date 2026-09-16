@@ -1,5 +1,5 @@
 import { injectable } from "tsyringe";
-import { eq, and, isNull, asc } from "drizzle-orm";
+import { eq, and, isNull, asc, desc } from "drizzle-orm";
 import { ledgerTransactions, ledgerEntries } from "@/modules/ledger/ledger.schema";
 import type { DbExecutor } from "@/core/database/types";
 import { LedgerTransaction } from "@/modules/ledger/entities/ledger-transaction.entity";
@@ -8,6 +8,7 @@ import type {
 	ILedgerRepository,
 	CreateLedgerTransactionParams,
 	CreateLedgerTransactionResult,
+	RecentWalletTransactionEntry,
 } from "@/modules/ledger/ledger.repository.interface";
 import { UsdAmount } from "@/core/shared/money.vo";
 
@@ -131,6 +132,41 @@ export class DrizzleLedgerRepository implements ILedgerRepository<DbExecutor> {
 				reversedByLedgerTransactionId,
 			})
 			.where(eq(ledgerTransactions.id, transactionId));
+	}
+
+	public async findRecentByWalletId(
+		walletId: string,
+		limit: number,
+		executor: DbExecutor,
+	): Promise<RecentWalletTransactionEntry[]> {
+		const rows = await executor
+			.select({
+				entry: ledgerEntries,
+				narrative: ledgerTransactions.narrative,
+			})
+			.from(ledgerEntries)
+			.innerJoin(ledgerTransactions, eq(ledgerEntries.ledgerTransactionId, ledgerTransactions.id))
+			.where(
+				and(
+					eq(ledgerEntries.walletId, walletId),
+					eq(ledgerEntries.accountType, "BUYER_WALLET"),
+				),
+			)
+			.orderBy(desc(ledgerEntries.createdAt), desc(ledgerEntries.id))
+			.limit(limit);
+
+		return rows.map((r) => ({
+			entry: new LedgerEntry({
+				id: r.entry.id,
+				ledgerTransactionId: r.entry.ledgerTransactionId,
+				accountType: r.entry.accountType,
+				direction: r.entry.direction,
+				usdAmount: r.entry.usdAmount,
+				walletId: r.entry.walletId,
+				createdAt: r.entry.createdAt,
+			}),
+			narrative: r.narrative,
+		}));
 	}
 }
 
