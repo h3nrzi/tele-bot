@@ -4,11 +4,11 @@
 
 **Blocked by:** 01 — Extract `registerConversations` to `src/bot/conversations.ts`
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `tests/bot/conversations.test.ts` exists
-- [ ] Test constructs a mock bot (spy on `bot.use`) and a minimal mock container that stubs the service resolutions used by each factory
-- [ ] Test calls `registerConversations(mockBot, mockContainer, limits)` and asserts `bot.use` was called exactly nine times
-- [ ] Test asserts each call received a handler whose conversation ID matches one of the nine expected IDs
-- [ ] Test passes (`vitest run tests/bot/conversations.test.ts`)
-- [ ] No existing test files are modified
+- [x] `tests/bot/conversations.test.ts` exists
+- [x] Test constructs a mock bot (spy on `bot.use`) and a minimal mock container that stubs the service resolutions used by each factory
+- [x] Test calls `registerConversations(mockBot, mockContainer, limits)` and asserts `bot.use` was called exactly nine times
+- [x] Test asserts each call received a handler whose conversation ID matches one of the nine expected IDs
+- [x] Test passes (`vitest run tests/bot/conversations.test.ts`)
+- [x] No existing test files are modified
