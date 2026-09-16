@@ -1,5 +1,6 @@
 import { injectable, inject } from "tsyringe";
 import type Decimal from "decimal.js";
+import type { UsdAmount } from "@/core/shared/money.vo";
 import { TOKENS } from "@/core/di/tokens";
 import type { IExchangeRateRepository } from "@/modules/exchange-rate/exchange-rate.repository.interface";
 import type { IRateLockService, LockedRate } from "@/modules/exchange-rate/rate-lock.service.interface";
@@ -18,7 +19,7 @@ export class ManualRateLock implements IRateLockService {
 		private readonly exchangeRateRepo: IExchangeRateRepository<DbExecutor>,
 	) {}
 
-	public async resolve(_usdAmount: Decimal): Promise<LockedRate> {
+	public async resolve(_usdAmount: Decimal | UsdAmount): Promise<LockedRate> {
 		const rate = await this.exchangeRateRepo.findLatest();
 		if (!rate) {
 			throw new NoExchangeRateError("No active exchange rate found. Top-up is temporarily unavailable.");

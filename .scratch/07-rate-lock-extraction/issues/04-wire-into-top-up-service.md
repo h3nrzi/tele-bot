@@ -4,13 +4,13 @@
 
 **Blocked by:** 02 — Implement `ManualRateLock` adapter, 03 — Implement `AutoSyncRateLock` adapter
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `TopUpService` constructor accepts `autoSyncRateLock: IRateLockService` (injected via `TOKENS.AutoSyncRateLock`) and `manualRateLock: IRateLockService` (injected via `TOKENS.ManualRateLock`)
-- [ ] The 50-line rate-resolution block in `initiateTopUp` is replaced by: read config, select adapter, call `resolve(validation.amount)`
-- [ ] The `LockedRate` fields (`lockedIrrPerUsd`, `rateSource`, `exchangeRateId`, `exchangeRate`) are passed directly into the `topUpRepo.insert()` call and the `InitiateTopUpResult` return value
-- [ ] `WallexClient` and `ExchangeRateConfigService` optional injection fields remain on `TopUpService` (backward compatibility)
-- [ ] All existing tests in `top-up-initiation.test.ts` pass without modification, including AUTO_SYNC, BASELINE_FALLBACK, and MANUAL cases
-- [ ] `NoExchangeRateError` continues to propagate out of `initiateTopUp` with the same type
-- [ ] `InitiateTopUpResult` shape is unchanged
-- [ ] `TopUpConversation` in the presentation layer requires no changes
+- [x] `TopUpService` constructor accepts `autoSyncRateLock: IRateLockService` (injected via `TOKENS.AutoSyncRateLock`) and `manualRateLock: IRateLockService` (injected via `TOKENS.ManualRateLock`)
+- [x] The 50-line rate-resolution block in `initiateTopUp` is replaced by: read config, select adapter, call `resolve(validation.amount)`
+- [x] The `LockedRate` fields (`lockedIrrPerUsd`, `rateSource`, `exchangeRateId`, `exchangeRate`) are passed directly into the `topUpRepo.insert()` call and the `InitiateTopUpResult` return value
+- [x] `WallexClient` and `ExchangeRateConfigService` optional injection fields remain on `TopUpService` (backward compatibility)
+- [x] All existing tests in `top-up-initiation.test.ts` pass without modification, including AUTO_SYNC, BASELINE_FALLBACK, and MANUAL cases
+- [x] `NoExchangeRateError` continues to propagate out of `initiateTopUp` with the same type
+- [x] `InitiateTopUpResult` shape is unchanged
+- [x] `TopUpConversation` in the presentation layer requires no changes

@@ -1,4 +1,5 @@
 import type Decimal from "decimal.js";
+import type { UsdAmount } from "@/core/shared/money.vo";
 import type { RateSource } from "@/modules/top-up/top-up.schema";
 import type { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
 
@@ -18,5 +19,6 @@ export interface LockedRate {
  * Resolves the exchange rate to lock for a given USD amount during top-up initiation.
  */
 export interface IRateLockService {
-	resolve(usdAmount: Decimal): Promise<LockedRate>;
+	resolve(usdAmount: Decimal | UsdAmount, spreadPercent?: string): Promise<LockedRate>;
 }
+

@@ -18,11 +18,10 @@ import {
 	NoActiveTopUpRequestError,
 } from "@/modules/top-up/top-up.errors";
 import { NoExchangeRateError } from "@/modules/exchange-rate/exchange-rate.errors";
-import type { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
 import type { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import type { IRateLockService } from "@/modules/exchange-rate/rate-lock.service.interface";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
-import type { RateSource } from "@/modules/top-up/top-up.schema";
-import { computeIrrAmount, calculateSpreadAdjustedRate } from "@/core/shared/currency.utils";
+import { computeIrrAmount } from "@/core/shared/currency.utils";
 import { WalletNotFoundError } from "@/modules/wallet/wallet.errors";
 import { normalizeChatId } from "@/core/shared/telegram.utils";
 import type {
@@ -58,6 +57,10 @@ export class TopUpService {
 		private readonly walletRepo: IWalletRepository<DbExecutor>,
 		@inject(TOKENS.LedgerService)
 		private readonly ledgerService: LedgerService,
+		@inject(TOKENS.AutoSyncRateLock)
+		private readonly autoSyncRateLock: IRateLockService,
+		@inject(TOKENS.ManualRateLock)
+		private readonly manualRateLock: IRateLockService,
 		@inject(TOKENS.TopUpLimits)
 		private readonly topUpLimits?: TopUpLimits,
 		@inject(TOKENS.ExchangeRateConfigService)
@@ -105,52 +108,11 @@ export class TopUpService {
 
 		// 2. Resolve Rate Mode and Locked Exchange Rate
 		const config = this.exchangeRateConfigService ? await this.exchangeRateConfigService.getConfig(client) : null;
-
-		let lockedIrrPerUsd = 0n;
-		let rateSource: RateSource = "MANUAL";
-		let exchangeRateId: string | null = null;
-		let exchangeRateEntity: ExchangeRate | null = null;
-
-		if (config?.isAutoSync()) {
-			let quoteSuccess = false;
-			if (this.wallexClient) {
-				try {
-					const quote = await this.wallexClient.getOtcPrice("USDTTMN", "BUY");
-					if (quote && typeof quote.priceIrr === "bigint" && quote.priceIrr > 0n) {
-						lockedIrrPerUsd = calculateSpreadAdjustedRate(quote.priceIrr, config.spreadPercent);
-						rateSource = "OTC_QUOTE";
-						exchangeRateId = null;
-						exchangeRateEntity = null;
-						quoteSuccess = true;
-					}
-				} catch (otcErr) {
-					console.warn("Failed to fetch on-demand Wallex OTC quote, falling back to baseline rate:", otcErr);
-				}
-			}
-
-			if (!quoteSuccess) {
-				const baselineRate = await this.exchangeRateRepo.findLatest(client);
-				if (!baselineRate) {
-					throw new NoExchangeRateError("No active exchange rate found. Top-up is temporarily unavailable.");
-				}
-				lockedIrrPerUsd = baselineRate.irrPerUsd;
-				rateSource = "BASELINE_FALLBACK";
-				exchangeRateId = baselineRate.id;
-				exchangeRateEntity = baselineRate;
-			}
-		} else {
-			const currentRate = await this.exchangeRateRepo.findLatest(client);
-			if (!currentRate) {
-				throw new NoExchangeRateError("No active exchange rate found. Top-up is temporarily unavailable.");
-			}
-			lockedIrrPerUsd = currentRate.irrPerUsd;
-			rateSource = "MANUAL";
-			exchangeRateId = currentRate.id;
-			exchangeRateEntity = currentRate;
-		}
+		const rateLock = config?.isAutoSync() ? this.autoSyncRateLock : this.manualRateLock;
+		const lockedRate = await rateLock.resolve(validation.amount, config?.spreadPercent);
 
 		// 3. Compute IRR Amount
-		const irrAmount = computeIrrAmount(validation.amount, lockedIrrPerUsd);
+		const irrAmount = computeIrrAmount(validation.amount, lockedRate.lockedIrrPerUsd);
 
 		// 4. Calculate expires_at
 		const expiresAt = limits.calculateExpiryDate();
@@ -160,9 +122,9 @@ export class TopUpService {
 			const insertedRequest = await this.topUpRepo.insert(
 				{
 					userId,
-					exchangeRateId,
-					lockedIrrPerUsd,
-					rateSource,
+					exchangeRateId: lockedRate.exchangeRateId,
+					lockedIrrPerUsd: lockedRate.lockedIrrPerUsd,
+					rateSource: lockedRate.rateSource,
 					usdAmount: validation.amount,
 					irrAmount,
 					status: "INITIATED",
@@ -173,7 +135,7 @@ export class TopUpService {
 
 			return {
 				request: insertedRequest,
-				exchangeRate: exchangeRateEntity,
+				exchangeRate: lockedRate.exchangeRate,
 			};
 		} catch (err: any) {
 			if (
