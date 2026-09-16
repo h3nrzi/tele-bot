@@ -1,220 +1,194 @@
-import type { Context } from 'grammy';
-import { InlineKeyboard } from 'grammy';
-import type { BotConversation } from '@/bot/context';
-import type { TopUpService } from '@/modules/top-up/top-up.service';
-import { TopUpRequestNotPendingError } from '@/modules/top-up/top-up.errors';
-import { isCancelCommand } from '@/core/shared/telegram.utils';
-import {
-  PRESET_REJECTION_REASONS,
-  getRejectionPresetsKeyboard,
-} from '@/bot/handlers/admin/rejection.keyboards';
+import type { Context } from "grammy";
+import { InlineKeyboard } from "grammy";
+import type { BotConversation } from "@/bot/context";
+import type { TopUpService } from "@/modules/top-up/top-up.service";
+import { TopUpRequestNotPendingError } from "@/modules/top-up/top-up.errors";
+import { isCancelCommand } from "@/core/shared/telegram.utils";
+import { PRESET_REJECTION_REASONS, getRejectionPresetsKeyboard } from "@/bot/handlers/admin/rejection.keyboards";
 
 export type RejectConversation = BotConversation;
-export const REJECT_CONVERSATION_ID = 'reject_topup';
+export const REJECT_CONVERSATION_ID = "reject_topup";
 
 async function editAdminNotificationMessage(
-  api: Context['api'],
-  chatId: number | string,
-  messageId: number | undefined,
-  isPhoto: boolean,
-  outcomeCaptionOrText: string
+	api: Context["api"],
+	chatId: number | string,
+	messageId: number | undefined,
+	isPhoto: boolean,
+	outcomeCaptionOrText: string,
 ): Promise<void> {
-  if (!messageId) {
-    return;
-  }
-  try {
-    if (isPhoto) {
-      await api.editMessageCaption(chatId, messageId, {
-        caption: outcomeCaptionOrText,
-        reply_markup: new InlineKeyboard(),
-      });
-    } else {
-      await api.editMessageText(chatId, messageId, outcomeCaptionOrText, {
-        reply_markup: new InlineKeyboard(),
-      });
-    }
-  } catch (editErr) {
-    console.error('Failed to edit admin notification message:', editErr);
-  }
+	if (!messageId) {
+		return;
+	}
+	try {
+		if (isPhoto) {
+			await api.editMessageCaption(chatId, messageId, {
+				caption: outcomeCaptionOrText,
+				reply_markup: new InlineKeyboard(),
+			});
+		} else {
+			await api.editMessageText(chatId, messageId, outcomeCaptionOrText, {
+				reply_markup: new InlineKeyboard(),
+			});
+		}
+	} catch (editErr) {
+		console.error("Failed to edit admin notification message:", editErr);
+	}
 }
 
 /**
  * Creates the grammY conversation for Admin top-up rejection flow.
  */
 export function createRejectConversation(topUpService: TopUpService) {
-  return async function rejectTopUpConversation(
-    conversation: RejectConversation,
-    ctx: Context
-  ): Promise<void> {
-    const sender = ctx.from;
-    if (!sender) {
-      return;
-    }
+	return async function rejectTopUpConversation(conversation: RejectConversation, ctx: Context): Promise<void> {
+		const sender = ctx.from;
+		if (!sender) {
+			return;
+		}
 
-    const callbackData = ctx.callbackQuery?.data;
-    const match = callbackData?.match(/^reject:(.+)$/);
-    if (!match || !match[1]) {
-      return;
-    }
+		const callbackData = ctx.callbackQuery?.data;
+		const match = callbackData?.match(/^reject:(.+)$/);
+		if (!match || !match[1]) {
+			return;
+		}
 
-    const requestId = match[1];
-    const adminDisplay = sender.username
-      ? `@${sender.username}`
-      : sender.first_name || String(sender.id);
+		const requestId = match[1];
+		const adminDisplay = sender.username ? `@${sender.username}` : sender.first_name || String(sender.id);
 
-    const originalMessage = ctx.callbackQuery?.message;
-    const originalMessageId = originalMessage?.message_id;
-    const originalChatId = originalMessage?.chat?.id ?? sender.id;
-    const originalCaption =
-      (originalMessage && 'caption' in originalMessage
-        ? originalMessage.caption
-        : originalMessage && 'text' in originalMessage
-          ? originalMessage.text
-          : '') ?? '';
-    const isPhoto = originalMessage ? 'photo' in originalMessage : true;
+		const originalMessage = ctx.callbackQuery?.message;
+		const originalMessageId = originalMessage?.message_id;
+		const originalChatId = originalMessage?.chat?.id ?? sender.id;
+		const originalCaption =
+			(originalMessage && "caption" in originalMessage
+				? originalMessage.caption
+				: originalMessage && "text" in originalMessage
+					? originalMessage.text
+					: "") ?? "";
+		const isPhoto = originalMessage ? "photo" in originalMessage : true;
 
-    try {
-      await ctx.answerCallbackQuery();
-    } catch {
-      // Ignored if expired or already answered
-    }
+		try {
+			await ctx.answerCallbackQuery();
+		} catch {
+			// Ignored if expired or already answered
+		}
 
-    // 1. Present preset reasons inline keyboard
-    await ctx.reply(
-      'لطفاً دلیل رد درخواست افزایش موجودی را انتخاب کنید یا گزینه دلیل دلخواه را بزنید:',
-      {
-        reply_markup: getRejectionPresetsKeyboard(),
-      }
-    );
+		// 1. Present preset reasons inline keyboard
+		await ctx.reply("لطفاً دلیل رد درخواست افزایش موجودی را انتخاب کنید یا گزینه دلیل دلخواه را بزنید:", {
+			reply_markup: getRejectionPresetsKeyboard(),
+		});
 
-    // 2. Wait for admin decision
-    const nextCtx = await conversation.wait();
-    const actionData = nextCtx.callbackQuery?.data;
-    const actionText = nextCtx.message?.text ?? '';
+		// 2. Wait for admin decision
+		const nextCtx = await conversation.wait();
+		const actionData = nextCtx.callbackQuery?.data;
+		const actionText = nextCtx.message?.text ?? "";
 
-    // Check cancellation
-    if (
-      actionData === 'reject_reason:cancel' ||
-      isCancelCommand(actionText)
-    ) {
-      if (nextCtx.callbackQuery) {
-        try {
-          await nextCtx.answerCallbackQuery();
-        } catch {}
-      }
-      await nextCtx.reply('❌ عملیات رد درخواست لغو شد.');
-      return;
-    }
+		// Check cancellation
+		if (actionData === "reject_reason:cancel" || isCancelCommand(actionText)) {
+			if (nextCtx.callbackQuery) {
+				try {
+					await nextCtx.answerCallbackQuery();
+				} catch {}
+			}
+			await nextCtx.reply("❌ عملیات رد درخواست لغو شد.");
+			return;
+		}
 
-    let rejectionReason = '';
+		let rejectionReason = "";
 
-    if (actionData === 'reject_reason:custom') {
-      if (nextCtx.callbackQuery) {
-        try {
-          await nextCtx.answerCallbackQuery();
-        } catch {}
-      }
+		if (actionData === "reject_reason:custom") {
+			if (nextCtx.callbackQuery) {
+				try {
+					await nextCtx.answerCallbackQuery();
+				} catch {}
+			}
 
-      await nextCtx.reply(
-        'لطفاً توضیحات یا علت رد درخواست را به صورت پیام متنی ارسال کنید:',
-        {
-          reply_markup: new InlineKeyboard().text('❌ انصراف', 'reject_reason:cancel'),
-        }
-      );
+			await nextCtx.reply("لطفاً توضیحات یا علت رد درخواست را به صورت پیام متنی ارسال کنید:", {
+				reply_markup: new InlineKeyboard().text("❌ انصراف", "reject_reason:cancel"),
+			});
 
-      const customNoteCtx = await conversation.wait();
-      const customText = customNoteCtx.message?.text ?? '';
-      const customCb = customNoteCtx.callbackQuery?.data;
+			const customNoteCtx = await conversation.wait();
+			const customText = customNoteCtx.message?.text ?? "";
+			const customCb = customNoteCtx.callbackQuery?.data;
 
-      if (
-        customCb === 'reject_reason:cancel' ||
-        customCb === 'flow:cancel' ||
-        isCancelCommand(customText) ||
-        !customText.trim()
-      ) {
-        if (customNoteCtx.callbackQuery) {
-          try {
-            await customNoteCtx.answerCallbackQuery();
-          } catch {}
-        }
-        await customNoteCtx.reply('❌ عملیات رد درخواست لغو شد.');
-        return;
-      }
+			if (
+				customCb === "reject_reason:cancel" ||
+				customCb === "flow:cancel" ||
+				isCancelCommand(customText) ||
+				!customText.trim()
+			) {
+				if (customNoteCtx.callbackQuery) {
+					try {
+						await customNoteCtx.answerCallbackQuery();
+					} catch {}
+				}
+				await customNoteCtx.reply("❌ عملیات رد درخواست لغو شد.");
+				return;
+			}
 
-      rejectionReason = customText.trim();
-    } else if (actionData && actionData.startsWith('reject_reason:')) {
-      const presetKey = actionData.replace('reject_reason:', '');
-      if (nextCtx.callbackQuery) {
-        try {
-          await nextCtx.answerCallbackQuery();
-        } catch {}
-      }
-      rejectionReason = PRESET_REJECTION_REASONS[presetKey] ?? 'رد شده توسط مدیر';
-    } else if (actionText.trim()) {
-      rejectionReason = actionText.trim();
-    } else {
-      await nextCtx.reply('❌ عملیات رد درخواست لغو شد.');
-      return;
-    }
+			rejectionReason = customText.trim();
+		} else if (actionData && actionData.startsWith("reject_reason:")) {
+			const presetKey = actionData.replace("reject_reason:", "");
+			if (nextCtx.callbackQuery) {
+				try {
+					await nextCtx.answerCallbackQuery();
+				} catch {}
+			}
+			rejectionReason = PRESET_REJECTION_REASONS[presetKey] ?? "رد شده توسط مدیر";
+		} else if (actionText.trim()) {
+			rejectionReason = actionText.trim();
+		} else {
+			await nextCtx.reply("❌ عملیات رد درخواست لغو شد.");
+			return;
+		}
 
-    // 3. Execute rejection service
-    try {
-      await conversation.external(async () => {
-        await topUpService.rejectTopUp(
-          {
-            topUpRequestId: requestId,
-            adminTelegramId: sender.id,
-            rejectionReason,
-          },
-          {
-            notifyBuyer: async (params) => {
-              const buyerMessage =
-                `❌ درخواست افزایش موجودی شما رد شد.\n\n` +
-                `علت رد درخواست:\n` +
-                `${params.rejectionReason}\n\n` +
-                `در صورت نیاز، لطفاً پس از رفع اشکال مجدداً با دستور /topup درخواست جدید ثبت کنید.`;
-              await ctx.api.sendMessage(
-                params.buyerTelegramChatId.toString(),
-                buyerMessage
-              );
-            },
-          }
-        );
-      });
+		// 3. Execute rejection service
+		try {
+			await conversation.external(async () => {
+				await topUpService.rejectTopUp(
+					{
+						topUpRequestId: requestId,
+						adminTelegramId: sender.id,
+						rejectionReason,
+					},
+					{
+						notifyBuyer: async (params) => {
+							const buyerMessage =
+								`❌ درخواست افزایش موجودی شما رد شد.\n\n` +
+								`علت رد درخواست:\n` +
+								`${params.rejectionReason}\n\n` +
+								`در صورت نیاز، لطفاً پس از رفع اشکال مجدداً با دستور /topup درخواست جدید ثبت کنید.`;
+							await ctx.api.sendMessage(params.buyerTelegramChatId.toString(), buyerMessage);
+						},
+					},
+				);
+			});
 
-      // 4. Edit original Admin notification message
-      const newCaption = `${originalCaption}\n\n❌ رد شد توسط: ${adminDisplay}\nعلت: ${rejectionReason}`;
-      await editAdminNotificationMessage(
-        ctx.api,
-        originalChatId,
-        originalMessageId,
-        isPhoto,
-        newCaption
-      );
+			// 4. Edit original Admin notification message
+			const newCaption = `${originalCaption}\n\n❌ رد شد توسط: ${adminDisplay}\nعلت: ${rejectionReason}`;
+			await editAdminNotificationMessage(ctx.api, originalChatId, originalMessageId, isPhoto, newCaption);
 
-      await nextCtx.reply(`✅ درخواست با موفقیت رد شد.\nعلت: ${rejectionReason}`);
-    } catch (err: any) {
-      if (
-        err instanceof TopUpRequestNotPendingError ||
-        err?.code === 'TOP_UP_REQUEST_NOT_PENDING' ||
-        err?.name === 'TopUpRequestNotPendingError' ||
-        err?.message?.includes('not pending approval')
-      ) {
-        const alreadyProcessedCaption = `${originalCaption}\n\n⚠️ این درخواست قبلاً تعیین تکلیف شده است.`;
-        await editAdminNotificationMessage(
-          ctx.api,
-          originalChatId,
-          originalMessageId,
-          isPhoto,
-          alreadyProcessedCaption
-        );
+			await nextCtx.reply(`✅ درخواست با موفقیت رد شد.\nعلت: ${rejectionReason}`);
+		} catch (err: any) {
+			if (
+				err instanceof TopUpRequestNotPendingError ||
+				err?.code === "TOP_UP_REQUEST_NOT_PENDING" ||
+				err?.name === "TopUpRequestNotPendingError" ||
+				err?.message?.includes("not pending approval")
+			) {
+				const alreadyProcessedCaption = `${originalCaption}\n\n⚠️ این درخواست قبلاً تعیین تکلیف شده است.`;
+				await editAdminNotificationMessage(
+					ctx.api,
+					originalChatId,
+					originalMessageId,
+					isPhoto,
+					alreadyProcessedCaption,
+				);
 
-        await nextCtx.reply('⚠️ این درخواست قبلاً تعیین تکلیف شده است.');
-        return;
-      }
+				await nextCtx.reply("⚠️ این درخواست قبلاً تعیین تکلیف شده است.");
+				return;
+			}
 
-      console.error('Unexpected error in rejectTopUp conversation:', err);
-      await nextCtx.reply('❌ خطایی در پردازش رد درخواست رخ داد.');
-    }
-  };
+			console.error("Unexpected error in rejectTopUp conversation:", err);
+			await nextCtx.reply("❌ خطایی در پردازش رد درخواست رخ داد.");
+		}
+	};
 }

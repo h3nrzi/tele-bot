@@ -156,6 +156,7 @@ All Wallex HTTP interactions are abstracted behind a `WallexClient` interface wi
 ### Modules Under Test
 
 **`OtcPurchaseService`** — Primary new test surface. Test with real DB against `wallex_otc_purchases` table:
+
 - Happy path: execute after approval → row transitions to COMPLETED with Wallex details recorded.
 - Wallex failure: execute with mocked failure → row transitions to FAILED with error message.
 - Retry: insert new PENDING row for a failed purchase → re-execute → COMPLETED.
@@ -163,24 +164,29 @@ All Wallex HTTP interactions are abstracted behind a `WallexClient` interface wi
 - Notification callback invoked on both success and failure (spied, not real Telegram).
 
 **`ExchangeRateConfigService`** — New config CRUD. Test with real DB:
+
 - Get/update mode, spread, interval.
 - Upsert semantics on the singleton row.
 
 **`TopUpService.initiateTopUp` (modified)** — Test the branching behavior:
+
 - AUTO_SYNC mode + successful OTC quote → `locked_irr_per_usd` set from quote with spread, `rate_source = 'OTC_QUOTE'`, `exchange_rate_id = NULL`.
 - AUTO_SYNC mode + failed OTC quote → fallback to latest baseline, `rate_source = 'BASELINE_FALLBACK'`, `exchange_rate_id` points to baseline row.
 - MANUAL mode → existing behavior unchanged (`rate_source = 'MANUAL'`, `exchange_rate_id` populated).
 - Spread calculation accuracy (decimal.js precision).
 
 **`TopUpService.approveTopUp` (modified)** — Test the post-commit OTC trigger:
+
 - Approval with `executeOtcPurchase` callback → callback invoked with correct top-up request data after commit.
 - Approval with failing `executeOtcPurchase` → wallet credit still committed (fire-and-forget resilience, same pattern as existing `notifyBuyer` failure test).
 
 **Baseline Sync Function** — Test as a unit function call (no timers in tests):
+
 - Mocked `WallexClient.getOtcPrice()` → verify new `exchange_rates` row inserted with bot's Telegram ID and correct TMN→IRR conversion.
 - Mocked failure → verify no row inserted, error logged.
 
 **Bot Handlers** — Existing handler test pattern with `createMockContext` / `createMockFetch`:
+
 - Mode toggle handler: confirmation flow, success/failure paths.
 - Spread config handler: validation (out of range, valid input), confirmation.
 - OTC retry handler: callback parsing, service invocation.

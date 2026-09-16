@@ -1,5 +1,5 @@
-import { InlineKeyboard } from 'grammy';
-import type { OrderStatus } from '@/modules/order/order.entity';
+import { InlineKeyboard } from "grammy";
+import type { OrderStatus } from "@/modules/order/order.entity";
 
 /**
  * Builds inline action buttons for an Order Admin Notification:
@@ -7,50 +7,52 @@ import type { OrderStatus } from '@/modules/order/order.entity';
  * - [✗ رد سفارش] (order:reject:<orderId>)
  */
 export function getAdminOrderNotificationKeyboard(orderId: string): InlineKeyboard {
-  return new InlineKeyboard()
-    .text('▶ شروع پردازش', `order:process:${orderId}`)
-    .text('✗ رد سفارش', `order:reject:${orderId}`);
+	return new InlineKeyboard()
+		.text("▶ شروع پردازش", `order:process:${orderId}`)
+		.text("✗ رد سفارش", `order:reject:${orderId}`);
 }
 
 export function formatAdminDisplay(adminUsernameOrDisplay: string): string {
-  if (!adminUsernameOrDisplay) {
-    return '';
-  }
-  if (adminUsernameOrDisplay.startsWith('@')) {
-    return adminUsernameOrDisplay;
-  }
-  if (/^\d+$/.test(adminUsernameOrDisplay) || /\s/.test(adminUsernameOrDisplay)) {
-    return adminUsernameOrDisplay;
-  }
-  return `@${adminUsernameOrDisplay}`;
+	if (!adminUsernameOrDisplay) {
+		return "";
+	}
+	if (adminUsernameOrDisplay.startsWith("@")) {
+		return adminUsernameOrDisplay;
+	}
+	if (/^\d+$/.test(adminUsernameOrDisplay) || /\s/.test(adminUsernameOrDisplay)) {
+		return adminUsernameOrDisplay;
+	}
+	return `@${adminUsernameOrDisplay}`;
 }
 
 /**
  * Iterates through admin notifications and edits their inline reply markup.
  */
 export async function editAdminOrderNotificationMessages(
-  api: { editMessageReplyMarkup: (chatId: number, messageId: number, options: { reply_markup: InlineKeyboard }) => Promise<unknown> },
-  notifications: Array<{ chatId: bigint | number | string; messageId: bigint | number | string; adminTelegramId?: bigint | number | string }>,
-  replyMarkup: InlineKeyboard
+	api: {
+		editMessageReplyMarkup: (
+			chatId: number,
+			messageId: number,
+			options: { reply_markup: InlineKeyboard },
+		) => Promise<unknown>;
+	},
+	notifications: Array<{
+		chatId: bigint | number | string;
+		messageId: bigint | number | string;
+		adminTelegramId?: bigint | number | string;
+	}>,
+	replyMarkup: InlineKeyboard,
 ): Promise<void> {
-  for (const notif of notifications) {
-    try {
-      await api.editMessageReplyMarkup(
-        Number(notif.chatId),
-        Number(notif.messageId),
-        {
-          reply_markup: replyMarkup,
-        }
-      );
-    } catch (editErr) {
-      console.error(
-        `Failed to edit notification for admin ${notif.adminTelegramId ?? notif.chatId}:`,
-        editErr
-      );
-    }
-  }
+	for (const notif of notifications) {
+		try {
+			await api.editMessageReplyMarkup(Number(notif.chatId), Number(notif.messageId), {
+				reply_markup: replyMarkup,
+			});
+		} catch (editErr) {
+			console.error(`Failed to edit notification for admin ${notif.adminTelegramId ?? notif.chatId}:`, editErr);
+		}
+	}
 }
-
 
 /**
  * Builds inline action buttons for a claimed Order Admin Notification (PROCESSING status):
@@ -58,17 +60,14 @@ export async function editAdminOrderNotificationMessages(
  * - [📦 Fulfil Order] (callback: order:fulfil:<orderId>)
  * - [✗ Reject] (callback: order:reject:<orderId>)
  */
-export function getAdminOrderProcessingKeyboard(
-  orderId: string,
-  adminUsernameOrDisplay: string
-): InlineKeyboard {
-  const display = formatAdminDisplay(adminUsernameOrDisplay);
+export function getAdminOrderProcessingKeyboard(orderId: string, adminUsernameOrDisplay: string): InlineKeyboard {
+	const display = formatAdminDisplay(adminUsernameOrDisplay);
 
-  return new InlineKeyboard()
-    .text(`🔒 در حال پردازش توسط ${display}`, 'order:noop')
-    .row()
-    .text('📦 تحویل سفارش', `order:fulfil:${orderId}`)
-    .text('✗ رد سفارش', `order:reject:${orderId}`);
+	return new InlineKeyboard()
+		.text(`🔒 در حال پردازش توسط ${display}`, "order:noop")
+		.row()
+		.text("📦 تحویل سفارش", `order:fulfil:${orderId}`)
+		.text("✗ رد سفارش", `order:reject:${orderId}`);
 }
 
 /**
@@ -78,56 +77,54 @@ export function getAdminOrderProcessingKeyboard(
  * - [❌ انصراف] (flow:cancel)
  */
 export function getFulfilOrderConfirmationKeyboard(): InlineKeyboard {
-  return new InlineKeyboard()
-    .text('✓ ارسال', 'fulfil:confirm')
-    .text('🔄 ویرایش مجدد', 'fulfil:reenter')
-    .row()
-    .text('❌ انصراف', 'flow:cancel');
+	return new InlineKeyboard()
+		.text("✓ ارسال", "fulfil:confirm")
+		.text("🔄 ویرایش مجدد", "fulfil:reenter")
+		.row()
+		.text("❌ انصراف", "flow:cancel");
 }
 
 /**
  * Builds inline status display for a fulfilled Order Admin Notification (FULFILLED status):
  * - [✅ تکمیل شده توسط @adminX] (non-interactive, callback: order:noop)
  */
-export function getAdminOrderFulfilledKeyboard(
-  adminUsernameOrDisplay: string
-): InlineKeyboard {
-  const display = formatAdminDisplay(adminUsernameOrDisplay);
+export function getAdminOrderFulfilledKeyboard(adminUsernameOrDisplay: string): InlineKeyboard {
+	const display = formatAdminDisplay(adminUsernameOrDisplay);
 
-  return new InlineKeyboard().text(`✅ تکمیل شده توسط ${display}`, 'order:noop');
+	return new InlineKeyboard().text(`✅ تکمیل شده توسط ${display}`, "order:noop");
 }
 
 export const ORDER_REJECTION_CATEGORIES = {
-  OUT_OF_STOCK: {
-    code: 'OUT_OF_STOCK',
-    label: 'عدم موجودی / ناموجود موقت',
-    labelEn: 'Out of stock / temporarily unavailable',
-    buttonText: '📦 عدم موجودی / Out of stock',
-  },
-  CANNOT_VERIFY: {
-    code: 'CANNOT_VERIFY',
-    label: 'عدم امکان احراز اصالت سفارش',
-    labelEn: 'Cannot verify order legitimacy',
-    buttonText: '🔍 عدم احراز اصالت / Cannot verify',
-  },
-  TECHNICAL_ISSUE: {
-    code: 'TECHNICAL_ISSUE',
-    label: 'مشکل فنی — عدم امکان تحویل',
-    labelEn: 'Technical issue — unable to fulfil',
-    buttonText: '⚙️ مشکل فنی / Technical issue',
-  },
-  POLICY_VIOLATION: {
-    code: 'POLICY_VIOLATION',
-    label: 'نقض قوانین و مقررات',
-    labelEn: 'Policy violation',
-    buttonText: '⚠️ نقض قوانین / Policy violation',
-  },
-  OTHER: {
-    code: 'OTHER',
-    label: 'سایر (نیاز به توضیح)',
-    labelEn: 'Other (enter text)',
-    buttonText: '✏️ سایر / Other (enter text)',
-  },
+	OUT_OF_STOCK: {
+		code: "OUT_OF_STOCK",
+		label: "عدم موجودی / ناموجود موقت",
+		labelEn: "Out of stock / temporarily unavailable",
+		buttonText: "📦 عدم موجودی / Out of stock",
+	},
+	CANNOT_VERIFY: {
+		code: "CANNOT_VERIFY",
+		label: "عدم امکان احراز اصالت سفارش",
+		labelEn: "Cannot verify order legitimacy",
+		buttonText: "🔍 عدم احراز اصالت / Cannot verify",
+	},
+	TECHNICAL_ISSUE: {
+		code: "TECHNICAL_ISSUE",
+		label: "مشکل فنی — عدم امکان تحویل",
+		labelEn: "Technical issue — unable to fulfil",
+		buttonText: "⚙️ مشکل فنی / Technical issue",
+	},
+	POLICY_VIOLATION: {
+		code: "POLICY_VIOLATION",
+		label: "نقض قوانین و مقررات",
+		labelEn: "Policy violation",
+		buttonText: "⚠️ نقض قوانین / Policy violation",
+	},
+	OTHER: {
+		code: "OTHER",
+		label: "سایر (نیاز به توضیح)",
+		labelEn: "Other (enter text)",
+		buttonText: "✏️ سایر / Other (enter text)",
+	},
 } as const;
 
 export type OrderRejectionCategoryCode = keyof typeof ORDER_REJECTION_CATEGORIES;
@@ -142,33 +139,18 @@ export type OrderRejectionCategoryCode = keyof typeof ORDER_REJECTION_CATEGORIES
  * + Cancel
  */
 export function getOrderRejectionCategoriesKeyboard(): InlineKeyboard {
-  return new InlineKeyboard()
-    .text(
-      ORDER_REJECTION_CATEGORIES.OUT_OF_STOCK.buttonText,
-      'order_reject_cat:OUT_OF_STOCK'
-    )
-    .row()
-    .text(
-      ORDER_REJECTION_CATEGORIES.CANNOT_VERIFY.buttonText,
-      'order_reject_cat:CANNOT_VERIFY'
-    )
-    .row()
-    .text(
-      ORDER_REJECTION_CATEGORIES.TECHNICAL_ISSUE.buttonText,
-      'order_reject_cat:TECHNICAL_ISSUE'
-    )
-    .row()
-    .text(
-      ORDER_REJECTION_CATEGORIES.POLICY_VIOLATION.buttonText,
-      'order_reject_cat:POLICY_VIOLATION'
-    )
-    .row()
-    .text(
-      ORDER_REJECTION_CATEGORIES.OTHER.buttonText,
-      'order_reject_cat:OTHER'
-    )
-    .row()
-    .text('❌ انصراف', 'flow:cancel');
+	return new InlineKeyboard()
+		.text(ORDER_REJECTION_CATEGORIES.OUT_OF_STOCK.buttonText, "order_reject_cat:OUT_OF_STOCK")
+		.row()
+		.text(ORDER_REJECTION_CATEGORIES.CANNOT_VERIFY.buttonText, "order_reject_cat:CANNOT_VERIFY")
+		.row()
+		.text(ORDER_REJECTION_CATEGORIES.TECHNICAL_ISSUE.buttonText, "order_reject_cat:TECHNICAL_ISSUE")
+		.row()
+		.text(ORDER_REJECTION_CATEGORIES.POLICY_VIOLATION.buttonText, "order_reject_cat:POLICY_VIOLATION")
+		.row()
+		.text(ORDER_REJECTION_CATEGORIES.OTHER.buttonText, "order_reject_cat:OTHER")
+		.row()
+		.text("❌ انصراف", "flow:cancel");
 }
 
 /**
@@ -176,29 +158,25 @@ export function getOrderRejectionCategoriesKeyboard(): InlineKeyboard {
  * - [⏩ رد کردن (بدون یادداشت) / Skip] (only when includeSkip is true)
  * - [❌ انصراف] (flow:cancel)
  */
-export function getOrderRejectionNotePromptKeyboard(
-  includeSkip = true
-): InlineKeyboard {
-  const keyboard = new InlineKeyboard();
-  if (includeSkip) {
-    keyboard.text('⏩ رد کردن (بدون یادداشت)', 'order_reject_note:skip').row();
-  }
-  keyboard.text('❌ انصراف', 'flow:cancel');
-  return keyboard;
+export function getOrderRejectionNotePromptKeyboard(includeSkip = true): InlineKeyboard {
+	const keyboard = new InlineKeyboard();
+	if (includeSkip) {
+		keyboard.text("⏩ رد کردن (بدون یادداشت)", "order_reject_note:skip").row();
+	}
+	keyboard.text("❌ انصراف", "flow:cancel");
+	return keyboard;
 }
 
 /**
  * Builds inline status display for a rejected Order Admin Notification (REJECTED status):
  * - [❌ رد شده توسط @adminX] (non-interactive, callback: order:noop)
  */
-export function getAdminOrderRejectedKeyboard(
-  adminUsernameOrDisplay?: string
-): InlineKeyboard {
-  if (adminUsernameOrDisplay) {
-    const display = formatAdminDisplay(adminUsernameOrDisplay);
-    return new InlineKeyboard().text(`❌ رد شده توسط ${display}`, 'order:noop');
-  }
-  return new InlineKeyboard().text('❌ سفارش رد شد', 'order:noop');
+export function getAdminOrderRejectedKeyboard(adminUsernameOrDisplay?: string): InlineKeyboard {
+	if (adminUsernameOrDisplay) {
+		const display = formatAdminDisplay(adminUsernameOrDisplay);
+		return new InlineKeyboard().text(`❌ رد شده توسط ${display}`, "order:noop");
+	}
+	return new InlineKeyboard().text("❌ سفارش رد شد", "order:noop");
 }
 
 /**
@@ -206,15 +184,15 @@ export function getAdminOrderRejectedKeyboard(
  * - [🚫 لغو شده توسط خریدار] (non-interactive, callback: order:noop)
  */
 export function getAdminOrderCancelledKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('🚫 لغو شده توسط خریدار', 'order:noop');
+	return new InlineKeyboard().text("🚫 لغو شده توسط خریدار", "order:noop");
 }
 
 export interface AdminOrderQueueKeyboardOptions {
-  orderId: string;
-  status: OrderStatus;
-  claimedByAdminTelegramId?: bigint | number | string | null | undefined;
-  currentAdminTelegramId?: bigint | number | string | undefined;
-  claimedByAdminDisplay?: string | undefined;
+	orderId: string;
+	status: OrderStatus;
+	claimedByAdminTelegramId?: bigint | number | string | null | undefined;
+	currentAdminTelegramId?: bigint | number | string | undefined;
+	claimedByAdminDisplay?: string | undefined;
 }
 
 /**
@@ -223,48 +201,37 @@ export interface AdminOrderQueueKeyboardOptions {
  * - PROCESSING (claimed by this admin): [📦 تحویل سفارش] and [✗ رد سفارش]
  * - PROCESSING (claimed by another admin): [🔒 در حال پردازش توسط @adminX] (non-interactive) and [✗ رد سفارش]
  */
-export function getAdminOrderQueueItemKeyboard(
-  options: AdminOrderQueueKeyboardOptions
-): InlineKeyboard {
-  const {
-    orderId,
-    status,
-    claimedByAdminTelegramId,
-    currentAdminTelegramId,
-    claimedByAdminDisplay,
-  } = options;
+export function getAdminOrderQueueItemKeyboard(options: AdminOrderQueueKeyboardOptions): InlineKeyboard {
+	const { orderId, status, claimedByAdminTelegramId, currentAdminTelegramId, claimedByAdminDisplay } = options;
 
-  if (status === 'PLACED') {
-    return getAdminOrderNotificationKeyboard(orderId);
-  }
+	if (status === "PLACED") {
+		return getAdminOrderNotificationKeyboard(orderId);
+	}
 
-  if (status === 'PROCESSING') {
-    const isClaimedByCurrentAdmin =
-      claimedByAdminTelegramId !== null &&
-      claimedByAdminTelegramId !== undefined &&
-      currentAdminTelegramId !== undefined &&
-      BigInt(claimedByAdminTelegramId) === BigInt(currentAdminTelegramId);
+	if (status === "PROCESSING") {
+		const isClaimedByCurrentAdmin =
+			claimedByAdminTelegramId !== null &&
+			claimedByAdminTelegramId !== undefined &&
+			currentAdminTelegramId !== undefined &&
+			BigInt(claimedByAdminTelegramId) === BigInt(currentAdminTelegramId);
 
-    if (isClaimedByCurrentAdmin) {
-      return new InlineKeyboard()
-        .text('📦 تحویل سفارش', `order:fulfil:${orderId}`)
-        .text('✗ رد سفارش', `order:reject:${orderId}`);
-    } else {
-      const display = claimedByAdminDisplay
-        ? formatAdminDisplay(claimedByAdminDisplay)
-        : claimedByAdminTelegramId
-          ? formatAdminDisplay(String(claimedByAdminTelegramId))
-          : 'ادمین';
+		if (isClaimedByCurrentAdmin) {
+			return new InlineKeyboard()
+				.text("📦 تحویل سفارش", `order:fulfil:${orderId}`)
+				.text("✗ رد سفارش", `order:reject:${orderId}`);
+		} else {
+			const display = claimedByAdminDisplay
+				? formatAdminDisplay(claimedByAdminDisplay)
+				: claimedByAdminTelegramId
+					? formatAdminDisplay(String(claimedByAdminTelegramId))
+					: "ادمین";
 
-      return new InlineKeyboard()
-        .text(`🔒 در حال پردازش توسط ${display}`, 'order:noop')
-        .row()
-        .text('✗ رد سفارش', `order:reject:${orderId}`);
-    }
-  }
+			return new InlineKeyboard()
+				.text(`🔒 در حال پردازش توسط ${display}`, "order:noop")
+				.row()
+				.text("✗ رد سفارش", `order:reject:${orderId}`);
+		}
+	}
 
-  return new InlineKeyboard();
+	return new InlineKeyboard();
 }
-
-
-

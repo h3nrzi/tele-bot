@@ -1,14 +1,12 @@
-import type { Context } from 'grammy';
-import { InlineKeyboard } from 'grammy';
-import type { BotConversation } from '@/bot/context';
-import type { OrderService } from '@/modules/order/order.service';
-import { isCancelCommand, formatUserDisplayName } from '@/core/shared/telegram.utils';
-import {
-  getFulfilOrderConfirmationKeyboard,
-} from '@/bot/handlers/admin/order.keyboards';
+import type { Context } from "grammy";
+import { InlineKeyboard } from "grammy";
+import type { BotConversation } from "@/bot/context";
+import type { OrderService } from "@/modules/order/order.service";
+import { isCancelCommand, formatUserDisplayName } from "@/core/shared/telegram.utils";
+import { getFulfilOrderConfirmationKeyboard } from "@/bot/handlers/admin/order.keyboards";
 
 export type FulfilOrderConversation = BotConversation;
-export const FULFIL_ORDER_CONVERSATION_ID = 'fulfil_order';
+export const FULFIL_ORDER_CONVERSATION_ID = "fulfil_order";
 
 /**
  * Creates the grammY 3-step conversation for Admin order fulfilment:
@@ -17,135 +15,132 @@ export const FULFIL_ORDER_CONVERSATION_ID = 'fulfil_order';
  * Step 3 — Commit: runs fulfilOrder, forwards content to Buyer, and updates Admin notifications.
  */
 export function createFulfilOrderConversation(orderService: OrderService) {
-  return async function fulfilOrderConversation(
-    conversation: FulfilOrderConversation,
-    ctx: Context
-  ): Promise<void> {
-    const sender = ctx.from;
-    if (!sender) {
-      return;
-    }
+	return async function fulfilOrderConversation(conversation: FulfilOrderConversation, ctx: Context): Promise<void> {
+		const sender = ctx.from;
+		if (!sender) {
+			return;
+		}
 
-    const callbackData = ctx.callbackQuery?.data;
-    const match = callbackData?.match(/^order:fulfil:(.+)$/);
-    if (!match || !match[1]) {
-      return;
-    }
+		const callbackData = ctx.callbackQuery?.data;
+		const match = callbackData?.match(/^order:fulfil:(.+)$/);
+		if (!match || !match[1]) {
+			return;
+		}
 
-    const orderId = match[1];
-    const adminDisplay = formatUserDisplayName(sender);
+		const orderId = match[1];
+		const adminDisplay = formatUserDisplayName(sender);
 
-    if (ctx.callbackQuery) {
-      try {
-        await ctx.answerCallbackQuery();
-      } catch {}
-    }
+		if (ctx.callbackQuery) {
+			try {
+				await ctx.answerCallbackQuery();
+			} catch {}
+		}
 
-    // Step 1: Input & Step 2: Preview loop
-    let deliveryContent = '';
+		// Step 1: Input & Step 2: Preview loop
+		let deliveryContent = "";
 
-    const shortOrderId = orderId.slice(0, 8);
+		const shortOrderId = orderId.slice(0, 8);
 
-    while (true) {
-      await ctx.reply(
-        `📦 تحویل سفارش #${shortOrderId}\n\n` +
-        `لطفاً اطلاعات یا محتوای تحویل سفارش (اکانت، لایسنس، اطلاعات دسترسی یا توضیحات) را برای ارسال به خریدار تایپ و ارسال کنید:`,
-        {
-          reply_markup: new InlineKeyboard().text('❌ انصراف', 'flow:cancel'),
-        }
-      );
+		while (true) {
+			await ctx.reply(
+				`📦 تحویل سفارش #${shortOrderId}\n\n` +
+					`لطفاً اطلاعات یا محتوای تحویل سفارش (اکانت، لایسنس، اطلاعات دسترسی یا توضیحات) را برای ارسال به خریدار تایپ و ارسال کنید:`,
+				{
+					reply_markup: new InlineKeyboard().text("❌ انصراف", "flow:cancel"),
+				},
+			);
 
-      const inputCtx = await conversation.wait();
-      const inputText = inputCtx.message?.text ?? '';
-      const inputCallback = inputCtx.callbackQuery?.data;
+			const inputCtx = await conversation.wait();
+			const inputText = inputCtx.message?.text ?? "";
+			const inputCallback = inputCtx.callbackQuery?.data;
 
-      if (inputCallback === 'flow:cancel' || isCancelCommand(inputText)) {
-        if (inputCtx.callbackQuery) {
-          try {
-            await inputCtx.answerCallbackQuery();
-          } catch {}
-        }
-        await inputCtx.reply('❌ عملیات تحویل سفارش لغو شد.');
-        return;
-      }
+			if (inputCallback === "flow:cancel" || isCancelCommand(inputText)) {
+				if (inputCtx.callbackQuery) {
+					try {
+						await inputCtx.answerCallbackQuery();
+					} catch {}
+				}
+				await inputCtx.reply("❌ عملیات تحویل سفارش لغو شد.");
+				return;
+			}
 
-      if (!inputText.trim()) {
-        await inputCtx.reply('❌ محتوای تحویل نمی‌تواند خالی باشد.');
-        continue;
-      }
+			if (!inputText.trim()) {
+				await inputCtx.reply("❌ محتوای تحویل نمی‌تواند خالی باشد.");
+				continue;
+			}
 
-      deliveryContent = inputText.trim();
+			deliveryContent = inputText.trim();
 
-      // Step 2: Preview & Confirm
-      await inputCtx.reply(
-        `📋 پیش‌نمایش متن تحویل سفارش:\n\n` +
-        `«${deliveryContent}»\n\n` +
-        `آیا مایل به ارسال این اطلاعات برای خریدار هستید؟`,
-        {
-          reply_markup: getFulfilOrderConfirmationKeyboard(),
-        }
-      );
+			// Step 2: Preview & Confirm
+			await inputCtx.reply(
+				`📋 پیش‌نمایش متن تحویل سفارش:\n\n` +
+					`«${deliveryContent}»\n\n` +
+					`آیا مایل به ارسال این اطلاعات برای خریدار هستید؟`,
+				{
+					reply_markup: getFulfilOrderConfirmationKeyboard(),
+				},
+			);
 
-      const confirmCtx = await conversation.wait();
-      const confirmText = confirmCtx.message?.text ?? '';
-      const confirmCallback = confirmCtx.callbackQuery?.data;
+			const confirmCtx = await conversation.wait();
+			const confirmText = confirmCtx.message?.text ?? "";
+			const confirmCallback = confirmCtx.callbackQuery?.data;
 
-      if (confirmCallback === 'flow:cancel' || isCancelCommand(confirmText)) {
-        if (confirmCtx.callbackQuery) {
-          try {
-            await confirmCtx.answerCallbackQuery();
-          } catch {}
-        }
-        await confirmCtx.reply('❌ عملیات تحویل سفارش لغو شد.');
-        return;
-      }
+			if (confirmCallback === "flow:cancel" || isCancelCommand(confirmText)) {
+				if (confirmCtx.callbackQuery) {
+					try {
+						await confirmCtx.answerCallbackQuery();
+					} catch {}
+				}
+				await confirmCtx.reply("❌ عملیات تحویل سفارش لغو شد.");
+				return;
+			}
 
-      if (
-        confirmCallback === 'fulfil:reenter' ||
-        confirmText.toLowerCase() === 're-enter' ||
-        confirmText === 'ویرایش'
-      ) {
-        if (confirmCtx.callbackQuery) {
-          try {
-            await confirmCtx.answerCallbackQuery();
-          } catch {}
-        }
-        continue;
-      }
+			if (
+				confirmCallback === "fulfil:reenter" ||
+				confirmText.toLowerCase() === "re-enter" ||
+				confirmText === "ویرایش"
+			) {
+				if (confirmCtx.callbackQuery) {
+					try {
+						await confirmCtx.answerCallbackQuery();
+					} catch {}
+				}
+				continue;
+			}
 
-      if (
-        confirmCallback === 'fulfil:confirm' ||
-        confirmText.toLowerCase() === 'send' ||
-        confirmText === 'ارسال' ||
-        confirmText === 'تایید'
-      ) {
-        if (confirmCtx.callbackQuery) {
-          try {
-            await confirmCtx.answerCallbackQuery();
-          } catch {}
-        }
-        break;
-      }
+			if (
+				confirmCallback === "fulfil:confirm" ||
+				confirmText.toLowerCase() === "send" ||
+				confirmText === "ارسال" ||
+				confirmText === "تایید"
+			) {
+				if (confirmCtx.callbackQuery) {
+					try {
+						await confirmCtx.answerCallbackQuery();
+					} catch {}
+				}
+				break;
+			}
 
-      await confirmCtx.reply('❌ عملیات تحویل سفارش لغو شد.');
-      return;
-    }
+			await confirmCtx.reply("❌ عملیات تحویل سفارش لغو شد.");
+			return;
+		}
 
-    // Step 3: Commit
-    try {
-      await conversation.external(async () => {
-        await orderService.fulfilOrder({
-          orderId,
-          adminTelegramId: sender.id,
-          adminUsername: adminDisplay,
-          deliveryContent,
-        });
-      });
+		// Step 3: Commit
+		try {
+			await conversation.external(async () => {
+				await orderService.fulfilOrder({
+					orderId,
+					adminTelegramId: sender.id,
+					adminUsername: adminDisplay,
+					deliveryContent,
+				});
+			});
 
-      await ctx.reply('✅ سفارش با موفقیت تحویل داده شد و محتوا برای خریدار ارسال گردید.');
-    } catch (err: any) {
-      console.error('Failed to fulfil order in conversation:', err);
-      await ctx.reply('❌ خطایی در ثبت تحویل سفارش رخ داد.');
-    }
-  };
+			await ctx.reply("✅ سفارش با موفقیت تحویل داده شد و محتوا برای خریدار ارسال گردید.");
+		} catch (err: any) {
+			console.error("Failed to fulfil order in conversation:", err);
+			await ctx.reply("❌ خطایی در ثبت تحویل سفارش رخ داد.");
+		}
+	};
 }

@@ -31,4 +31,3 @@
 - [x] `TELEGRAM_OPS_GROUP_ID` env var wired with fallback to `ADMIN_IDS`
 - [x] DI tokens and container registrations for new repository and service
 - [x] Integration tests: happy path, Wallex failure, retry, duplicate prevention, fire-and-forget resilience
-

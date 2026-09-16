@@ -13,4 +13,3 @@
 - [x] After all fields are collected, the bot shows a confirmation summary and calls `setActiveAccount`.
 - [x] `/setcard` is silently ignored when sent by a non-Admin.
 - [x] Bank account service tests cover: setting a first account, setting a second account (first is deactivated, second is active, both rows persist), `getActiveAccount` returns the active row, `getActiveAccount` returns `null` on an empty table.
-

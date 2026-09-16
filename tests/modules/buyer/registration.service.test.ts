@@ -1,131 +1,105 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDatabase } from '@tests/helpers/test-db';
-import { users } from '@/modules/buyer/buyer.schema';
-import { wallets } from '@/modules/wallet/wallet.schema';
-import { BuyerService } from '@/modules/buyer/buyer.service';
-import { eq } from 'drizzle-orm';
+import { describe, it, expect, beforeEach } from "vitest";
+import { setupTestDatabase } from "@tests/helpers/test-db";
+import { users } from "@/modules/buyer/buyer.schema";
+import { wallets } from "@/modules/wallet/wallet.schema";
+import { BuyerService } from "@/modules/buyer/buyer.service";
+import { eq } from "drizzle-orm";
 
-describe('Registration Service - Atomicity & Creation', () => {
-  const { db, container } = setupTestDatabase();
-  let buyerService: BuyerService;
+describe("Registration Service - Atomicity & Creation", () => {
+	const { db, container } = setupTestDatabase();
+	let buyerService: BuyerService;
 
-  beforeEach(() => {
-    buyerService = container.resolve(BuyerService);
-  });
+	beforeEach(() => {
+		buyerService = container.resolve(BuyerService);
+	});
 
-  it('creates a users row and a wallets row atomically in a single transaction with available_balance = 0.00', async () => {
-    const result = await buyerService.register(
-      {
-        telegramChatId: 987654321n,
-        telegramUsername: 'newbuyer',
-      }
-    );
+	it("creates a users row and a wallets row atomically in a single transaction with available_balance = 0.00", async () => {
+		const result = await buyerService.register({
+			telegramChatId: 987654321n,
+			telegramUsername: "newbuyer",
+		});
 
-    expect(result).toBeDefined();
-    expect(result.buyer).toBeDefined();
-    expect(result.wallet).toBeDefined();
-    expect(result.isNew).toBe(true);
-    expect(result.buyer.telegramChatId).toBe(987654321n);
-    expect(result.buyer.telegramUsername).toBe('newbuyer');
-    expect(result.wallet.userId).toBe(result.buyer.id);
-    expect(result.wallet.availableBalance).toBe('0.00');
+		expect(result).toBeDefined();
+		expect(result.buyer).toBeDefined();
+		expect(result.wallet).toBeDefined();
+		expect(result.isNew).toBe(true);
+		expect(result.buyer.telegramChatId).toBe(987654321n);
+		expect(result.buyer.telegramUsername).toBe("newbuyer");
+		expect(result.wallet.userId).toBe(result.buyer.id);
+		expect(result.wallet.availableBalance).toBe("0.00");
 
-    // Verify in database
-    const dbUsers = await db.select().from(users).where(eq(users.id, result.buyer.id));
-    expect(dbUsers).toHaveLength(1);
-    expect(dbUsers[0]?.telegramChatId).toBe(987654321n);
-    expect(dbUsers[0]?.telegramUsername).toBe('newbuyer');
+		// Verify in database
+		const dbUsers = await db.select().from(users).where(eq(users.id, result.buyer.id));
+		expect(dbUsers).toHaveLength(1);
+		expect(dbUsers[0]?.telegramChatId).toBe(987654321n);
+		expect(dbUsers[0]?.telegramUsername).toBe("newbuyer");
 
-    const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, result.buyer.id));
-    expect(dbWallets).toHaveLength(1);
-    expect(dbWallets[0]?.availableBalance).toBe('0.00');
-  });
+		const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, result.buyer.id));
+		expect(dbWallets).toHaveLength(1);
+		expect(dbWallets[0]?.availableBalance).toBe("0.00");
+	});
 
-  it('returns existing buyer and wallet if user already registered (idempotent)', async () => {
-    const firstResult = await buyerService.register(
-      {
-        telegramChatId: 112233445n,
-        telegramUsername: 'idempotent_user',
-      }
-    );
-    expect(firstResult.isNew).toBe(true);
+	it("returns existing buyer and wallet if user already registered (idempotent)", async () => {
+		const firstResult = await buyerService.register({
+			telegramChatId: 112233445n,
+			telegramUsername: "idempotent_user",
+		});
+		expect(firstResult.isNew).toBe(true);
 
-    const secondResult = await buyerService.register(
-      {
-        telegramChatId: 112233445n,
-        telegramUsername: 'idempotent_user_updated',
-      }
-    );
+		const secondResult = await buyerService.register({
+			telegramChatId: 112233445n,
+			telegramUsername: "idempotent_user_updated",
+		});
 
-    expect(secondResult.isNew).toBe(false);
-    expect(secondResult.buyer.id).toBe(firstResult.buyer.id);
-    expect(secondResult.buyer.telegramChatId).toBe(112233445n);
-    expect(secondResult.buyer.telegramUsername).toBe('idempotent_user_updated');
-    expect(secondResult.wallet.id).toBe(firstResult.wallet.id);
+		expect(secondResult.isNew).toBe(false);
+		expect(secondResult.buyer.id).toBe(firstResult.buyer.id);
+		expect(secondResult.buyer.telegramChatId).toBe(112233445n);
+		expect(secondResult.buyer.telegramUsername).toBe("idempotent_user_updated");
+		expect(secondResult.wallet.id).toBe(firstResult.wallet.id);
 
-    // Verify exactly 1 user and 1 wallet exist
-    const dbUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.telegramChatId, 112233445n));
-    expect(dbUsers).toHaveLength(1);
+		// Verify exactly 1 user and 1 wallet exist
+		const dbUsers = await db.select().from(users).where(eq(users.telegramChatId, 112233445n));
+		expect(dbUsers).toHaveLength(1);
 
-    const dbWallets = await db
-      .select()
-      .from(wallets)
-      .where(eq(wallets.userId, firstResult.buyer.id));
-    expect(dbWallets).toHaveLength(1);
-  });
+		const dbWallets = await db.select().from(wallets).where(eq(wallets.userId, firstResult.buyer.id));
+		expect(dbWallets).toHaveLength(1);
+	});
 
-  it('handles null telegram_username safely', async () => {
-    const result = await buyerService.register(
-      {
-        telegramChatId: 999888777n,
-        telegramUsername: null,
-      }
-    );
+	it("handles null telegram_username safely", async () => {
+		const result = await buyerService.register({
+			telegramChatId: 999888777n,
+			telegramUsername: null,
+		});
 
-    expect(result.buyer.telegramUsername).toBeNull();
+		expect(result.buyer.telegramUsername).toBeNull();
 
-    const dbUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, result.buyer.id));
-    expect(dbUsers[0]?.telegramUsername).toBeNull();
-  });
+		const dbUsers = await db.select().from(users).where(eq(users.id, result.buyer.id));
+		expect(dbUsers[0]?.telegramUsername).toBeNull();
+	});
 
-  it('updates existing buyer username if it changes on re-registration', async () => {
-    const initial = await buyerService.register(
-      {
-        telegramChatId: 444555666n,
-        telegramUsername: 'old_username',
-      }
-    );
-    expect(initial.buyer.telegramUsername).toBe('old_username');
+	it("updates existing buyer username if it changes on re-registration", async () => {
+		const initial = await buyerService.register({
+			telegramChatId: 444555666n,
+			telegramUsername: "old_username",
+		});
+		expect(initial.buyer.telegramUsername).toBe("old_username");
 
-    const updated = await buyerService.register(
-      {
-        telegramChatId: 444555666n,
-        telegramUsername: 'new_username',
-      }
-    );
-    expect(updated.isNew).toBe(false);
-    expect(updated.buyer.telegramUsername).toBe('new_username');
+		const updated = await buyerService.register({
+			telegramChatId: 444555666n,
+			telegramUsername: "new_username",
+		});
+		expect(updated.isNew).toBe(false);
+		expect(updated.buyer.telegramUsername).toBe("new_username");
 
-    const dbUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, initial.buyer.id));
-    expect(dbUsers[0]?.telegramUsername).toBe('new_username');
-  });
+		const dbUsers = await db.select().from(users).where(eq(users.id, initial.buyer.id));
+		expect(dbUsers[0]?.telegramUsername).toBe("new_username");
+	});
 
-  it('converts number telegramChatId to bigint correctly', async () => {
-    const result = await buyerService.register(
-      {
-        telegramChatId: 123456789,
-        telegramUsername: 'number_id_user',
-      }
-    );
-    expect(result.buyer.telegramChatId).toBe(123456789n);
-  });
+	it("converts number telegramChatId to bigint correctly", async () => {
+		const result = await buyerService.register({
+			telegramChatId: 123456789,
+			telegramUsername: "number_id_user",
+		});
+		expect(result.buyer.telegramChatId).toBe(123456789n);
+	});
 });

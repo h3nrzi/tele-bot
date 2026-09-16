@@ -2,7 +2,7 @@
 
 In Auto-Sync Rate Mode, buyer-facing exchange rates are sourced from the Wallex OTC pricing engine via a two-tier strategy rather than a single polling loop or a single on-demand fetch.
 
-**Tier 1 — On-demand OTC Quote.** When a Buyer initiates a Top-Up Request, the system fetches a fresh authenticated OTC price (`GET /v1/account/otc/price?symbol=USDTTMN&side=BUY`), applies the Admin-configured Spread, converts TMN to IRR at the adapter boundary (`× 10`), and locks the resulting `irr_per_usd` inline on the `top_up_requests` row (`locked_irr_per_usd`, `rate_source = 'OTC_QUOTE'`). This quote is *not* inserted into `exchange_rates`.
+**Tier 1 — On-demand OTC Quote.** When a Buyer initiates a Top-Up Request, the system fetches a fresh authenticated OTC price (`GET /v1/account/otc/price?symbol=USDTTMN&side=BUY`), applies the Admin-configured Spread, converts TMN to IRR at the adapter boundary (`× 10`), and locks the resulting `irr_per_usd` inline on the `top_up_requests` row (`locked_irr_per_usd`, `rate_source = 'OTC_QUOTE'`). This quote is _not_ inserted into `exchange_rates`.
 
 **Tier 2 — Periodic Baseline Sync.** A `setInterval` background job polls Wallex every 60 minutes and unconditionally inserts a new row into the append-only `exchange_rates` table (using the bot's own Telegram ID as `created_by_admin_telegram_id`). This baseline row serves as the fallback if the on-demand fetch in Tier 1 fails or times out.
 

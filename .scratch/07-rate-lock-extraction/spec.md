@@ -34,21 +34,24 @@ Extract an `IRateLockService` interface with a single method: `resolve(usdAmount
 ## Implementation Decisions
 
 - **New interface: `IRateLockService`** — defined in `src/modules/exchange-rate/` (alongside the Exchange Rate subsystem it coordinates):
+
   ```ts
   interface IRateLockService {
-    resolve(usdAmount: Decimal): Promise<LockedRate>;
+  	resolve(usdAmount: Decimal): Promise<LockedRate>;
   }
   ```
 
 - **New value object: `LockedRate`** — a plain data structure (not a class) carrying the four fields `initiateTopUp` needs:
+
   ```ts
   interface LockedRate {
-    lockedIrrPerUsd: bigint;
-    rateSource: RateSource;          // 'MANUAL' | 'OTC_QUOTE' | 'BASELINE_FALLBACK'
-    exchangeRateId: string | null;   // null for OTC_QUOTE
-    exchangeRate: ExchangeRate | null; // null for OTC_QUOTE
+  	lockedIrrPerUsd: bigint;
+  	rateSource: RateSource; // 'MANUAL' | 'OTC_QUOTE' | 'BASELINE_FALLBACK'
+  	exchangeRateId: string | null; // null for OTC_QUOTE
+  	exchangeRate: ExchangeRate | null; // null for OTC_QUOTE
   }
   ```
+
   (`RateSource` is the existing union type already defined in `top-up.schema.ts`.)
 
 - **`AutoSyncRateLock` adapter** — dependencies: `WallexClient`, `IExchangeRateRepository`, `spreadPercent: string`. Implements ADR-0009 exactly:
@@ -63,15 +66,17 @@ Extract an `IRateLockService` interface with a single method: `resolve(usdAmount
 - **`IRateLockService` is resolved dynamically inside `initiateTopUp`** — because the Rate Mode can change at runtime (Admin taps the Rate Mode toggle), the adapter cannot be selected once at construction time. Instead, `TopUpService.initiateTopUp` reads the current `ExchangeRateConfig` and calls either adapter. Two options for how this dispatch is wired:
   - **Option A (preferred):** Inject both adapters into `TopUpService` (`autoSyncRateLock` and `manualRateLock`); `initiateTopUp` reads the config, then delegates to the appropriate one.
   - **Option B:** Inject a `RateLockResolver` (a factory function or thin module) that reads the config and returns the correct adapter. This adds an extra indirection but keeps `TopUpService` fully free of Rate Mode knowledge.
-  
+
   The implementing agent should choose Option A unless the added complexity of Rate Mode reading inside `TopUpService` proves disqualifying.
 
 - **`TopUpService.initiateTopUp` after refactor** — the 50-line rate-resolution block is replaced by:
+
   ```ts
   const config = await this.exchangeRateConfigService.getConfig(client);
   const rateLock = config.isAutoSync() ? this.autoSyncRateLock : this.manualRateLock;
   const lockedRate = await rateLock.resolve(validation.amount);
   ```
+
   The subsequent `computeIrrAmount(validation.amount, lockedRate.lockedIrrPerUsd)` call and `topUpRepo.insert(...)` call are unchanged.
 
 - **`InitiateTopUpResult` shape** — unchanged. `result.request.lockedIrrPerUsd`, `result.request.rateSource`, `result.request.exchangeRateId`, and `result.exchangeRate` continue to be populated identically.

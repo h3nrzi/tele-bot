@@ -1,320 +1,307 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '@tests/helpers/test-db';
-import { createMockFetch } from '@tests/helpers/mock-context';
-import { createBot } from '@/bot/bot';
-import { bankAccounts } from '@/modules/bank-account/bank-account.schema';
-import { setTestActiveAccount, getTestActiveAccount } from '@tests/helpers/fixtures';
-import {
-  isValidCardNumber,
-  cleanCardNumber,
-  isCancelCommand,
-  isSkipCommand,
-} from '@/bot/handlers/admin';
-import { count } from 'drizzle-orm';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { setupTestDatabase } from "@tests/helpers/test-db";
+import { createMockFetch } from "@tests/helpers/mock-context";
+import { createBot } from "@/bot/bot";
+import { bankAccounts } from "@/modules/bank-account/bank-account.schema";
+import { setTestActiveAccount, getTestActiveAccount } from "@tests/helpers/fixtures";
+import { isValidCardNumber, cleanCardNumber, isCancelCommand, isSkipCommand } from "@/bot/handlers/admin";
+import { count } from "drizzle-orm";
 
-describe('/setcard Admin Command & Conversation', () => {
-  const { db, container } = setupTestDatabase();
-  const adminChatId = 123456789;
-  const originalEnv = process.env.ADMIN_IDS;
+describe("/setcard Admin Command & Conversation", () => {
+	const { db, container } = setupTestDatabase();
+	const adminChatId = 123456789;
+	const originalEnv = process.env.ADMIN_IDS;
 
-  beforeEach(() => {
-    process.env.ADMIN_IDS = `${adminChatId}`;
-  });
+	beforeEach(() => {
+		process.env.ADMIN_IDS = `${adminChatId}`;
+	});
 
-  afterEach(() => {
-    process.env.ADMIN_IDS = originalEnv;
-  });
+	afterEach(() => {
+		process.env.ADMIN_IDS = originalEnv;
+	});
 
-  function makeMessageUpdate(
-    updateId: number,
-    chatId: number,
-    text: string,
-    senderName = 'Admin'
-  ) {
-    const isCommand = text.startsWith('/');
-    const commandLength = text.indexOf(' ') > 0 ? text.indexOf(' ') : text.length;
+	function makeMessageUpdate(updateId: number, chatId: number, text: string, senderName = "Admin") {
+		const isCommand = text.startsWith("/");
+		const commandLength = text.indexOf(" ") > 0 ? text.indexOf(" ") : text.length;
 
-    const message: Record<string, unknown> = {
-      message_id: updateId,
-      date: Math.floor(Date.now() / 1000),
-      chat: { id: chatId, type: 'private', first_name: senderName },
-      from: { id: chatId, is_bot: false, first_name: senderName },
-      text,
-    };
+		const message: Record<string, unknown> = {
+			message_id: updateId,
+			date: Math.floor(Date.now() / 1000),
+			chat: { id: chatId, type: "private", first_name: senderName },
+			from: { id: chatId, is_bot: false, first_name: senderName },
+			text,
+		};
 
-    if (isCommand) {
-      message.entities = [
-        {
-          offset: 0,
-          length: commandLength,
-          type: 'bot_command',
-        },
-      ];
-    }
+		if (isCommand) {
+			message.entities = [
+				{
+					offset: 0,
+					length: commandLength,
+					type: "bot_command",
+				},
+			];
+		}
 
-    return {
-      update_id: updateId,
-      message,
-    } as any;
-  }
+		return {
+			update_id: updateId,
+			message,
+		} as any;
+	}
 
-  describe('Validation & Utility functions', () => {
-    it('validates 16-digit card numbers with or without spaces/hyphens', () => {
-      expect(isValidCardNumber('6037991234567890')).toBe(true);
-      expect(isValidCardNumber('6037 9912 3456 7890')).toBe(true);
-      expect(isValidCardNumber('6037-9912-3456-7890')).toBe(true);
+	describe("Validation & Utility functions", () => {
+		it("validates 16-digit card numbers with or without spaces/hyphens", () => {
+			expect(isValidCardNumber("6037991234567890")).toBe(true);
+			expect(isValidCardNumber("6037 9912 3456 7890")).toBe(true);
+			expect(isValidCardNumber("6037-9912-3456-7890")).toBe(true);
 
-      expect(isValidCardNumber('')).toBe(false);
-      expect(isValidCardNumber('123456')).toBe(false);
-      expect(isValidCardNumber('60379912345678901')).toBe(false);
-      expect(isValidCardNumber('603799123456789a')).toBe(false);
-    });
+			expect(isValidCardNumber("")).toBe(false);
+			expect(isValidCardNumber("123456")).toBe(false);
+			expect(isValidCardNumber("60379912345678901")).toBe(false);
+			expect(isValidCardNumber("603799123456789a")).toBe(false);
+		});
 
-    it('cleans card number by removing whitespace and hyphens', () => {
-      expect(cleanCardNumber('  6037 9912 3456 7890  ')).toBe('6037991234567890');
-      expect(cleanCardNumber('6037-9912-3456-7890')).toBe('6037991234567890');
-    });
+		it("cleans card number by removing whitespace and hyphens", () => {
+			expect(cleanCardNumber("  6037 9912 3456 7890  ")).toBe("6037991234567890");
+			expect(cleanCardNumber("6037-9912-3456-7890")).toBe("6037991234567890");
+		});
 
-    it('identifies cancel commands accurately', () => {
-      expect(isCancelCommand('/cancel')).toBe(true);
-      expect(isCancelCommand('/cancel@tele_bot')).toBe(true);
-      expect(isCancelCommand('cancel')).toBe(true);
-      expect(isCancelCommand('CANCEL')).toBe(true);
-      expect(isCancelCommand('  cancel  ')).toBe(true);
+		it("identifies cancel commands accurately", () => {
+			expect(isCancelCommand("/cancel")).toBe(true);
+			expect(isCancelCommand("/cancel@tele_bot")).toBe(true);
+			expect(isCancelCommand("cancel")).toBe(true);
+			expect(isCancelCommand("CANCEL")).toBe(true);
+			expect(isCancelCommand("  cancel  ")).toBe(true);
 
-      expect(isCancelCommand('6037991234567890')).toBe(false);
-      expect(isCancelCommand('Ali Reza')).toBe(false);
-    });
+			expect(isCancelCommand("6037991234567890")).toBe(false);
+			expect(isCancelCommand("Ali Reza")).toBe(false);
+		});
 
-    it('identifies skip commands accurately', () => {
-      expect(isSkipCommand('/skip')).toBe(true);
-      expect(isSkipCommand('/skip@tele_bot')).toBe(true);
-      expect(isSkipCommand('skip')).toBe(true);
-      expect(isSkipCommand('SKIP')).toBe(true);
-      expect(isSkipCommand('-')).toBe(true);
-      expect(isSkipCommand('')).toBe(true);
+		it("identifies skip commands accurately", () => {
+			expect(isSkipCommand("/skip")).toBe(true);
+			expect(isSkipCommand("/skip@tele_bot")).toBe(true);
+			expect(isSkipCommand("skip")).toBe(true);
+			expect(isSkipCommand("SKIP")).toBe(true);
+			expect(isSkipCommand("-")).toBe(true);
+			expect(isSkipCommand("")).toBe(true);
 
-      expect(isSkipCommand('Some note')).toBe(false);
-    });
-  });
+			expect(isSkipCommand("Some note")).toBe(false);
+		});
+	});
 
-  describe('Bot conversation flow', () => {
-    function createTestBot() {
-      const repliedMessages: string[] = [];
-      const { fetch: mockFetch } = createMockFetch(repliedMessages);
-      const bot = createBot({
-        token: 'test_token',
-        dbClient: db,
-        adminIds: `${adminChatId}`,
-        client: {
-          fetch: mockFetch,
-        },
-        botInfo: {
-          id: 1000,
-          is_bot: true,
-          first_name: 'TeleBot',
-          username: 'tele_bot',
-          can_join_groups: true,
-          can_read_all_group_messages: false,
-          supports_inline_queries: false,
-        } as any,
-      });
-      return { bot, repliedMessages };
-    }
+	describe("Bot conversation flow", () => {
+		function createTestBot() {
+			const repliedMessages: string[] = [];
+			const { fetch: mockFetch } = createMockFetch(repliedMessages);
+			const bot = createBot({
+				token: "test_token",
+				dbClient: db,
+				adminIds: `${adminChatId}`,
+				client: {
+					fetch: mockFetch,
+				},
+				botInfo: {
+					id: 1000,
+					is_bot: true,
+					first_name: "TeleBot",
+					username: "tele_bot",
+					can_join_groups: true,
+					can_read_all_group_messages: false,
+					supports_inline_queries: false,
+				} as any,
+			});
+			return { bot, repliedMessages };
+		}
 
-    it('walks Admin through complete /setcard flow and activates account (with /skip notes)', async () => {
-      const { bot, repliedMessages } = createTestBot();
+		it("walks Admin through complete /setcard flow and activates account (with /skip notes)", async () => {
+			const { bot, repliedMessages } = createTestBot();
 
-      // Step 1: Send /setcard
-      await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
+			// Step 1: Send /setcard
+			await bot.handleUpdate(makeMessageUpdate(1, adminChatId, "/setcard"));
 
-      expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toContain('شماره کارت ۱۶ رقمی');
+			expect(repliedMessages).toHaveLength(1);
+			expect(repliedMessages[0]).toContain("شماره کارت ۱۶ رقمی");
 
-      // Step 2: Send valid 16-digit card number
-      await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '6037 9912 3456 7890'));
+			// Step 2: Send valid 16-digit card number
+			await bot.handleUpdate(makeMessageUpdate(2, adminChatId, "6037 9912 3456 7890"));
 
-      expect(repliedMessages).toHaveLength(2);
-      expect(repliedMessages[1]).toContain('نام صاحب حساب');
+			expect(repliedMessages).toHaveLength(2);
+			expect(repliedMessages[1]).toContain("نام صاحب حساب");
 
-      // Step 3: Send card holder name
-      await bot.handleUpdate(makeMessageUpdate(3, adminChatId, 'Ali Reza'));
+			// Step 3: Send card holder name
+			await bot.handleUpdate(makeMessageUpdate(3, adminChatId, "Ali Reza"));
 
-      expect(repliedMessages).toHaveLength(3);
-      expect(repliedMessages[2]).toContain('نام بانک');
+			expect(repliedMessages).toHaveLength(3);
+			expect(repliedMessages[2]).toContain("نام بانک");
 
-      // Step 4: Send bank name
-      await bot.handleUpdate(makeMessageUpdate(4, adminChatId, 'Mellat Bank'));
+			// Step 4: Send bank name
+			await bot.handleUpdate(makeMessageUpdate(4, adminChatId, "Mellat Bank"));
 
-      expect(repliedMessages).toHaveLength(4);
-      expect(repliedMessages[3]).toContain('توضیحات تکمیلی');
+			expect(repliedMessages).toHaveLength(4);
+			expect(repliedMessages[3]).toContain("توضیحات تکمیلی");
 
-      // Step 5: Send /skip for optional notes
-      await bot.handleUpdate(makeMessageUpdate(5, adminChatId, '/skip'));
+			// Step 5: Send /skip for optional notes
+			await bot.handleUpdate(makeMessageUpdate(5, adminChatId, "/skip"));
 
-      expect(repliedMessages).toHaveLength(5);
-      expect(repliedMessages[4]).toContain('به‌روزرسانی شد');
-      expect(repliedMessages[4]).toContain('6037991234567890');
-      expect(repliedMessages[4]).toContain('Ali Reza');
-      expect(repliedMessages[4]).toContain('Mellat Bank');
-      expect(repliedMessages[4]).toContain('ندارد');
+			expect(repliedMessages).toHaveLength(5);
+			expect(repliedMessages[4]).toContain("به‌روزرسانی شد");
+			expect(repliedMessages[4]).toContain("6037991234567890");
+			expect(repliedMessages[4]).toContain("Ali Reza");
+			expect(repliedMessages[4]).toContain("Mellat Bank");
+			expect(repliedMessages[4]).toContain("ندارد");
 
-      const activeAccount = await getTestActiveAccount(container);
-      expect(activeAccount).not.toBeNull();
-      expect(activeAccount?.cardNumber).toBe('6037991234567890');
-      expect(activeAccount?.cardHolderName).toBe('Ali Reza');
-      expect(activeAccount?.bankName).toBe('Mellat Bank');
-      expect(activeAccount?.additionalNotes).toBeNull();
-      expect(activeAccount?.isActive).toBe(true);
-    });
+			const activeAccount = await getTestActiveAccount(container);
+			expect(activeAccount).not.toBeNull();
+			expect(activeAccount?.cardNumber).toBe("6037991234567890");
+			expect(activeAccount?.cardHolderName).toBe("Ali Reza");
+			expect(activeAccount?.bankName).toBe("Mellat Bank");
+			expect(activeAccount?.additionalNotes).toBeNull();
+			expect(activeAccount?.isActive).toBe(true);
+		});
 
-    it('collects optional additional notes when provided and deactivates prior account', async () => {
-      // Setup prior active account
-      await setTestActiveAccount(
-        container,
-        {
-          cardNumber: '1111222233334444',
-          cardHolderName: 'Old Holder',
-          bankName: 'Old Bank',
-          additionalNotes: 'Old notes',
-        }
-      );
+		it("collects optional additional notes when provided and deactivates prior account", async () => {
+			// Setup prior active account
+			await setTestActiveAccount(container, {
+				cardNumber: "1111222233334444",
+				cardHolderName: "Old Holder",
+				bankName: "Old Bank",
+				additionalNotes: "Old notes",
+			});
 
-      const { bot, repliedMessages } = createTestBot();
+			const { bot, repliedMessages } = createTestBot();
 
-      await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
-      await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '5022291012345678'));
-      await bot.handleUpdate(makeMessageUpdate(3, adminChatId, 'Sara Smith'));
-      await bot.handleUpdate(makeMessageUpdate(4, adminChatId, 'Pasargad'));
-      await bot.handleUpdate(makeMessageUpdate(5, adminChatId, 'Include tracking ID in description'));
+			await bot.handleUpdate(makeMessageUpdate(1, adminChatId, "/setcard"));
+			await bot.handleUpdate(makeMessageUpdate(2, adminChatId, "5022291012345678"));
+			await bot.handleUpdate(makeMessageUpdate(3, adminChatId, "Sara Smith"));
+			await bot.handleUpdate(makeMessageUpdate(4, adminChatId, "Pasargad"));
+			await bot.handleUpdate(makeMessageUpdate(5, adminChatId, "Include tracking ID in description"));
 
-      expect(repliedMessages).toHaveLength(5);
-      expect(repliedMessages[4]).toContain('به‌روزرسانی شد');
-      expect(repliedMessages[4]).toContain('5022291012345678');
-      expect(repliedMessages[4]).toContain('Sara Smith');
-      expect(repliedMessages[4]).toContain('Pasargad');
-      expect(repliedMessages[4]).toContain('Include tracking ID in description');
+			expect(repliedMessages).toHaveLength(5);
+			expect(repliedMessages[4]).toContain("به‌روزرسانی شد");
+			expect(repliedMessages[4]).toContain("5022291012345678");
+			expect(repliedMessages[4]).toContain("Sara Smith");
+			expect(repliedMessages[4]).toContain("Pasargad");
+			expect(repliedMessages[4]).toContain("Include tracking ID in description");
 
-      const allRows = await db.select().from(bankAccounts);
-      expect(allRows).toHaveLength(2);
+			const allRows = await db.select().from(bankAccounts);
+			expect(allRows).toHaveLength(2);
 
-      const oldAccount = allRows.find((r) => r.cardNumber === '1111222233334444');
-      expect(oldAccount?.isActive).toBe(false);
+			const oldAccount = allRows.find((r) => r.cardNumber === "1111222233334444");
+			expect(oldAccount?.isActive).toBe(false);
 
-      const activeAccount = await getTestActiveAccount(container);
-      expect(activeAccount?.cardNumber).toBe('5022291012345678');
-      expect(activeAccount?.cardHolderName).toBe('Sara Smith');
-      expect(activeAccount?.bankName).toBe('Pasargad');
-      expect(activeAccount?.additionalNotes).toBe('Include tracking ID in description');
-      expect(activeAccount?.isActive).toBe(true);
-    });
+			const activeAccount = await getTestActiveAccount(container);
+			expect(activeAccount?.cardNumber).toBe("5022291012345678");
+			expect(activeAccount?.cardHolderName).toBe("Sara Smith");
+			expect(activeAccount?.bankName).toBe("Pasargad");
+			expect(activeAccount?.additionalNotes).toBe("Include tracking ID in description");
+			expect(activeAccount?.isActive).toBe(true);
+		});
 
-    it('re-prompts on invalid card number, empty card holder, and empty bank name', async () => {
-      const { bot, repliedMessages } = createTestBot();
+		it("re-prompts on invalid card number, empty card holder, and empty bank name", async () => {
+			const { bot, repliedMessages } = createTestBot();
 
-      // Enter flow
-      await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
-      expect(repliedMessages[0]).toContain('شماره کارت ۱۶ رقمی');
+			// Enter flow
+			await bot.handleUpdate(makeMessageUpdate(1, adminChatId, "/setcard"));
+			expect(repliedMessages[0]).toContain("شماره کارت ۱۶ رقمی");
 
-      // Invalid card number (short)
-      await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '12345'));
-      expect(repliedMessages[1]).toContain('شماره کارت نامعتبر است');
+			// Invalid card number (short)
+			await bot.handleUpdate(makeMessageUpdate(2, adminChatId, "12345"));
+			expect(repliedMessages[1]).toContain("شماره کارت نامعتبر است");
 
-      // Valid card number
-      await bot.handleUpdate(makeMessageUpdate(3, adminChatId, '6037991234567890'));
-      expect(repliedMessages[2]).toContain('نام صاحب حساب');
+			// Valid card number
+			await bot.handleUpdate(makeMessageUpdate(3, adminChatId, "6037991234567890"));
+			expect(repliedMessages[2]).toContain("نام صاحب حساب");
 
-      // Empty / whitespace holder name
-      await bot.handleUpdate(makeMessageUpdate(4, adminChatId, '   '));
-      expect(repliedMessages[3]).toContain('نام صاحب حساب');
+			// Empty / whitespace holder name
+			await bot.handleUpdate(makeMessageUpdate(4, adminChatId, "   "));
+			expect(repliedMessages[3]).toContain("نام صاحب حساب");
 
-      // Valid holder name
-      await bot.handleUpdate(makeMessageUpdate(5, adminChatId, 'John Doe'));
-      expect(repliedMessages[4]).toContain('نام بانک');
+			// Valid holder name
+			await bot.handleUpdate(makeMessageUpdate(5, adminChatId, "John Doe"));
+			expect(repliedMessages[4]).toContain("نام بانک");
 
-      // Empty bank name
-      await bot.handleUpdate(makeMessageUpdate(6, adminChatId, ''));
-      expect(repliedMessages[5]).toContain('نام بانک');
+			// Empty bank name
+			await bot.handleUpdate(makeMessageUpdate(6, adminChatId, ""));
+			expect(repliedMessages[5]).toContain("نام بانک");
 
-      // Valid bank name
-      await bot.handleUpdate(makeMessageUpdate(7, adminChatId, 'Tejarat'));
-      expect(repliedMessages[6]).toContain('توضیحات تکمیلی');
+			// Valid bank name
+			await bot.handleUpdate(makeMessageUpdate(7, adminChatId, "Tejarat"));
+			expect(repliedMessages[6]).toContain("توضیحات تکمیلی");
 
-      // Skip notes
-      await bot.handleUpdate(makeMessageUpdate(8, adminChatId, 'skip'));
-      expect(repliedMessages[7]).toContain('به‌روزرسانی شد');
-      expect(repliedMessages[7]).toContain('6037991234567890');
-      expect(repliedMessages[7]).toContain('John Doe');
-      expect(repliedMessages[7]).toContain('Tejarat');
-    });
+			// Skip notes
+			await bot.handleUpdate(makeMessageUpdate(8, adminChatId, "skip"));
+			expect(repliedMessages[7]).toContain("به‌روزرسانی شد");
+			expect(repliedMessages[7]).toContain("6037991234567890");
+			expect(repliedMessages[7]).toContain("John Doe");
+			expect(repliedMessages[7]).toContain("Tejarat");
+		});
 
-    it('cancels the conversation at step 1 (card number)', async () => {
-      const { bot, repliedMessages } = createTestBot();
+		it("cancels the conversation at step 1 (card number)", async () => {
+			const { bot, repliedMessages } = createTestBot();
 
-      await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
-      await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '/cancel'));
+			await bot.handleUpdate(makeMessageUpdate(1, adminChatId, "/setcard"));
+			await bot.handleUpdate(makeMessageUpdate(2, adminChatId, "/cancel"));
 
-      expect(repliedMessages).toHaveLength(2);
-      expect(repliedMessages[1]).toContain('لغو شد');
+			expect(repliedMessages).toHaveLength(2);
+			expect(repliedMessages[1]).toContain("لغو شد");
 
-      const [countResult] = await db.select({ value: count() }).from(bankAccounts);
-      expect(Number(countResult?.value ?? 0)).toBe(0);
-    });
+			const [countResult] = await db.select({ value: count() }).from(bankAccounts);
+			expect(Number(countResult?.value ?? 0)).toBe(0);
+		});
 
-    it('cancels the conversation at step 2 (card holder name)', async () => {
-      const { bot, repliedMessages } = createTestBot();
+		it("cancels the conversation at step 2 (card holder name)", async () => {
+			const { bot, repliedMessages } = createTestBot();
 
-      await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
-      await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '6037991234567890'));
-      await bot.handleUpdate(makeMessageUpdate(3, adminChatId, 'cancel'));
+			await bot.handleUpdate(makeMessageUpdate(1, adminChatId, "/setcard"));
+			await bot.handleUpdate(makeMessageUpdate(2, adminChatId, "6037991234567890"));
+			await bot.handleUpdate(makeMessageUpdate(3, adminChatId, "cancel"));
 
-      expect(repliedMessages).toHaveLength(3);
-      expect(repliedMessages[2]).toContain('لغو شد');
+			expect(repliedMessages).toHaveLength(3);
+			expect(repliedMessages[2]).toContain("لغو شد");
 
-      const [countResult] = await db.select({ value: count() }).from(bankAccounts);
-      expect(Number(countResult?.value ?? 0)).toBe(0);
-    });
+			const [countResult] = await db.select({ value: count() }).from(bankAccounts);
+			expect(Number(countResult?.value ?? 0)).toBe(0);
+		});
 
-    it('cancels the conversation at step 3 (bank name)', async () => {
-      const { bot, repliedMessages } = createTestBot();
+		it("cancels the conversation at step 3 (bank name)", async () => {
+			const { bot, repliedMessages } = createTestBot();
 
-      await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
-      await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '6037991234567890'));
-      await bot.handleUpdate(makeMessageUpdate(3, adminChatId, 'Ali Reza'));
-      await bot.handleUpdate(makeMessageUpdate(4, adminChatId, '/cancel'));
+			await bot.handleUpdate(makeMessageUpdate(1, adminChatId, "/setcard"));
+			await bot.handleUpdate(makeMessageUpdate(2, adminChatId, "6037991234567890"));
+			await bot.handleUpdate(makeMessageUpdate(3, adminChatId, "Ali Reza"));
+			await bot.handleUpdate(makeMessageUpdate(4, adminChatId, "/cancel"));
 
-      expect(repliedMessages).toHaveLength(4);
-      expect(repliedMessages[3]).toContain('لغو شد');
+			expect(repliedMessages).toHaveLength(4);
+			expect(repliedMessages[3]).toContain("لغو شد");
 
-      const [countResult] = await db.select({ value: count() }).from(bankAccounts);
-      expect(Number(countResult?.value ?? 0)).toBe(0);
-    });
+			const [countResult] = await db.select({ value: count() }).from(bankAccounts);
+			expect(Number(countResult?.value ?? 0)).toBe(0);
+		});
 
-    it('cancels the conversation at step 4 (additional notes)', async () => {
-      const { bot, repliedMessages } = createTestBot();
+		it("cancels the conversation at step 4 (additional notes)", async () => {
+			const { bot, repliedMessages } = createTestBot();
 
-      await bot.handleUpdate(makeMessageUpdate(1, adminChatId, '/setcard'));
-      await bot.handleUpdate(makeMessageUpdate(2, adminChatId, '6037991234567890'));
-      await bot.handleUpdate(makeMessageUpdate(3, adminChatId, 'Ali Reza'));
-      await bot.handleUpdate(makeMessageUpdate(4, adminChatId, 'Mellat'));
-      await bot.handleUpdate(makeMessageUpdate(5, adminChatId, '/cancel'));
+			await bot.handleUpdate(makeMessageUpdate(1, adminChatId, "/setcard"));
+			await bot.handleUpdate(makeMessageUpdate(2, adminChatId, "6037991234567890"));
+			await bot.handleUpdate(makeMessageUpdate(3, adminChatId, "Ali Reza"));
+			await bot.handleUpdate(makeMessageUpdate(4, adminChatId, "Mellat"));
+			await bot.handleUpdate(makeMessageUpdate(5, adminChatId, "/cancel"));
 
-      expect(repliedMessages).toHaveLength(5);
-      expect(repliedMessages[4]).toContain('لغو شد');
+			expect(repliedMessages).toHaveLength(5);
+			expect(repliedMessages[4]).toContain("لغو شد");
 
-      const [countResult] = await db.select({ value: count() }).from(bankAccounts);
-      expect(Number(countResult?.value ?? 0)).toBe(0);
-    });
+			const [countResult] = await db.select({ value: count() }).from(bankAccounts);
+			expect(Number(countResult?.value ?? 0)).toBe(0);
+		});
 
-    it('silently ignores /setcard when sent by a non-Admin', async () => {
-      const nonAdminChatId = 999888777;
-      const { bot, repliedMessages } = createTestBot();
+		it("silently ignores /setcard when sent by a non-Admin", async () => {
+			const nonAdminChatId = 999888777;
+			const { bot, repliedMessages } = createTestBot();
 
-      await bot.handleUpdate(makeMessageUpdate(1, nonAdminChatId, '/setcard', 'Buyer'));
+			await bot.handleUpdate(makeMessageUpdate(1, nonAdminChatId, "/setcard", "Buyer"));
 
-      expect(repliedMessages).toHaveLength(0);
-      const [countResult] = await db.select({ value: count() }).from(bankAccounts);
-      expect(Number(countResult?.value ?? 0)).toBe(0);
-    });
-  });
+			expect(repliedMessages).toHaveLength(0);
+			const [countResult] = await db.select({ value: count() }).from(bankAccounts);
+			expect(Number(countResult?.value ?? 0)).toBe(0);
+		});
+	});
 });

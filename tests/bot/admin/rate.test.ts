@@ -1,226 +1,226 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase } from '@tests/helpers/test-db';
-import { createMockContext, captureBotReplies } from '@tests/helpers/mock-context';
-import { handleRate } from '@/bot/handlers/admin';
-import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
-import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
-import { formatPersianDateTime } from '@/core/shared/date.utils';
-import { setTestRate } from '@tests/helpers/fixtures';
-import { createBot } from '@/bot/bot';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { setupTestDatabase } from "@tests/helpers/test-db";
+import { createMockContext, captureBotReplies } from "@tests/helpers/mock-context";
+import { handleRate } from "@/bot/handlers/admin";
+import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { formatPersianDateTime } from "@/core/shared/date.utils";
+import { setTestRate } from "@tests/helpers/fixtures";
+import { createBot } from "@/bot/bot";
 
-describe('/rate Handler', () => {
-  const { db, container } = setupTestDatabase();
-  const exchangeRateService = container.resolve(ExchangeRateService);
-  const exchangeRateConfigService = container.resolve(ExchangeRateConfigService);
-  const adminChatId = 123456789;
-  const originalEnv = process.env.ADMIN_IDS;
+describe("/rate Handler", () => {
+	const { db, container } = setupTestDatabase();
+	const exchangeRateService = container.resolve(ExchangeRateService);
+	const exchangeRateConfigService = container.resolve(ExchangeRateConfigService);
+	const adminChatId = 123456789;
+	const originalEnv = process.env.ADMIN_IDS;
 
-  beforeEach(() => {
-    process.env.ADMIN_IDS = `${adminChatId}`;
-  });
+	beforeEach(() => {
+		process.env.ADMIN_IDS = `${adminChatId}`;
+	});
 
-  afterEach(() => {
-    process.env.ADMIN_IDS = originalEnv;
-  });
+	afterEach(() => {
+		process.env.ADMIN_IDS = originalEnv;
+	});
 
-  it('replies with no-rate message when no exchange rate is configured', async () => {
-    const { ctx, repliedMessages } = createMockContext({
-      id: adminChatId,
-      username: 'admin_user',
-    });
+	it("replies with no-rate message when no exchange rate is configured", async () => {
+		const { ctx, repliedMessages } = createMockContext({
+			id: adminChatId,
+			username: "admin_user",
+		});
 
-    await handleRate(ctx, exchangeRateService);
+		await handleRate(ctx, exchangeRateService);
 
-    expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toContain('هیچ نرخ ارزی در سیستم تنظیم نشده است');
-    expect(repliedMessages[0]).toContain('/setrate');
-  });
+		expect(ctx.reply).toHaveBeenCalledTimes(1);
+		expect(repliedMessages[0]).toContain("هیچ نرخ ارزی در سیستم تنظیم نشده است");
+		expect(repliedMessages[0]).toContain("/setrate");
+	});
 
-  it('replies with current rate and when it was set if rate exists', async () => {
-    const createdRate = await setTestRate(container, adminChatId, 620000n);
+	it("replies with current rate and when it was set if rate exists", async () => {
+		const createdRate = await setTestRate(container, adminChatId, 620000n);
 
-    const { ctx, repliedMessages } = createMockContext({
-      id: adminChatId,
-      username: 'admin_user',
-    });
+		const { ctx, repliedMessages } = createMockContext({
+			id: adminChatId,
+			username: "admin_user",
+		});
 
-    await handleRate(ctx, exchangeRateService);
+		await handleRate(ctx, exchangeRateService);
 
-    expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
-    expect(repliedMessages[0]).toContain('620,000');
-    expect(repliedMessages[0]).toContain(formatPersianDateTime(createdRate.createdAt));
-  });
+		expect(ctx.reply).toHaveBeenCalledTimes(1);
+		expect(repliedMessages[0]).toContain("نرخ فعلی تبدیل ارز");
+		expect(repliedMessages[0]).toContain("620,000");
+		expect(repliedMessages[0]).toContain(formatPersianDateTime(createdRate.createdAt));
+	});
 
-  it('shows the latest rate and timestamp when multiple rates have been set', async () => {
-    await setTestRate(container, adminChatId, 600000n);
-    const secondRate = await setTestRate(container, adminChatId, 650000n);
+	it("shows the latest rate and timestamp when multiple rates have been set", async () => {
+		await setTestRate(container, adminChatId, 600000n);
+		const secondRate = await setTestRate(container, adminChatId, 650000n);
 
-    const { ctx, repliedMessages } = createMockContext({
-      id: adminChatId,
-      username: 'admin_user',
-    });
+		const { ctx, repliedMessages } = createMockContext({
+			id: adminChatId,
+			username: "admin_user",
+		});
 
-    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
+		await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
 
-    expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
-    expect(repliedMessages[0]).toContain('650,000');
-    expect(repliedMessages[0]).toContain(formatPersianDateTime(secondRate.createdAt));
-  });
+		expect(ctx.reply).toHaveBeenCalledTimes(1);
+		expect(repliedMessages[0]).toContain("نرخ فعلی تبدیل ارز");
+		expect(repliedMessages[0]).toContain("650,000");
+		expect(repliedMessages[0]).toContain(formatPersianDateTime(secondRate.createdAt));
+	});
 
-  it('enriches rate display with mode, spread percentage, and timestamp in AUTO_SYNC mode', async () => {
-    await setTestRate(container, adminChatId, 905000n);
-    await exchangeRateConfigService.updateConfig({
-      mode: 'AUTO_SYNC',
-      spreadPercent: 1.5,
-      adminTelegramId: adminChatId,
-    });
+	it("enriches rate display with mode, spread percentage, and timestamp in AUTO_SYNC mode", async () => {
+		await setTestRate(container, adminChatId, 905000n);
+		await exchangeRateConfigService.updateConfig({
+			mode: "AUTO_SYNC",
+			spreadPercent: 1.5,
+			adminTelegramId: adminChatId,
+		});
 
-    const { ctx, repliedMessages } = createMockContext({
-      id: adminChatId,
-      username: 'admin_user',
-    });
+		const { ctx, repliedMessages } = createMockContext({
+			id: adminChatId,
+			username: "admin_user",
+		});
 
-    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
+		await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
 
-    expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toContain('خودکار');
-    expect(repliedMessages[0]).toContain('1.50%');
-    expect(repliedMessages[0]).toContain('905,000');
-    expect(repliedMessages[0]).toContain('آخرین به‌روزرسانی');
-  });
+		expect(ctx.reply).toHaveBeenCalledTimes(1);
+		expect(repliedMessages[0]).toContain("خودکار");
+		expect(repliedMessages[0]).toContain("1.50%");
+		expect(repliedMessages[0]).toContain("905,000");
+		expect(repliedMessages[0]).toContain("آخرین به‌روزرسانی");
+	});
 
-  it('shows MANUAL mode indicator in MANUAL mode', async () => {
-    await setTestRate(container, adminChatId, 620000n);
-    await exchangeRateConfigService.updateMode('MANUAL', adminChatId);
+	it("shows MANUAL mode indicator in MANUAL mode", async () => {
+		await setTestRate(container, adminChatId, 620000n);
+		await exchangeRateConfigService.updateMode("MANUAL", adminChatId);
 
-    const { ctx, repliedMessages } = createMockContext({
-      id: adminChatId,
-      username: 'admin_user',
-    });
+		const { ctx, repliedMessages } = createMockContext({
+			id: adminChatId,
+			username: "admin_user",
+		});
 
-    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
+		await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
 
-    expect(ctx.reply).toHaveBeenCalledTimes(1);
-    expect(repliedMessages[0]).toContain('دستی');
-    expect(repliedMessages[0]).toContain('620,000');
-  });
+		expect(ctx.reply).toHaveBeenCalledTimes(1);
+		expect(repliedMessages[0]).toContain("دستی");
+		expect(repliedMessages[0]).toContain("620,000");
+	});
 
-  it('silently ignores update if ctx.from is undefined', async () => {
-    const { ctx } = createMockContext(undefined);
+	it("silently ignores update if ctx.from is undefined", async () => {
+		const { ctx } = createMockContext(undefined);
 
-    await handleRate(ctx, exchangeRateService);
+		await handleRate(ctx, exchangeRateService);
 
-    expect(ctx.reply).not.toHaveBeenCalled();
-  });
+		expect(ctx.reply).not.toHaveBeenCalled();
+	});
 
-  describe('Bot integration with /rate', () => {
-    it('executes /rate command for Admin and shows current rate via bot.handleUpdate', async () => {
-      await setTestRate(container, adminChatId, 630000n);
+	describe("Bot integration with /rate", () => {
+		it("executes /rate command for Admin and shows current rate via bot.handleUpdate", async () => {
+			await setTestRate(container, adminChatId, 630000n);
 
-      const bot = createBot({
-        token: 'test_token',
-        dbClient: db,
-        adminIds: `${adminChatId}`,
-        botInfo: {
-          id: 1000,
-          is_bot: true,
-          first_name: 'TeleBot',
-          username: 'tele_bot',
-          can_join_groups: true,
-          can_read_all_group_messages: false,
-          supports_inline_queries: false,
-        } as any,
-      });
+			const bot = createBot({
+				token: "test_token",
+				dbClient: db,
+				adminIds: `${adminChatId}`,
+				botInfo: {
+					id: 1000,
+					is_bot: true,
+					first_name: "TeleBot",
+					username: "tele_bot",
+					can_join_groups: true,
+					can_read_all_group_messages: false,
+					supports_inline_queries: false,
+				} as any,
+			});
 
-      const repliedMessages = captureBotReplies(bot);
+			const repliedMessages = captureBotReplies(bot);
 
-      await bot.handleUpdate({
-        update_id: 1,
-        message: {
-          message_id: 1,
-          date: Math.floor(Date.now() / 1000),
-          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
-          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
-          text: '/rate',
-          entities: [{ offset: 0, length: 5, type: 'bot_command' }],
-        },
-      });
+			await bot.handleUpdate({
+				update_id: 1,
+				message: {
+					message_id: 1,
+					date: Math.floor(Date.now() / 1000),
+					chat: { id: adminChatId, type: "private", first_name: "Admin" },
+					from: { id: adminChatId, is_bot: false, first_name: "Admin" },
+					text: "/rate",
+					entities: [{ offset: 0, length: 5, type: "bot_command" }],
+				},
+			});
 
-      expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toContain('نرخ فعلی تبدیل ارز');
-      expect(repliedMessages[0]).toContain('630,000');
-    });
+			expect(repliedMessages).toHaveLength(1);
+			expect(repliedMessages[0]).toContain("نرخ فعلی تبدیل ارز");
+			expect(repliedMessages[0]).toContain("630,000");
+		});
 
-    it('executes /rate command for Admin when no rate is configured', async () => {
-      const bot = createBot({
-        token: 'test_token',
-        dbClient: db,
-        adminIds: `${adminChatId}`,
-        botInfo: {
-          id: 1000,
-          is_bot: true,
-          first_name: 'TeleBot',
-          username: 'tele_bot',
-          can_join_groups: true,
-          can_read_all_group_messages: false,
-          supports_inline_queries: false,
-        } as any,
-      });
+		it("executes /rate command for Admin when no rate is configured", async () => {
+			const bot = createBot({
+				token: "test_token",
+				dbClient: db,
+				adminIds: `${adminChatId}`,
+				botInfo: {
+					id: 1000,
+					is_bot: true,
+					first_name: "TeleBot",
+					username: "tele_bot",
+					can_join_groups: true,
+					can_read_all_group_messages: false,
+					supports_inline_queries: false,
+				} as any,
+			});
 
-      const repliedMessages = captureBotReplies(bot);
+			const repliedMessages = captureBotReplies(bot);
 
-      await bot.handleUpdate({
-        update_id: 2,
-        message: {
-          message_id: 2,
-          date: Math.floor(Date.now() / 1000),
-          chat: { id: adminChatId, type: 'private', first_name: 'Admin' },
-          from: { id: adminChatId, is_bot: false, first_name: 'Admin' },
-          text: '/rate',
-          entities: [{ offset: 0, length: 5, type: 'bot_command' }],
-        },
-      });
+			await bot.handleUpdate({
+				update_id: 2,
+				message: {
+					message_id: 2,
+					date: Math.floor(Date.now() / 1000),
+					chat: { id: adminChatId, type: "private", first_name: "Admin" },
+					from: { id: adminChatId, is_bot: false, first_name: "Admin" },
+					text: "/rate",
+					entities: [{ offset: 0, length: 5, type: "bot_command" }],
+				},
+			});
 
-      expect(repliedMessages).toHaveLength(1);
-      expect(repliedMessages[0]).toContain('هیچ نرخ ارزی در سیستم تنظیم نشده است');
-    });
+			expect(repliedMessages).toHaveLength(1);
+			expect(repliedMessages[0]).toContain("هیچ نرخ ارزی در سیستم تنظیم نشده است");
+		});
 
-    it('silently ignores /rate command when sent by a non-Admin', async () => {
-      const nonAdminChatId = 999888777;
-      await setTestRate(container, adminChatId, 630000n);
+		it("silently ignores /rate command when sent by a non-Admin", async () => {
+			const nonAdminChatId = 999888777;
+			await setTestRate(container, adminChatId, 630000n);
 
-      const bot = createBot({
-        token: 'test_token',
-        dbClient: db,
-        adminIds: `${adminChatId}`,
-        botInfo: {
-          id: 1000,
-          is_bot: true,
-          first_name: 'TeleBot',
-          username: 'tele_bot',
-          can_join_groups: true,
-          can_read_all_group_messages: false,
-          supports_inline_queries: false,
-        } as any,
-      });
+			const bot = createBot({
+				token: "test_token",
+				dbClient: db,
+				adminIds: `${adminChatId}`,
+				botInfo: {
+					id: 1000,
+					is_bot: true,
+					first_name: "TeleBot",
+					username: "tele_bot",
+					can_join_groups: true,
+					can_read_all_group_messages: false,
+					supports_inline_queries: false,
+				} as any,
+			});
 
-      const repliedMessages = captureBotReplies(bot);
+			const repliedMessages = captureBotReplies(bot);
 
-      await bot.handleUpdate({
-        update_id: 3,
-        message: {
-          message_id: 3,
-          date: Math.floor(Date.now() / 1000),
-          chat: { id: nonAdminChatId, type: 'private', first_name: 'Buyer' },
-          from: { id: nonAdminChatId, is_bot: false, first_name: 'Buyer' },
-          text: '/rate',
-          entities: [{ offset: 0, length: 5, type: 'bot_command' }],
-        },
-      });
+			await bot.handleUpdate({
+				update_id: 3,
+				message: {
+					message_id: 3,
+					date: Math.floor(Date.now() / 1000),
+					chat: { id: nonAdminChatId, type: "private", first_name: "Buyer" },
+					from: { id: nonAdminChatId, is_bot: false, first_name: "Buyer" },
+					text: "/rate",
+					entities: [{ offset: 0, length: 5, type: "bot_command" }],
+				},
+			});
 
-      expect(repliedMessages).toHaveLength(0);
-    });
-  });
+			expect(repliedMessages).toHaveLength(0);
+		});
+	});
 });

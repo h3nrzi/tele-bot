@@ -1,1 +1,1 @@
-export * from '@/bot/keyboards/menu.keyboards';
+export * from "@/bot/keyboards/menu.keyboards";

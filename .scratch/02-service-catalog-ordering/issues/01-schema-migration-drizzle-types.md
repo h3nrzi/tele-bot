@@ -21,4 +21,3 @@
 - [x] `schema.ts` re-exports the new schema files.
 - [x] `drizzle-kit generate` produces no additional migrations (schema is in sync).
 - [x] Existing RFP #1 migrations and tests continue to pass.
-

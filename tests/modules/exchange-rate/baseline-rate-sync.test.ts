@@ -1,414 +1,395 @@
-import 'reflect-metadata';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import "reflect-metadata";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  syncBaselineRate,
-  BaselineRateSyncWorker,
-  type SyncBaselineRateDependencies,
-} from '@/modules/exchange-rate/baseline-rate-sync.worker';
-import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
-import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
-import { ExchangeRate } from '@/modules/exchange-rate/exchange-rate.entity';
-import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
-import { WallexNetworkError, WallexApiError } from '@/modules/wallex/wallex.errors';
-import { parseBotIdFromToken } from '@/core/shared/telegram.utils';
+	syncBaselineRate,
+	BaselineRateSyncWorker,
+	type SyncBaselineRateDependencies,
+} from "@/modules/exchange-rate/baseline-rate-sync.worker";
+import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
+import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
+import { WallexNetworkError, WallexApiError } from "@/modules/wallex/wallex.errors";
+import { parseBotIdFromToken } from "@/core/shared/telegram.utils";
 
-describe('parseBotIdFromToken', () => {
-  it('extracts numeric bot ID from standard Telegram token', () => {
-    expect(parseBotIdFromToken('123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11')).toBe(123456789n);
-    expect(parseBotIdFromToken('9876543210:AAEEFFGGHHIIJJKKLLMM')).toBe(9876543210n);
-  });
+describe("parseBotIdFromToken", () => {
+	it("extracts numeric bot ID from standard Telegram token", () => {
+		expect(parseBotIdFromToken("123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")).toBe(123456789n);
+		expect(parseBotIdFromToken("9876543210:AAEEFFGGHHIIJJKKLLMM")).toBe(9876543210n);
+	});
 
-  it('handles surrounding whitespace gracefully', () => {
-    expect(parseBotIdFromToken('  123456:secret_token  ')).toBe(123456n);
-  });
+	it("handles surrounding whitespace gracefully", () => {
+		expect(parseBotIdFromToken("  123456:secret_token  ")).toBe(123456n);
+	});
 
-  it('returns null for empty, undefined, or malformed tokens', () => {
-    expect(parseBotIdFromToken(undefined)).toBeNull();
-    expect(parseBotIdFromToken(null)).toBeNull();
-    expect(parseBotIdFromToken('')).toBeNull();
-    expect(parseBotIdFromToken('invalid_token_without_colon')).toBeNull();
-    expect(parseBotIdFromToken(':empty_bot_id')).toBeNull();
-    expect(parseBotIdFromToken('abc:non_numeric_id')).toBeNull();
-  });
+	it("returns null for empty, undefined, or malformed tokens", () => {
+		expect(parseBotIdFromToken(undefined)).toBeNull();
+		expect(parseBotIdFromToken(null)).toBeNull();
+		expect(parseBotIdFromToken("")).toBeNull();
+		expect(parseBotIdFromToken("invalid_token_without_colon")).toBeNull();
+		expect(parseBotIdFromToken(":empty_bot_id")).toBeNull();
+		expect(parseBotIdFromToken("abc:non_numeric_id")).toBeNull();
+	});
 });
 
-describe('syncBaselineRate (standalone callable)', () => {
-  let mockWallexClient: WallexClient;
-  let mockExchangeRateService: ExchangeRateService;
-  let mockLogger: {
-    log: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    info: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
+describe("syncBaselineRate (standalone callable)", () => {
+	let mockWallexClient: WallexClient;
+	let mockExchangeRateService: ExchangeRateService;
+	let mockLogger: {
+		log: ReturnType<typeof vi.fn>;
+		error: ReturnType<typeof vi.fn>;
+		info: ReturnType<typeof vi.fn>;
+		warn: ReturnType<typeof vi.fn>;
+	};
 
-  const botTelegramId = 987654321n;
+	const botTelegramId = 987654321n;
 
-  beforeEach(() => {
-    mockWallexClient = {
-      getOtcPrice: vi.fn(),
-      placeOtcOrder: vi.fn(),
-    };
+	beforeEach(() => {
+		mockWallexClient = {
+			getOtcPrice: vi.fn(),
+			placeOtcOrder: vi.fn(),
+		};
 
-    mockExchangeRateService = {
-      setRate: vi.fn(),
-      getCurrentRate: vi.fn(),
-    } as unknown as ExchangeRateService;
+		mockExchangeRateService = {
+			setRate: vi.fn(),
+			getCurrentRate: vi.fn(),
+		} as unknown as ExchangeRateService;
 
-    mockLogger = {
-      log: vi.fn(),
-      error: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-    };
-  });
+		mockLogger = {
+			log: vi.fn(),
+			error: vi.fn(),
+			info: vi.fn(),
+			warn: vi.fn(),
+		};
+	});
 
-  it('fetches OTC price and inserts a Baseline Rate with bot Telegram ID', async () => {
-    const quote = {
-      symbol: 'USDTTMN',
-      side: 'BUY' as const,
-      priceIrr: 915000n,
-    };
-    (mockWallexClient.getOtcPrice as any).mockResolvedValue(quote);
+	it("fetches OTC price and inserts a Baseline Rate with bot Telegram ID", async () => {
+		const quote = {
+			symbol: "USDTTMN",
+			side: "BUY" as const,
+			priceIrr: 915000n,
+		};
+		(mockWallexClient.getOtcPrice as any).mockResolvedValue(quote);
 
-    const createdRate = new ExchangeRate({
-      id: 'rate-123',
-      createdByAdminTelegramId: botTelegramId,
-      irrPerUsd: 915000n,
-      createdAt: new Date(),
-    });
-    (mockExchangeRateService.setRate as any).mockResolvedValue(createdRate);
+		const createdRate = new ExchangeRate({
+			id: "rate-123",
+			createdByAdminTelegramId: botTelegramId,
+			irrPerUsd: 915000n,
+			createdAt: new Date(),
+		});
+		(mockExchangeRateService.setRate as any).mockResolvedValue(createdRate);
 
-    const result = await syncBaselineRate({
-      wallexClient: mockWallexClient,
-      exchangeRateService: mockExchangeRateService,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		const result = await syncBaselineRate({
+			wallexClient: mockWallexClient,
+			exchangeRateService: mockExchangeRateService,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    expect(mockWallexClient.getOtcPrice).toHaveBeenCalledWith('USDTTMN', 'BUY');
-    expect(mockExchangeRateService.setRate).toHaveBeenCalledWith(botTelegramId, 915000n);
-    expect(result).toBe(createdRate);
-    expect(mockLogger.info).toHaveBeenCalledWith(
-      expect.stringContaining('Baseline rate synced successfully from Wallex: 915000 IRR')
-    );
-    expect(mockLogger.error).not.toHaveBeenCalled();
-  });
+		expect(mockWallexClient.getOtcPrice).toHaveBeenCalledWith("USDTTMN", "BUY");
+		expect(mockExchangeRateService.setRate).toHaveBeenCalledWith(botTelegramId, 915000n);
+		expect(result).toBe(createdRate);
+		expect(mockLogger.info).toHaveBeenCalledWith(
+			expect.stringContaining("Baseline rate synced successfully from Wallex: 915000 IRR"),
+		);
+		expect(mockLogger.error).not.toHaveBeenCalled();
+	});
 
-  it('gracefully handles WallexNetworkError (logs error, skips insert, no crash)', async () => {
-    (mockWallexClient.getOtcPrice as any).mockRejectedValue(
-      new WallexNetworkError('Failed to connect to Wallex OTC API')
-    );
+	it("gracefully handles WallexNetworkError (logs error, skips insert, no crash)", async () => {
+		(mockWallexClient.getOtcPrice as any).mockRejectedValue(
+			new WallexNetworkError("Failed to connect to Wallex OTC API"),
+		);
 
-    const result = await syncBaselineRate({
-      wallexClient: mockWallexClient,
-      exchangeRateService: mockExchangeRateService,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		const result = await syncBaselineRate({
+			wallexClient: mockWallexClient,
+			exchangeRateService: mockExchangeRateService,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    expect(mockWallexClient.getOtcPrice).toHaveBeenCalledWith('USDTTMN', 'BUY');
-    expect(mockExchangeRateService.setRate).not.toHaveBeenCalled();
-    expect(result).toBeNull();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Failed to sync baseline rate from Wallex:',
-      expect.any(WallexNetworkError)
-    );
-  });
+		expect(mockWallexClient.getOtcPrice).toHaveBeenCalledWith("USDTTMN", "BUY");
+		expect(mockExchangeRateService.setRate).not.toHaveBeenCalled();
+		expect(result).toBeNull();
+		expect(mockLogger.error).toHaveBeenCalledWith(
+			"Failed to sync baseline rate from Wallex:",
+			expect.any(WallexNetworkError),
+		);
+	});
 
-  it('gracefully handles WallexApiError (e.g. 500 / 401) without crashing', async () => {
-    (mockWallexClient.getOtcPrice as any).mockRejectedValue(
-      new WallexApiError('Wallex Internal Server Error', 500)
-    );
+	it("gracefully handles WallexApiError (e.g. 500 / 401) without crashing", async () => {
+		(mockWallexClient.getOtcPrice as any).mockRejectedValue(new WallexApiError("Wallex Internal Server Error", 500));
 
-    const result = await syncBaselineRate({
-      wallexClient: mockWallexClient,
-      exchangeRateService: mockExchangeRateService,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		const result = await syncBaselineRate({
+			wallexClient: mockWallexClient,
+			exchangeRateService: mockExchangeRateService,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    expect(mockExchangeRateService.setRate).not.toHaveBeenCalled();
-    expect(result).toBeNull();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Failed to sync baseline rate from Wallex:',
-      expect.any(WallexApiError)
-    );
-  });
+		expect(mockExchangeRateService.setRate).not.toHaveBeenCalled();
+		expect(result).toBeNull();
+		expect(mockLogger.error).toHaveBeenCalledWith(
+			"Failed to sync baseline rate from Wallex:",
+			expect.any(WallexApiError),
+		);
+	});
 
-  it('gracefully handles database errors during setRate without crashing', async () => {
-    (mockWallexClient.getOtcPrice as any).mockResolvedValue({
-      symbol: 'USDTTMN',
-      side: 'BUY',
-      priceIrr: 920000n,
-    });
-    (mockExchangeRateService.setRate as any).mockRejectedValue(
-      new Error('Database connection lost')
-    );
+	it("gracefully handles database errors during setRate without crashing", async () => {
+		(mockWallexClient.getOtcPrice as any).mockResolvedValue({
+			symbol: "USDTTMN",
+			side: "BUY",
+			priceIrr: 920000n,
+		});
+		(mockExchangeRateService.setRate as any).mockRejectedValue(new Error("Database connection lost"));
 
-    const result = await syncBaselineRate({
-      wallexClient: mockWallexClient,
-      exchangeRateService: mockExchangeRateService,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		const result = await syncBaselineRate({
+			wallexClient: mockWallexClient,
+			exchangeRateService: mockExchangeRateService,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    expect(result).toBeNull();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Failed to sync baseline rate from Wallex:',
-      expect.any(Error)
-    );
-  });
+		expect(result).toBeNull();
+		expect(mockLogger.error).toHaveBeenCalledWith("Failed to sync baseline rate from Wallex:", expect.any(Error));
+	});
 });
 
+describe("BaselineRateSyncWorker", () => {
+	let mockWallexClient: WallexClient;
+	let mockExchangeRateService: ExchangeRateService;
+	let mockExchangeRateConfigService: ExchangeRateConfigService;
+	let mockLogger: {
+		log: ReturnType<typeof vi.fn>;
+		error: ReturnType<typeof vi.fn>;
+		info: ReturnType<typeof vi.fn>;
+		warn: ReturnType<typeof vi.fn>;
+	};
 
+	const botTelegramId = 123456789n;
 
-describe('BaselineRateSyncWorker', () => {
-  let mockWallexClient: WallexClient;
-  let mockExchangeRateService: ExchangeRateService;
-  let mockExchangeRateConfigService: ExchangeRateConfigService;
-  let mockLogger: {
-    log: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    info: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
+	beforeEach(() => {
+		vi.useFakeTimers();
 
-  const botTelegramId = 123456789n;
+		mockWallexClient = {
+			getOtcPrice: vi.fn(),
+			placeOtcOrder: vi.fn(),
+		};
 
-  beforeEach(() => {
-    vi.useFakeTimers();
+		mockExchangeRateService = {
+			setRate: vi.fn(),
+			getCurrentRate: vi.fn(),
+		} as unknown as ExchangeRateService;
 
-    mockWallexClient = {
-      getOtcPrice: vi.fn(),
-      placeOtcOrder: vi.fn(),
-    };
+		mockExchangeRateConfigService = {
+			getConfig: vi.fn().mockResolvedValue({
+				syncIntervalMinutes: 45,
+				mode: "AUTO_SYNC",
+				isAutoSync: () => true,
+				isManual: () => false,
+			}),
+		} as unknown as ExchangeRateConfigService;
 
-    mockExchangeRateService = {
-      setRate: vi.fn(),
-      getCurrentRate: vi.fn(),
-    } as unknown as ExchangeRateService;
+		mockLogger = {
+			log: vi.fn(),
+			error: vi.fn(),
+			info: vi.fn(),
+			warn: vi.fn(),
+		};
+	});
 
-    mockExchangeRateConfigService = {
-      getConfig: vi.fn().mockResolvedValue({
-        syncIntervalMinutes: 45,
-        mode: 'AUTO_SYNC',
-        isAutoSync: () => true,
-        isManual: () => false,
-      }),
-    } as unknown as ExchangeRateConfigService;
+	afterEach(() => {
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	});
 
-    mockLogger = {
-      log: vi.fn(),
-      error: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-    };
-  });
+	it("initializes correctly with options object and tracks running status", () => {
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.useRealTimers();
-  });
+		expect(worker.isRunning()).toBe(false);
+		expect(worker.getIntervalMinutes()).toBeNull();
+		expect(worker.getBotTelegramId()).toBe(botTelegramId);
+	});
 
-  it('initializes correctly with options object and tracks running status', () => {
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-      botTelegramId,
-      logger: mockLogger,
-    });
+	it("updates botTelegramId with setBotTelegramId", () => {
+		const origToken = process.env.BOT_TOKEN;
+		delete process.env.BOT_TOKEN;
 
-    expect(worker.isRunning()).toBe(false);
-    expect(worker.getIntervalMinutes()).toBeNull();
-    expect(worker.getBotTelegramId()).toBe(botTelegramId);
-  });
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+		});
 
-  it('updates botTelegramId with setBotTelegramId', () => {
-    const origToken = process.env.BOT_TOKEN;
-    delete process.env.BOT_TOKEN;
+		expect(worker.getBotTelegramId()).toBeUndefined();
+		worker.setBotTelegramId(555666n);
+		expect(worker.getBotTelegramId()).toBe(555666n);
 
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-    });
+		process.env.BOT_TOKEN = origToken;
+	});
 
-    expect(worker.getBotTelegramId()).toBeUndefined();
-    worker.setBotTelegramId(555666n);
-    expect(worker.getBotTelegramId()).toBe(555666n);
+	it("executes sync() successfully using configured dependencies", async () => {
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    process.env.BOT_TOKEN = origToken;
-  });
+		(mockWallexClient.getOtcPrice as any).mockResolvedValue({
+			symbol: "USDTTMN",
+			side: "BUY",
+			priceIrr: 930000n,
+		});
+		const expectedRate = new ExchangeRate({
+			id: "rate-789",
+			createdByAdminTelegramId: botTelegramId,
+			irrPerUsd: 930000n,
+			createdAt: new Date(),
+		});
+		(mockExchangeRateService.setRate as any).mockResolvedValue(expectedRate);
 
-  it('executes sync() successfully using configured dependencies', async () => {
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		const result = await worker.sync();
 
-    (mockWallexClient.getOtcPrice as any).mockResolvedValue({
-      symbol: 'USDTTMN',
-      side: 'BUY',
-      priceIrr: 930000n,
-    });
-    const expectedRate = new ExchangeRate({
-      id: 'rate-789',
-      createdByAdminTelegramId: botTelegramId,
-      irrPerUsd: 930000n,
-      createdAt: new Date(),
-    });
-    (mockExchangeRateService.setRate as any).mockResolvedValue(expectedRate);
+		expect(mockWallexClient.getOtcPrice).toHaveBeenCalledWith("USDTTMN", "BUY");
+		expect(mockExchangeRateService.setRate).toHaveBeenCalledWith(botTelegramId, 930000n);
+		expect(result).toBe(expectedRate);
+	});
 
-    const result = await worker.sync();
+	it("sync() warns and returns null when WallexClient is not configured", async () => {
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: undefined,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    expect(mockWallexClient.getOtcPrice).toHaveBeenCalledWith('USDTTMN', 'BUY');
-    expect(mockExchangeRateService.setRate).toHaveBeenCalledWith(botTelegramId, 930000n);
-    expect(result).toBe(expectedRate);
-  });
+		const result = await worker.sync();
 
-  it('sync() warns and returns null when WallexClient is not configured', async () => {
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: undefined,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		expect(result).toBeNull();
+		expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining("WallexClient is not configured"));
+	});
 
-    const result = await worker.sync();
+	it("sync() logs error and returns null when bot Telegram ID is unknown", async () => {
+		const origToken = process.env.BOT_TOKEN;
+		delete process.env.BOT_TOKEN;
 
-    expect(result).toBeNull();
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('WallexClient is not configured')
-    );
-  });
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+			logger: mockLogger,
+		});
 
-  it('sync() logs error and returns null when bot Telegram ID is unknown', async () => {
-    const origToken = process.env.BOT_TOKEN;
-    delete process.env.BOT_TOKEN;
+		const result = await worker.sync();
 
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-      logger: mockLogger,
-    });
+		expect(result).toBeNull();
+		expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining("Bot Telegram ID is unknown"));
 
-    const result = await worker.sync();
+		process.env.BOT_TOKEN = origToken;
+	});
 
-    expect(result).toBeNull();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('Bot Telegram ID is unknown')
-    );
+	it("start() sources interval from exchange_rate_config table when not provided", async () => {
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    process.env.BOT_TOKEN = origToken;
-  });
+		await worker.start();
 
-  it('start() sources interval from exchange_rate_config table when not provided', async () => {
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		expect(mockExchangeRateConfigService.getConfig).toHaveBeenCalled();
+		expect(worker.isRunning()).toBe(true);
+		expect(worker.getIntervalMinutes()).toBe(45);
+		expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("started with interval of 45 minutes"));
 
-    await worker.start();
+		worker.stop();
+	});
 
-    expect(mockExchangeRateConfigService.getConfig).toHaveBeenCalled();
-    expect(worker.isRunning()).toBe(true);
-    expect(worker.getIntervalMinutes()).toBe(45);
-    expect(mockLogger.info).toHaveBeenCalledWith(
-      expect.stringContaining('started with interval of 45 minutes')
-    );
+	it("start(customInterval) uses explicitly passed interval", async () => {
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    worker.stop();
-  });
+		await worker.start(15);
 
-  it('start(customInterval) uses explicitly passed interval', async () => {
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		expect(mockExchangeRateConfigService.getConfig).not.toHaveBeenCalled();
+		expect(worker.isRunning()).toBe(true);
+		expect(worker.getIntervalMinutes()).toBe(15);
 
-    await worker.start(15);
+		worker.stop();
+	});
 
-    expect(mockExchangeRateConfigService.getConfig).not.toHaveBeenCalled();
-    expect(worker.isRunning()).toBe(true);
-    expect(worker.getIntervalMinutes()).toBe(15);
+	it("start() falls back to default 60 minutes if getConfig() fails", async () => {
+		(mockExchangeRateConfigService.getConfig as any).mockRejectedValue(new Error("DB unreachable"));
 
-    worker.stop();
-  });
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-  it('start() falls back to default 60 minutes if getConfig() fails', async () => {
-    (mockExchangeRateConfigService.getConfig as any).mockRejectedValue(
-      new Error('DB unreachable')
-    );
+		await worker.start();
 
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		expect(worker.isRunning()).toBe(true);
+		expect(worker.getIntervalMinutes()).toBe(60);
 
-    await worker.start();
+		worker.stop();
+	});
 
-    expect(worker.isRunning()).toBe(true);
-    expect(worker.getIntervalMinutes()).toBe(60);
+	it("stop() stops active timer and updates running status", async () => {
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    worker.stop();
-  });
+		await worker.start(30);
+		expect(worker.isRunning()).toBe(true);
 
-  it('stop() stops active timer and updates running status', async () => {
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		worker.stop();
+		expect(worker.isRunning()).toBe(false);
+		expect(worker.getIntervalMinutes()).toBeNull();
+		expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining("Baseline rate sync worker stopped"));
+	});
 
-    await worker.start(30);
-    expect(worker.isRunning()).toBe(true);
+	it("triggers immediate sync on start when runImmediately is true", async () => {
+		const worker = new BaselineRateSyncWorker({
+			exchangeRateService: mockExchangeRateService,
+			exchangeRateConfigService: mockExchangeRateConfigService,
+			wallexClient: mockWallexClient,
+			botTelegramId,
+			logger: mockLogger,
+		});
 
-    worker.stop();
-    expect(worker.isRunning()).toBe(false);
-    expect(worker.getIntervalMinutes()).toBeNull();
-    expect(mockLogger.info).toHaveBeenCalledWith(
-      expect.stringContaining('Baseline rate sync worker stopped')
-    );
-  });
+		(mockWallexClient.getOtcPrice as any).mockResolvedValue({
+			symbol: "USDTTMN",
+			side: "BUY",
+			priceIrr: 950000n,
+		});
 
-  it('triggers immediate sync on start when runImmediately is true', async () => {
-    const worker = new BaselineRateSyncWorker({
-      exchangeRateService: mockExchangeRateService,
-      exchangeRateConfigService: mockExchangeRateConfigService,
-      wallexClient: mockWallexClient,
-      botTelegramId,
-      logger: mockLogger,
-    });
+		await worker.start(10, { runImmediately: true });
 
-    (mockWallexClient.getOtcPrice as any).mockResolvedValue({
-      symbol: 'USDTTMN',
-      side: 'BUY',
-      priceIrr: 950000n,
-    });
+		expect(mockWallexClient.getOtcPrice).toHaveBeenCalledTimes(1);
+		expect(mockExchangeRateService.setRate).toHaveBeenCalledWith(botTelegramId, 950000n);
 
-    await worker.start(10, { runImmediately: true });
-
-    expect(mockWallexClient.getOtcPrice).toHaveBeenCalledTimes(1);
-    expect(mockExchangeRateService.setRate).toHaveBeenCalledWith(botTelegramId, 950000n);
-
-    worker.stop();
-  });
+		worker.stop();
+	});
 });

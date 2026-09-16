@@ -1,53 +1,53 @@
-import { Composer } from 'grammy';
-import type { DependencyContainer } from 'tsyringe';
-import type { BotContext } from '@/bot/context';
-import { createAdminMiddleware } from '@/bot/middleware/admin.middleware';
-import { handleSetRate } from '@/bot/handlers/admin/set-rate.handler';
-import { handleRate } from '@/bot/handlers/admin/rate.handler';
-import { handleSetCardCommand } from '@/bot/handlers/admin/set-card.handler';
-import { handleApproveCallback } from '@/bot/handlers/admin/approve.handler';
-import { handleRejectCallback } from '@/bot/handlers/admin/reject.handler';
+import { Composer } from "grammy";
+import type { DependencyContainer } from "tsyringe";
+import type { BotContext } from "@/bot/context";
+import { createAdminMiddleware } from "@/bot/middleware/admin.middleware";
+import { handleSetRate } from "@/bot/handlers/admin/set-rate.handler";
+import { handleRate } from "@/bot/handlers/admin/rate.handler";
+import { handleSetCardCommand } from "@/bot/handlers/admin/set-card.handler";
+import { handleApproveCallback } from "@/bot/handlers/admin/approve.handler";
+import { handleRejectCallback } from "@/bot/handlers/admin/reject.handler";
+import { handlePending, handlePendingPage, handleReviewCallback } from "@/bot/handlers/admin/pending.handler";
 import {
-  handlePending,
-  handlePendingPage,
-  handleReviewCallback,
-} from '@/bot/handlers/admin/pending.handler';
-import { handleCatalogCommand, handleCatalogToggleCallback, handleCatalogAddCallback, handleCatalogEditCallback } from '@/bot/handlers/admin/catalog.handler';
-import { handleOrdersCommand } from '@/bot/handlers/admin/orders.handler';
-import { handleClaimOrderCallback } from '@/bot/handlers/admin/claim.handler';
-import { handleFulfilOrderCallback } from '@/bot/handlers/admin/fulfil.handler';
-import { handleRejectOrderCallback } from '@/bot/handlers/admin/order-reject.handler';
+	handleCatalogCommand,
+	handleCatalogToggleCallback,
+	handleCatalogAddCallback,
+	handleCatalogEditCallback,
+} from "@/bot/handlers/admin/catalog.handler";
+import { handleOrdersCommand } from "@/bot/handlers/admin/orders.handler";
+import { handleClaimOrderCallback } from "@/bot/handlers/admin/claim.handler";
+import { handleFulfilOrderCallback } from "@/bot/handlers/admin/fulfil.handler";
+import { handleRejectOrderCallback } from "@/bot/handlers/admin/order-reject.handler";
 import {
-  handleRateModeCommand,
-  handleRateModeSwitchCallback,
-  handleRateModeCancelCallback,
-} from '@/bot/handlers/admin/rate-mode.handler';
-import { SPREAD_CONVERSATION_ID } from '@/bot/handlers/admin/spread.conversation';
-import { ExchangeRateService } from '@/modules/exchange-rate/exchange-rate.service';
-import { ExchangeRateConfigService } from '@/modules/exchange-rate/exchange-rate-config.service';
-import type { WallexClient } from '@/modules/wallex/wallex.client.interface';
-import { BaselineRateSyncWorker } from '@/modules/exchange-rate/baseline-rate-sync.worker';
-import { TOKENS } from '@/core/di/tokens';
+	handleRateModeCommand,
+	handleRateModeSwitchCallback,
+	handleRateModeCancelCallback,
+} from "@/bot/handlers/admin/rate-mode.handler";
+import { SPREAD_CONVERSATION_ID } from "@/bot/handlers/admin/spread.conversation";
+import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
+import { BaselineRateSyncWorker } from "@/modules/exchange-rate/baseline-rate-sync.worker";
+import { TOKENS } from "@/core/di/tokens";
 
-import { TopUpService } from '@/modules/top-up/top-up.service';
-import { CatalogService } from '@/modules/catalog/catalog.service';
-import { OrderService } from '@/modules/order/order.service';
-import { OtcPurchaseService } from '@/modules/otc-purchase/otc-purchase.service';
-import { handleOtcRetryCallback } from '@/bot/handlers/admin/otc-retry.handler';
+import { TopUpService } from "@/modules/top-up/top-up.service";
+import { CatalogService } from "@/modules/catalog/catalog.service";
+import { OrderService } from "@/modules/order/order.service";
+import { OtcPurchaseService } from "@/modules/otc-purchase/otc-purchase.service";
+import { handleOtcRetryCallback } from "@/bot/handlers/admin/otc-retry.handler";
 
 export interface AdminComposerOptions {
-  container?: DependencyContainer | undefined;
-  exchangeRateService?: ExchangeRateService | undefined;
-  exchangeRateConfigService?: ExchangeRateConfigService | undefined;
-  topUpService?: TopUpService | undefined;
-  catalogService?: CatalogService | undefined;
-  orderService?: OrderService | undefined;
-  otcPurchaseService?: OtcPurchaseService | undefined;
-  wallexClient?: WallexClient | undefined;
-  syncWorker?: BaselineRateSyncWorker | undefined;
-  adminIds?: string | Set<bigint> | undefined;
+	container?: DependencyContainer | undefined;
+	exchangeRateService?: ExchangeRateService | undefined;
+	exchangeRateConfigService?: ExchangeRateConfigService | undefined;
+	topUpService?: TopUpService | undefined;
+	catalogService?: CatalogService | undefined;
+	orderService?: OrderService | undefined;
+	otcPurchaseService?: OtcPurchaseService | undefined;
+	wallexClient?: WallexClient | undefined;
+	syncWorker?: BaselineRateSyncWorker | undefined;
+	adminIds?: string | Set<bigint> | undefined;
 }
-
 
 /**
  * Creates a grammY Composer that mounts and guards all Admin routes:
@@ -70,260 +70,256 @@ export interface AdminComposerOptions {
  * - callbackQuery catalog:edit:<itemId>
  */
 export function createAdminComposer(options?: AdminComposerOptions): Composer<BotContext> {
-  const composer = new Composer<BotContext>();
-  const adminAuth = createAdminMiddleware<BotContext>({ adminIds: options?.adminIds });
-  const container = options?.container;
+	const composer = new Composer<BotContext>();
+	const adminAuth = createAdminMiddleware<BotContext>({
+		adminIds: options?.adminIds,
+	});
+	const container = options?.container;
 
-  const exchangeRateService =
-    options?.exchangeRateService ?? container?.resolve(ExchangeRateService);
-  const exchangeRateConfigService =
-    options?.exchangeRateConfigService ??
-    (container?.isRegistered(TOKENS.ExchangeRateConfigService) || container?.isRegistered(ExchangeRateConfigService)
-      ? container.resolve(ExchangeRateConfigService)
-      : undefined);
-  const topUpService =
-    options?.topUpService ?? container?.resolve(TopUpService);
-  const catalogService =
-    options?.catalogService ?? container?.resolve(CatalogService);
-  const orderService =
-    options?.orderService ?? container?.resolve(OrderService);
-  const otcPurchaseService =
-    options?.otcPurchaseService ??
-    (container?.isRegistered(TOKENS.OtcPurchaseService) || container?.isRegistered(OtcPurchaseService)
-      ? container.resolve(OtcPurchaseService)
-      : undefined);
+	const exchangeRateService = options?.exchangeRateService ?? container?.resolve(ExchangeRateService);
+	const exchangeRateConfigService =
+		options?.exchangeRateConfigService ??
+		(container?.isRegistered(TOKENS.ExchangeRateConfigService) || container?.isRegistered(ExchangeRateConfigService)
+			? container.resolve(ExchangeRateConfigService)
+			: undefined);
+	const topUpService = options?.topUpService ?? container?.resolve(TopUpService);
+	const catalogService = options?.catalogService ?? container?.resolve(CatalogService);
+	const orderService = options?.orderService ?? container?.resolve(OrderService);
+	const otcPurchaseService =
+		options?.otcPurchaseService ??
+		(container?.isRegistered(TOKENS.OtcPurchaseService) || container?.isRegistered(OtcPurchaseService)
+			? container.resolve(OtcPurchaseService)
+			: undefined);
 
+	let wallexClient = options?.wallexClient;
+	if (!wallexClient && container && container.isRegistered(TOKENS.WallexClient)) {
+		try {
+			wallexClient = container.resolve<WallexClient>(TOKENS.WallexClient);
+		} catch {}
+	}
 
-  let wallexClient = options?.wallexClient;
-  if (!wallexClient && container && container.isRegistered(TOKENS.WallexClient)) {
-    try {
-      wallexClient = container.resolve<WallexClient>(TOKENS.WallexClient);
-    } catch {}
-  }
+	let syncWorker = options?.syncWorker;
+	if (!syncWorker && container) {
+		if (container.isRegistered(TOKENS.BaselineRateSyncWorker)) {
+			try {
+				syncWorker = container.resolve<BaselineRateSyncWorker>(TOKENS.BaselineRateSyncWorker);
+			} catch {}
+		} else if (container.isRegistered(BaselineRateSyncWorker)) {
+			try {
+				syncWorker = container.resolve<BaselineRateSyncWorker>(BaselineRateSyncWorker);
+			} catch {}
+		}
+	}
 
-  let syncWorker = options?.syncWorker;
-  if (!syncWorker && container) {
-    if (container.isRegistered(TOKENS.BaselineRateSyncWorker)) {
-      try {
-        syncWorker = container.resolve<BaselineRateSyncWorker>(TOKENS.BaselineRateSyncWorker);
-      } catch {}
-    } else if (container.isRegistered(BaselineRateSyncWorker)) {
-      try {
-        syncWorker = container.resolve<BaselineRateSyncWorker>(BaselineRateSyncWorker);
-      } catch {}
-    }
-  }
+	if (!exchangeRateService || !topUpService || !catalogService) {
+		throw new Error("All required services or a container must be provided to createAdminComposer");
+	}
 
-  if (!exchangeRateService || !topUpService || !catalogService) {
-    throw new Error('All required services or a container must be provided to createAdminComposer');
-  }
+	// Admin Commands
+	composer.command("catalog", async (ctx) => {
+		await handleCatalogCommand(ctx, catalogService, {
+			adminIds: options?.adminIds,
+		});
+	});
 
-  // Admin Commands
-  composer.command('catalog', async (ctx) => {
-    await handleCatalogCommand(ctx, catalogService, { adminIds: options?.adminIds });
-  });
+	composer.command("orders", async (ctx) => {
+		if (orderService) {
+			await handleOrdersCommand(ctx, orderService, {
+				adminIds: options?.adminIds,
+			});
+		}
+	});
 
-  composer.command('orders', async (ctx) => {
-    if (orderService) {
-      await handleOrdersCommand(ctx, orderService, { adminIds: options?.adminIds });
-    }
-  });
+	composer.command("setrate", adminAuth, async (ctx) => {
+		await handleSetRate(ctx, exchangeRateService, exchangeRateConfigService);
+	});
 
-  composer.command('setrate', adminAuth, async (ctx) => {
-    await handleSetRate(ctx, exchangeRateService, exchangeRateConfigService);
-  });
+	composer.command("rate", adminAuth, async (ctx) => {
+		await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
+	});
 
-  composer.command('rate', adminAuth, async (ctx) => {
-    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
-  });
+	composer.command("ratemode", adminAuth, async (ctx) => {
+		if (exchangeRateConfigService) {
+			await handleRateModeCommand(ctx, {
+				exchangeRateConfigService,
+				exchangeRateService,
+				wallexClient,
+				syncWorker,
+			});
+		}
+	});
 
-  composer.command('ratemode', adminAuth, async (ctx) => {
-    if (exchangeRateConfigService) {
-      await handleRateModeCommand(ctx, {
-        exchangeRateConfigService,
-        exchangeRateService,
-        wallexClient,
-        syncWorker,
-      });
-    }
-  });
+	composer.command("spread", adminAuth, async (ctx) => {
+		await ctx.conversation.enter(SPREAD_CONVERSATION_ID);
+	});
 
-  composer.command('spread', adminAuth, async (ctx) => {
-    await ctx.conversation.enter(SPREAD_CONVERSATION_ID);
-  });
+	composer.command("setcard", adminAuth, async (ctx) => {
+		await handleSetCardCommand(ctx);
+	});
 
-  composer.command('setcard', adminAuth, async (ctx) => {
-    await handleSetCardCommand(ctx);
-  });
+	composer.command("pending", adminAuth, async (ctx) => {
+		await handlePending(ctx, topUpService);
+	});
 
-  composer.command('pending', adminAuth, async (ctx) => {
-    await handlePending(ctx, topUpService);
-  });
+	// Admin Menu Button Handlers (Hears)
+	composer.hears(["📦 کاتالوگ خدمات", "کاتالوگ خدمات", "مدیریت خدمات", "کاتالوگ"], async (ctx) => {
+		await handleCatalogCommand(ctx, catalogService, {
+			adminIds: options?.adminIds,
+		});
+	});
 
-  // Admin Menu Button Handlers (Hears)
-  composer.hears(
-    ['📦 کاتالوگ خدمات', 'کاتالوگ خدمات', 'مدیریت خدمات', 'کاتالوگ'],
-    async (ctx) => {
-      await handleCatalogCommand(ctx, catalogService, { adminIds: options?.adminIds });
-    }
-  );
+	composer.hears(
+		["📋 سفارش‌های فعال", "سفارش‌های فعال", "لیست سفارش‌ها", "سفارش‌ها", "صف سفارشات", "سفارشات"],
+		async (ctx) => {
+			if (orderService) {
+				await handleOrdersCommand(ctx, orderService, {
+					adminIds: options?.adminIds,
+				});
+			}
+		},
+	);
 
-  composer.hears(
-    ['📋 سفارش‌های فعال', 'سفارش‌های فعال', 'لیست سفارش‌ها', 'سفارش‌ها', 'صف سفارشات', 'سفارشات'],
-    async (ctx) => {
-      if (orderService) {
-        await handleOrdersCommand(ctx, orderService, { adminIds: options?.adminIds });
-      }
-    }
-  );
+	composer.hears(["⏳ درخواست‌های در انتظار", "درخواست‌های در انتظار", "صف انتظار"], adminAuth, async (ctx) => {
+		await handlePending(ctx, topUpService);
+	});
 
-  composer.hears(['⏳ درخواست‌های در انتظار', 'درخواست‌های در انتظار', 'صف انتظار'], adminAuth, async (ctx) => {
-    await handlePending(ctx, topUpService);
-  });
+	composer.hears(
+		[
+			"⚙️ تنظیمات نرخ ارز و حساب",
+			"تنظیمات نرخ ارز و حساب",
+			"تنظیمات نرخ ارز",
+			"تنظیمات مالی",
+			"تنظیمات حساب",
+			"مدیریت نرخ ارز",
+			"مدیریت حساب",
+		],
+		adminAuth,
+		async (ctx) => {
+			const { getAdminSettingsMenuKeyboard } = await import("@/bot/keyboards/menu.keyboards");
+			await ctx.reply("⚙️ *تنظیمات مالی، نرخ ارز و حساب بانکی*\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", {
+				parse_mode: "Markdown",
+				reply_markup: getAdminSettingsMenuKeyboard(),
+			});
+		},
+	);
 
-  composer.hears(
-    [
-      '⚙️ تنظیمات نرخ ارز و حساب',
-      'تنظیمات نرخ ارز و حساب',
-      'تنظیمات نرخ ارز',
-      'تنظیمات مالی',
-      'تنظیمات حساب',
-      'مدیریت نرخ ارز',
-      'مدیریت حساب',
-    ],
-    adminAuth,
-    async (ctx) => {
-      const { getAdminSettingsMenuKeyboard } = await import('@/bot/keyboards/menu.keyboards');
-      await ctx.reply(
-        '⚙️ *تنظیمات مالی، نرخ ارز و حساب بانکی*\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:',
-        {
-          parse_mode: 'Markdown',
-          reply_markup: getAdminSettingsMenuKeyboard(),
-        }
-      );
-    }
-  );
+	composer.hears(["💳 تنظیم کارت بانکی", "تنظیم کارت بانکی", "تنظیم کارت"], adminAuth, async (ctx) => {
+		await handleSetCardCommand(ctx);
+	});
 
-  composer.hears(['💳 تنظیم کارت بانکی', 'تنظیم کارت بانکی', 'تنظیم کارت'], adminAuth, async (ctx) => {
-    await handleSetCardCommand(ctx);
-  });
+	composer.hears(["💱 نرخ ارز فعلی", "نرخ ارز فعلی", "نرخ ارز"], adminAuth, async (ctx) => {
+		await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
+	});
 
-  composer.hears(['💱 نرخ ارز فعلی', 'نرخ ارز فعلی', 'نرخ ارز'], adminAuth, async (ctx) => {
-    await handleRate(ctx, exchangeRateService, exchangeRateConfigService);
-  });
+	composer.hears(["✏️ تنظیم نرخ ارز", "تنظیم نرخ ارز"], adminAuth, async (ctx) => {
+		await handleSetRate(ctx, exchangeRateService, exchangeRateConfigService);
+	});
 
-  composer.hears(['✏️ تنظیم نرخ ارز', 'تنظیم نرخ ارز'], adminAuth, async (ctx) => {
-    await handleSetRate(ctx, exchangeRateService, exchangeRateConfigService);
-  });
+	composer.hears(["🔄 حالت نرخ ارز", "حالت نرخ ارز"], adminAuth, async (ctx) => {
+		if (exchangeRateConfigService) {
+			await handleRateModeCommand(ctx, {
+				exchangeRateConfigService,
+				exchangeRateService,
+				wallexClient,
+				syncWorker,
+			});
+		}
+	});
 
-  composer.hears(['🔄 حالت نرخ ارز', 'حالت نرخ ارز'], adminAuth, async (ctx) => {
-    if (exchangeRateConfigService) {
-      await handleRateModeCommand(ctx, {
-        exchangeRateConfigService,
-        exchangeRateService,
-        wallexClient,
-        syncWorker,
-      });
-    }
-  });
+	composer.hears(["📊 تنظیم اسپرد", "تنظیم اسپرد"], adminAuth, async (ctx) => {
+		await ctx.conversation.enter(SPREAD_CONVERSATION_ID);
+	});
 
-  composer.hears(['📊 تنظیم اسپرد', 'تنظیم اسپرد'], adminAuth, async (ctx) => {
-    await ctx.conversation.enter(SPREAD_CONVERSATION_ID);
-  });
+	// Admin Callback Queries
+	composer.callbackQuery(/^ratemode:switch:(AUTO_SYNC|MANUAL)$/, adminAuth, async (ctx) => {
+		if (exchangeRateConfigService) {
+			await handleRateModeSwitchCallback(ctx, {
+				exchangeRateConfigService,
+				exchangeRateService,
+				wallexClient,
+				syncWorker,
+			});
+		}
+	});
 
-  // Admin Callback Queries
-  composer.callbackQuery(/^ratemode:switch:(AUTO_SYNC|MANUAL)$/, adminAuth, async (ctx) => {
-    if (exchangeRateConfigService) {
-      await handleRateModeSwitchCallback(ctx, {
-        exchangeRateConfigService,
-        exchangeRateService,
-        wallexClient,
-        syncWorker,
-      });
-    }
-  });
+	composer.callbackQuery("ratemode:cancel", adminAuth, async (ctx) => {
+		await handleRateModeCancelCallback(ctx);
+	});
 
-  composer.callbackQuery('ratemode:cancel', adminAuth, async (ctx) => {
-    await handleRateModeCancelCallback(ctx);
-  });
+	// Admin Callback Queries
+	composer.callbackQuery(/^pending_page:(\d+)$/, adminAuth, async (ctx) => {
+		await handlePendingPage(ctx, topUpService);
+	});
 
-  // Admin Callback Queries
-  composer.callbackQuery(/^pending_page:(\d+)$/, adminAuth, async (ctx) => {
-    await handlePendingPage(ctx, topUpService);
-  });
+	composer.callbackQuery(/^review:(.+)$/, adminAuth, async (ctx) => {
+		await handleReviewCallback(ctx, topUpService);
+	});
 
-  composer.callbackQuery(/^review:(.+)$/, adminAuth, async (ctx) => {
-    await handleReviewCallback(ctx, topUpService);
-  });
+	composer.callbackQuery(/^approve:(.+)$/, adminAuth, async (ctx) => {
+		await handleApproveCallback(ctx, {
+			topUpService,
+			otcPurchaseService,
+			adminIds: options?.adminIds,
+		});
+	});
 
-  composer.callbackQuery(/^approve:(.+)$/, adminAuth, async (ctx) => {
-    await handleApproveCallback(ctx, {
-      topUpService,
-      otcPurchaseService,
-      adminIds: options?.adminIds,
-    });
-  });
+	composer.callbackQuery(/^otc:retry:(.+)$/, adminAuth, async (ctx) => {
+		if (!otcPurchaseService) {
+			await ctx.answerCallbackQuery({
+				text: "⚠️ سرویس خرید OTC در دسترس نیست.",
+				show_alert: true,
+			});
+			return;
+		}
+		await handleOtcRetryCallback(ctx, { otcPurchaseService });
+	});
 
-  composer.callbackQuery(/^otc:retry:(.+)$/, adminAuth, async (ctx) => {
-    if (!otcPurchaseService) {
-      await ctx.answerCallbackQuery({
-        text: '⚠️ سرویس خرید OTC در دسترس نیست.',
-        show_alert: true,
-      });
-      return;
-    }
-    await handleOtcRetryCallback(ctx, { otcPurchaseService });
-  });
+	composer.callbackQuery(/^reject:(.+)$/, adminAuth, async (ctx) => {
+		await handleRejectCallback(ctx);
+	});
 
+	composer.callbackQuery(/^catalog:toggle:(.+)$/, adminAuth, async (ctx) => {
+		await handleCatalogToggleCallback(ctx, catalogService);
+	});
 
+	composer.callbackQuery("catalog:add", adminAuth, async (ctx) => {
+		await handleCatalogAddCallback(ctx);
+	});
 
-  composer.callbackQuery(/^reject:(.+)$/, adminAuth, async (ctx) => {
-    await handleRejectCallback(ctx);
-  });
+	composer.callbackQuery(/^catalog:edit:(.+)$/, adminAuth, async (ctx) => {
+		await handleCatalogEditCallback(ctx);
+	});
 
-  composer.callbackQuery(/^catalog:toggle:(.+)$/, adminAuth, async (ctx) => {
-    await handleCatalogToggleCallback(ctx, catalogService);
-  });
+	// Order Processing, Fulfilment & Rejection Handlers (Tickets 05, 06 & 07)
+	composer.callbackQuery(/^order:process:(.+)$/, adminAuth, async (ctx) => {
+		if (orderService) {
+			await handleClaimOrderCallback(ctx, {
+				orderService,
+			});
+		}
+	});
 
-  composer.callbackQuery('catalog:add', adminAuth, async (ctx) => {
-    await handleCatalogAddCallback(ctx);
-  });
+	composer.callbackQuery("order:noop", adminAuth, async (ctx) => {
+		try {
+			await ctx.answerCallbackQuery();
+		} catch {}
+	});
 
-  composer.callbackQuery(/^catalog:edit:(.+)$/, adminAuth, async (ctx) => {
-    await handleCatalogEditCallback(ctx);
-  });
+	composer.callbackQuery(/^order:fulfil:(.+)$/, adminAuth, async (ctx) => {
+		if (orderService) {
+			await handleFulfilOrderCallback(ctx, {
+				orderService,
+			});
+		}
+	});
 
-  // Order Processing, Fulfilment & Rejection Handlers (Tickets 05, 06 & 07)
-  composer.callbackQuery(/^order:process:(.+)$/, adminAuth, async (ctx) => {
-    if (orderService) {
-      await handleClaimOrderCallback(ctx, {
-        orderService,
-      });
-    }
-  });
+	composer.callbackQuery(/^order:reject:(.+)$/, adminAuth, async (ctx) => {
+		if (orderService) {
+			await handleRejectOrderCallback(ctx, {
+				orderService,
+			});
+		}
+	});
 
-  composer.callbackQuery('order:noop', adminAuth, async (ctx) => {
-    try {
-      await ctx.answerCallbackQuery();
-    } catch {}
-  });
-
-  composer.callbackQuery(/^order:fulfil:(.+)$/, adminAuth, async (ctx) => {
-    if (orderService) {
-      await handleFulfilOrderCallback(ctx, {
-        orderService,
-      });
-    }
-  });
-
-  composer.callbackQuery(/^order:reject:(.+)$/, adminAuth, async (ctx) => {
-    if (orderService) {
-      await handleRejectOrderCallback(ctx, {
-        orderService,
-      });
-    }
-  });
-
-  return composer;
+	return composer;
 }
-

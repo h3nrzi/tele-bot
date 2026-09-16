@@ -36,4 +36,3 @@
 - [x] Attempting to reject an already-terminal Order returns an appropriate error.
 - [x] All rejection service unit tests pass.
 - [x] TypeScript compiles without errors.
-

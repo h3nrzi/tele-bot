@@ -8,6 +8,7 @@ Alternatives considered:
 - **Optimistic locking with retry**: Read balance, attempt update with `WHERE balance = $snapshot`, retry on conflict. No lock contention, but retry logic in async TypeScript is error-prone and adds latency on hot wallets.
 
 Pessimistic locking was chosen because:
+
 1. The wallet row is already the natural serialization point for all balance mutations.
 2. Balance reads happen on every top-up initiation and order flow — the scan cost of on-the-fly computation compounds quickly.
 3. `SELECT FOR UPDATE` is a single-line addition to the query and eliminates the negative-balance race condition class entirely.

@@ -1,4 +1,4 @@
 export interface SetRateInput {
-  adminTelegramId: bigint | number;
-  irrPerUsd: bigint | number | string;
+	adminTelegramId: bigint | number;
+	irrPerUsd: bigint | number | string;
 }

@@ -1,88 +1,83 @@
-import type { Context } from 'grammy';
-import type { OtcPurchaseService } from '@/modules/otc-purchase/otc-purchase.service';
+import type { Context } from "grammy";
+import type { OtcPurchaseService } from "@/modules/otc-purchase/otc-purchase.service";
 import {
-  DuplicateActiveOtcPurchaseError,
-  InvalidOtcPurchaseStateError,
-  OtcPurchaseNotFoundError,
-} from '@/modules/otc-purchase/otc-purchase.errors';
+	DuplicateActiveOtcPurchaseError,
+	InvalidOtcPurchaseStateError,
+	OtcPurchaseNotFoundError,
+} from "@/modules/otc-purchase/otc-purchase.errors";
 
 export interface OtcRetryHandlerDependencies {
-  otcPurchaseService: OtcPurchaseService;
+	otcPurchaseService: OtcPurchaseService;
 }
 
 /**
  * Handles inline [🔁 تلاش مجدد] (otc:retry:<purchaseId>) callback queries from Admins.
  */
-export async function handleOtcRetryCallback(
-  ctx: Context,
-  deps: OtcRetryHandlerDependencies
-): Promise<void> {
-  const sender = ctx.from;
-  if (!sender) {
-    return;
-  }
+export async function handleOtcRetryCallback(ctx: Context, deps: OtcRetryHandlerDependencies): Promise<void> {
+	const sender = ctx.from;
+	if (!sender) {
+		return;
+	}
 
-  const callbackData = ctx.callbackQuery?.data;
-  if (!callbackData) {
-    return;
-  }
+	const callbackData = ctx.callbackQuery?.data;
+	if (!callbackData) {
+		return;
+	}
 
-  const match = callbackData.match(/^otc:retry:(.+)$/);
-  if (!match || !match[1]) {
-    await ctx.answerCallbackQuery({
-      text: '❌ شناسه درخواست نامعتبر است.',
-      show_alert: true,
-    });
-    return;
-  }
+	const match = callbackData.match(/^otc:retry:(.+)$/);
+	if (!match || !match[1]) {
+		await ctx.answerCallbackQuery({
+			text: "❌ شناسه درخواست نامعتبر است.",
+			show_alert: true,
+		});
+		return;
+	}
 
-  const purchaseId = match[1];
+	const purchaseId = match[1];
 
-  try {
-    const result = await deps.otcPurchaseService.retry(purchaseId);
+	try {
+		const result = await deps.otcPurchaseService.retry(purchaseId);
 
-    if (result.isFailed()) {
-      await ctx.answerCallbackQuery({
-        text: `❌ تلاش مجدد ناموفق بود: ${result.errorMessage ?? 'خطای صرافی والکس'}`,
-        show_alert: true,
-      });
-      return;
-    }
+		if (result.isFailed()) {
+			await ctx.answerCallbackQuery({
+				text: `❌ تلاش مجدد ناموفق بود: ${result.errorMessage ?? "خطای صرافی والکس"}`,
+				show_alert: true,
+			});
+			return;
+		}
 
-    await ctx.answerCallbackQuery({
-      text: '✅ خرید با موفقیت در والکس انجام شد.',
-    });
-  } catch (err: any) {
+		await ctx.answerCallbackQuery({
+			text: "✅ خرید با موفقیت در والکس انجام شد.",
+		});
+	} catch (err: any) {
+		if (err instanceof DuplicateActiveOtcPurchaseError) {
+			await ctx.answerCallbackQuery({
+				text: "⚠️ این خرید در حال حاضر در حال انجام است یا قبلاً تکمیل شده است.",
+				show_alert: true,
+			});
+			return;
+		}
 
+		if (err instanceof InvalidOtcPurchaseStateError) {
+			await ctx.answerCallbackQuery({
+				text: "✅ این خرید قبلاً با موفقیت انجام شده است.",
+				show_alert: true,
+			});
+			return;
+		}
 
-    if (err instanceof DuplicateActiveOtcPurchaseError) {
-      await ctx.answerCallbackQuery({
-        text: '⚠️ این خرید در حال حاضر در حال انجام است یا قبلاً تکمیل شده است.',
-        show_alert: true,
-      });
-      return;
-    }
+		if (err instanceof OtcPurchaseNotFoundError) {
+			await ctx.answerCallbackQuery({
+				text: "❌ رکورد خرید یافت نشد.",
+				show_alert: true,
+			});
+			return;
+		}
 
-    if (err instanceof InvalidOtcPurchaseStateError) {
-      await ctx.answerCallbackQuery({
-        text: '✅ این خرید قبلاً با موفقیت انجام شده است.',
-        show_alert: true,
-      });
-      return;
-    }
-
-    if (err instanceof OtcPurchaseNotFoundError) {
-      await ctx.answerCallbackQuery({
-        text: '❌ رکورد خرید یافت نشد.',
-        show_alert: true,
-      });
-      return;
-    }
-
-    console.error('Unexpected error in handleOtcRetryCallback:', err);
-    await ctx.answerCallbackQuery({
-      text: '❌ خطایی در پردازش تلاش مجدد رخ داد.',
-      show_alert: true,
-    });
-  }
+		console.error("Unexpected error in handleOtcRetryCallback:", err);
+		await ctx.answerCallbackQuery({
+			text: "❌ خطایی در پردازش تلاش مجدد رخ داد.",
+			show_alert: true,
+		});
+	}
 }

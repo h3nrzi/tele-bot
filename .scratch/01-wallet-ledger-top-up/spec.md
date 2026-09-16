@@ -227,12 +227,12 @@ Admin identity is determined by a grammY middleware layer that checks the incomi
 
 ### Admin Command Surface (RFP #1)
 
-| Command | Description |
-|---|---|
+| Command                 | Description                                                         |
+| ----------------------- | ------------------------------------------------------------------- |
 | `/setrate <irr_amount>` | Appends a new Exchange Rate row; the new rate is active immediately |
-| `/rate` | Displays the current active Exchange Rate |
-| `/setcard` | Opens a grammY conversation to configure the active Bank Account |
-| `/pending` | Lists all `PENDING` Top-Up Requests with inline Review buttons |
+| `/rate`                 | Displays the current active Exchange Rate                           |
+| `/setcard`              | Opens a grammY conversation to configure the active Bank Account    |
+| `/pending`              | Lists all `PENDING` Top-Up Requests with inline Review buttons      |
 
 ### Amount Validation
 
@@ -252,18 +252,18 @@ All tests call application service functions directly against a **real PostgreSQ
 
 ### Modules Covered
 
-| Module | Key scenarios tested |
-|---|---|
-| Registration service | New Buyer: user + wallet created atomically; returning Buyer: existing record returned with balance; concurrent `/start` from same Telegram ID is idempotent |
-| Top-Up initiation service | Happy path; amount below minimum rejected; amount above maximum rejected; no active Exchange Rate returns correct error; second initiation while `INITIATED` request active is rejected by partial unique index |
-| Receipt submission service | Happy path `INITIATED → PENDING`; expired request (`expires_at` in past) transitions to `EXPIRED` and returns error; wrong status (already `PENDING`) is rejected |
-| Cancellation service | `INITIATED` request cancelled successfully; `PENDING` request cancellation rejected |
-| Admin approval service | Happy path: ledger rows written, balance updated, request status `APPROVED`; multi-Admin race: second approval on same request returns "already processed" error and writes no ledger rows; balance never goes negative |
-| Admin rejection service | Happy path: rejection reason stored, status `REJECTED`; race: second action on already-processed request rejected |
-| Exchange rate service | New rate appended; current active rate is the most recently created row |
-| Bank account service | New account activates; previous active account deactivated; only one active account at any time |
-| Buyer status service | Returns most recent Top-Up Request regardless of status |
-| Admin queue service | Returns only `PENDING` requests |
+| Module                     | Key scenarios tested                                                                                                                                                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registration service       | New Buyer: user + wallet created atomically; returning Buyer: existing record returned with balance; concurrent `/start` from same Telegram ID is idempotent                                                            |
+| Top-Up initiation service  | Happy path; amount below minimum rejected; amount above maximum rejected; no active Exchange Rate returns correct error; second initiation while `INITIATED` request active is rejected by partial unique index         |
+| Receipt submission service | Happy path `INITIATED → PENDING`; expired request (`expires_at` in past) transitions to `EXPIRED` and returns error; wrong status (already `PENDING`) is rejected                                                       |
+| Cancellation service       | `INITIATED` request cancelled successfully; `PENDING` request cancellation rejected                                                                                                                                     |
+| Admin approval service     | Happy path: ledger rows written, balance updated, request status `APPROVED`; multi-Admin race: second approval on same request returns "already processed" error and writes no ledger rows; balance never goes negative |
+| Admin rejection service    | Happy path: rejection reason stored, status `REJECTED`; race: second action on already-processed request rejected                                                                                                       |
+| Exchange rate service      | New rate appended; current active rate is the most recently created row                                                                                                                                                 |
+| Bank account service       | New account activates; previous active account deactivated; only one active account at any time                                                                                                                         |
+| Buyer status service       | Returns most recent Top-Up Request regardless of status                                                                                                                                                                 |
+| Admin queue service        | Returns only `PENDING` requests                                                                                                                                                                                         |
 
 ### Prior Art
 

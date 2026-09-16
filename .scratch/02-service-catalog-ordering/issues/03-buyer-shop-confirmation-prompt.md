@@ -21,4 +21,3 @@
 - [x] `[✗ Cancel]` dismisses the prompt without any side effects.
 - [x] `/shop` with no active items shows a graceful empty-state message.
 - [x] TypeScript compiles without errors.
-

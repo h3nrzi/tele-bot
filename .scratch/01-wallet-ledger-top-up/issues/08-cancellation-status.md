@@ -14,4 +14,3 @@
 - [x] `/status` and `/cancel` are silently ignored for unregistered senders (no `users` row).
 - [x] Cancellation service tests cover: `INITIATED` request cancelled successfully (status → `CANCELLED`, row persisted); `PENDING` request returns "cannot cancel" error (row unchanged); no active request returns appropriate error; cancellation does not affect `available_balance`.
 - [x] Buyer status service tests cover: returns most recent request for a Buyer with one request; returns most recent request for a Buyer with multiple historical requests; returns `null` for a Buyer with no requests.
-

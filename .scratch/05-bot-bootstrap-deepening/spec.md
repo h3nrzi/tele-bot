@@ -27,9 +27,14 @@ Extract a `registerConversations(bot, container)` internal function. Conversatio
 - **`registerConversations(bot, container)` function** — a module-private function defined in `bot.ts` (or extracted to a co-located `conversations.ts` file in `src/bot/`). It takes the `Bot<BotContext>` instance and the resolved `DependencyContainer`, and registers all conversations. It has no return value.
 
 - **Descriptor array shape** — each entry is a plain object:
+
   ```ts
-  { id: string; factory: (container: DependencyContainer) => ConversationFn }
+  {
+  	id: string;
+  	factory: (container: DependencyContainer) => ConversationFn;
+  }
   ```
+
   The `factory` function receives the resolved container and returns the conversation handler function. Services needed by a conversation are resolved inside the factory from the container, not passed as top-level imports. This eliminates the need for `bot.ts` to import service classes for wiring purposes.
 
 - **Conversation count** — all nine existing conversations are migrated to the descriptor array:

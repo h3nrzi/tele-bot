@@ -31,20 +31,20 @@ Before:
 
 ```ts
 type Request = {
-  body: { id: string };
-  headers: Record<string, string>;
-  cookies: Record<string, string>;
-  // ...20 more properties
+	body: { id: string };
+	headers: Record<string, string>;
+	cookies: Record<string, string>;
+	// ...20 more properties
 };
 
 it("gets user by id", () => {
-  // Only care about body.id but must fake entire Request
-  getUser({
-    body: { id: "123" },
-    headers: {},
-    cookies: {},
-    // ...fake all 20 properties
-  });
+	// Only care about body.id but must fake entire Request
+	getUser({
+		body: { id: "123" },
+		headers: {},
+		cookies: {},
+		// ...fake all 20 properties
+	});
 });
 ```
 
@@ -54,11 +54,11 @@ After:
 import { fromPartial } from "@total-typescript/shoehorn";
 
 it("gets user by id", () => {
-  getUser(
-    fromPartial({
-      body: { id: "123" },
-    }),
-  );
+	getUser(
+		fromPartial({
+			body: { id: "123" },
+		}),
+	);
 });
 ```
 

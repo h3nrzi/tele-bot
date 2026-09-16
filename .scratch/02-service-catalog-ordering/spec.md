@@ -162,7 +162,7 @@ One row per Admin per Order. Written atomically with the Order placement. Read b
 | New Column | Type | Notes |
 |---|---|---|
 | `order_id` | `UUID` nullable FK → `orders` | Source event for order spend and refund entries |
-| `reversed_by_ledger_transaction_id` | `UUID` nullable FK → `ledger_transactions` | Self-referential; set on the *original* debit transaction when a refund is written |
+| `reversed_by_ledger_transaction_id` | `UUID` nullable FK → `ledger_transactions` | Self-referential; set on the _original_ debit transaction when a refund is written |
 
 `CHECK ((top_up_request_id IS NULL) != (order_id IS NULL))` — exactly one source event FK must be non-null per Ledger Transaction.
 
@@ -209,7 +209,7 @@ Every order placement executes the following steps inside a single PostgreSQL tr
 
 Triggered by the claiming Admin tapping `[📦 Fulfil Order]`. Resets any previous dangling grammY conversation state before starting.
 
-1. **Step 1 — Input**: Bot sends: "📦 *Deliver Order #XYZ*\n\nPlease type the delivery content to send to @buyer." Admin types the credentials/content.
+1. **Step 1 — Input**: Bot sends: "📦 _Deliver Order #XYZ_\n\nPlease type the delivery content to send to @buyer." Admin types the credentials/content.
 2. **Step 2 — Preview & Confirm**: Bot echoes the typed content in a formatted message and sends: "Send this to @buyer? [✓ Send] [✗ Re-enter]". Tapping Re-enter loops to step 1.
 3. **Step 3 — Commit**: On Confirm, the fulfilment service runs: asserts caller = `claimed_by_admin_telegram_id`, asserts `status = 'PROCESSING'`, writes `delivery_content`, sets `fulfilled_at`, transitions to `FULFILLED`, commits, then forwards the content to the Buyer and edits Admin notifications.
 
@@ -229,13 +229,13 @@ Triggered by tapping `[✗ Reject]` from either the order notification (PLACED) 
 
 ### Preset Rejection Categories
 
-| Display Label | Stored Value |
-|---|---|
-| Out of stock / temporarily unavailable | `OUT_OF_STOCK` |
-| Cannot verify order legitimacy | `CANNOT_VERIFY` |
-| Technical issue — unable to fulfil | `TECHNICAL_ISSUE` |
-| Policy violation | `POLICY_VIOLATION` |
-| Other | `OTHER` |
+| Display Label                          | Stored Value       |
+| -------------------------------------- | ------------------ |
+| Out of stock / temporarily unavailable | `OUT_OF_STOCK`     |
+| Cannot verify order legitimacy         | `CANNOT_VERIFY`    |
+| Technical issue — unable to fulfil     | `TECHNICAL_ISSUE`  |
+| Policy violation                       | `POLICY_VIOLATION` |
+| Other                                  | `OTHER`            |
 
 When `OTHER` is selected, `rejection_note` is mandatory.
 
@@ -245,19 +245,19 @@ Identical to RFP #1 (ADR-0004): all USD arithmetic uses `decimal.js`. Drizzle re
 
 ### Admin Command Surface (RFP #2)
 
-| Command / Action | Description |
-|---|---|
-| `/catalog` | Opens the interactive SKU catalog dashboard |
-| `/orders` | Lists all `PLACED` and `PROCESSING` orders with inline action buttons |
-| `[▶ Start Processing]` on notification | Claims the order; transitions to `PROCESSING`; edits all Admin notifications |
-| `[📦 Fulfil Order]` on claimed notification | Opens the 3-step fulfilment conversation (claiming Admin only) |
-| `[✗ Reject]` on notification or `/orders` entry | Opens the rejection inline keyboard flow |
+| Command / Action                                | Description                                                                  |
+| ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| `/catalog`                                      | Opens the interactive SKU catalog dashboard                                  |
+| `/orders`                                       | Lists all `PLACED` and `PROCESSING` orders with inline action buttons        |
+| `[▶ Start Processing]` on notification          | Claims the order; transitions to `PROCESSING`; edits all Admin notifications |
+| `[📦 Fulfil Order]` on claimed notification     | Opens the 3-step fulfilment conversation (claiming Admin only)               |
+| `[✗ Reject]` on notification or `/orders` entry | Opens the rejection inline keyboard flow                                     |
 
 ### Buyer Command Surface (RFP #2)
 
-| Command | Description |
-|---|---|
-| `/shop` | Displays active catalog items as an inline keyboard |
+| Command    | Description                                                    |
+| ---------- | -------------------------------------------------------------- |
+| `/shop`    | Displays active catalog items as an inline keyboard            |
 | `/myorder` | Shows most recent Order status and a Cancel button if `PLACED` |
 
 ---
@@ -274,16 +274,16 @@ All tests call application service functions directly against a real PostgreSQL 
 
 ### Modules Covered
 
-| Module | Key scenarios tested |
-|---|---|
-| Catalog service | Create SKU; list active SKUs only in Buyer view; edit name/description/price; deactivate hides from Buyer view; reactivate restores; inactive SKUs remain in Admin catalog view |
-| Order placement service | Happy path: wallet debited, ledger rows written, order at `PLACED`; insufficient balance rejected pre-flight and at transaction level; snapshot price matches SKU price at placement time; concurrent placements do not produce negative balance |
-| Order claim service | Happy path: status → `PROCESSING`, claimed fields set; second Admin claim on same order returns "already claimed" error; claim on non-`PLACED` order rejected |
-| Order fulfilment service | Happy path: delivery_content written, status → `FULFILLED`; non-claiming Admin attempt rejected; fulfilment on non-`PROCESSING` order rejected |
-| Order rejection service | Happy path from `PLACED`: refund ledger written, balance restored, status → `REJECTED`; happy path from `PROCESSING`: same; second rejection on already-terminal order rejected; `reversed_by_ledger_transaction_id` correctly links refund to original debit |
-| Order cancellation service | Happy path from `PLACED`: refund written, balance restored, status → `CANCELLED`; cancel from `PROCESSING` rejected; non-owner Buyer cancel rejected |
-| Admin order queue service | Returns only `PLACED` and `PROCESSING` orders; terminal orders excluded |
-| Buyer order status service | Returns most recent order regardless of status |
+| Module                     | Key scenarios tested                                                                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Catalog service            | Create SKU; list active SKUs only in Buyer view; edit name/description/price; deactivate hides from Buyer view; reactivate restores; inactive SKUs remain in Admin catalog view                                                                               |
+| Order placement service    | Happy path: wallet debited, ledger rows written, order at `PLACED`; insufficient balance rejected pre-flight and at transaction level; snapshot price matches SKU price at placement time; concurrent placements do not produce negative balance              |
+| Order claim service        | Happy path: status → `PROCESSING`, claimed fields set; second Admin claim on same order returns "already claimed" error; claim on non-`PLACED` order rejected                                                                                                 |
+| Order fulfilment service   | Happy path: delivery_content written, status → `FULFILLED`; non-claiming Admin attempt rejected; fulfilment on non-`PROCESSING` order rejected                                                                                                                |
+| Order rejection service    | Happy path from `PLACED`: refund ledger written, balance restored, status → `REJECTED`; happy path from `PROCESSING`: same; second rejection on already-terminal order rejected; `reversed_by_ledger_transaction_id` correctly links refund to original debit |
+| Order cancellation service | Happy path from `PLACED`: refund written, balance restored, status → `CANCELLED`; cancel from `PROCESSING` rejected; non-owner Buyer cancel rejected                                                                                                          |
+| Admin order queue service  | Returns only `PLACED` and `PROCESSING` orders; terminal orders excluded                                                                                                                                                                                       |
+| Buyer order status service | Returns most recent order regardless of status                                                                                                                                                                                                                |
 
 ---
 

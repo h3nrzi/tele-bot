@@ -1,1 +1,1 @@
-export * from '@/bot/middleware/admin.middleware';
+export * from "@/bot/middleware/admin.middleware";

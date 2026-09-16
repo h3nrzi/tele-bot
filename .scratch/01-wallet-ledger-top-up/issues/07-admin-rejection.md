@@ -14,4 +14,3 @@
 - [x] The rejection conversation can be cancelled by the Admin at any step (e.g., via a "Cancel" button or by sending `/cancel` inside the conversation); cancellation leaves the request in `PENDING`.
 - [x] Rejection service tests cover: preset reason stored correctly and status → `REJECTED`; custom reason stored correctly; combined preset + custom note stored correctly; multi-Admin race — second rejection (or approval vs rejection) on an already-processed request returns "already processed" and does not modify the row a second time; `processed_by_admin_telegram_id` and `processed_at` are set on the persisted row.
 - [x] No test calls the Telegram notification API; notification dispatch is injected as a dependency and stubbed in tests.
-

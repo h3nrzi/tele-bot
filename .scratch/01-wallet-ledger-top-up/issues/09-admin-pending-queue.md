@@ -12,4 +12,3 @@
 - [x] `/pending` is silently ignored when sent by a non-Admin.
 - [x] The list is paginated if more than 10 requests are pending: inline **Next →** and **← Prev** navigation buttons are shown when the queue exceeds one page.
 - [x] Admin queue service tests cover: empty queue returns an empty array; single `PENDING` request returned; multiple `PENDING` requests returned in ascending creation order; requests in `INITIATED`, `APPROVED`, `REJECTED`, `EXPIRED`, or `CANCELLED` status are not included.
-

@@ -24,4 +24,3 @@
 - [x] An empty queue shows a graceful "no active orders" message.
 - [x] All admin order queue service unit tests pass.
 - [x] TypeScript compiles without errors.
-

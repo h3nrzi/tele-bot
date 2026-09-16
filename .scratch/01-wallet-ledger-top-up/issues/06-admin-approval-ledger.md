@@ -14,4 +14,3 @@
 - [x] Buyer push notification: sent after the transaction commits. Message includes the credited USD amount and the Buyer's new Available Balance. Failure to send does not roll back the transaction.
 - [x] Approval service tests cover: happy path — two `ledger_entries` rows written, `available_balance` increased by exactly `usd_amount`, request status is `APPROVED`, `processed_by_admin_telegram_id` and `processed_at` are set; multi-Admin race — two concurrent calls for the same request result in exactly one `ledger_transactions` row and two `ledger_entries` rows, the second call returns "already processed"; ledger self-balance invariant — for every `ledger_transactions` row, the sum of CREDIT `usd_amount` equals the sum of DEBIT `usd_amount`.
 - [x] No test calls the Telegram notification API; notification dispatch is injected as a dependency and stubbed in tests.
-

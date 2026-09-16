@@ -1,1 +1,1 @@
-export * from '@/bot/commands/bot-commands';
+export * from "@/bot/commands/bot-commands";
