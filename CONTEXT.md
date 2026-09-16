@@ -80,6 +80,16 @@ _Avoid_: Credentials, Payload, Fulfilment data
 The Telegram push message sent to each Admin when an Order is placed. Its `chat_id` and `message_id` are stored in `order_admin_notifications` so that claim, cancellation, rejection, and fulfilment services can edit the message's inline buttons to reflect the current Order state.
 _Avoid_: Alert, Broadcast, Push
 
+### Account Hub
+
+**Account Hub**:
+The buyer-facing feature that aggregates a Buyer's identity data, Available Balance, order metrics, and transaction history into a centralised view. Accessed via the `👤 حساب کاربری` main-menu button or the `/account` command.
+_Avoid_: Profile, Dashboard, My Account
+
+**Profile Card**:
+The landing message of the Account Hub. Displays read-only Buyer identity (Telegram ID, username, registration date), Available Balance, an order status breakdown, and a Top-Up Request alert banner when an active Top-Up Request (`INITIATED` or `PENDING`) exists. Implemented as a single Telegram message with inline buttons that drill into Order History and Transaction History without replacing the main Reply Keyboard.
+_Avoid_: Account Card, Summary Card, Profile Page
+
 ### Wallex Integration
 
 **Rate Mode**:
