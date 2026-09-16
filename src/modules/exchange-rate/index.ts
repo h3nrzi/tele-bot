@@ -13,4 +13,5 @@ export * from "@/modules/exchange-rate/exchange-rate-config.service";
 export * from "@/modules/exchange-rate/baseline-rate-sync.worker";
 export * from "@/modules/exchange-rate/rate-lock.service.interface";
 export * from "@/modules/exchange-rate/manual-rate-lock.service";
+export * from "@/modules/exchange-rate/auto-sync-rate-lock.service";
 export * from "@/modules/exchange-rate/exchange-rate.module";

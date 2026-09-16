@@ -6,6 +6,7 @@ import { DrizzleExchangeRateConfigRepository } from "@/modules/exchange-rate/exc
 import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
 import { BaselineRateSyncWorker } from "@/modules/exchange-rate/baseline-rate-sync.worker";
 import { ManualRateLock } from "@/modules/exchange-rate/manual-rate-lock.service";
+import { AutoSyncRateLock } from "@/modules/exchange-rate/auto-sync-rate-lock.service";
 
 export function registerExchangeRateModule(container: DependencyContainer): void {
 	container.register(TOKENS.ExchangeRateRepository, {
@@ -29,5 +30,11 @@ export function registerExchangeRateModule(container: DependencyContainer): void
 	});
 	container.register(ManualRateLock, {
 		useToken: TOKENS.ManualRateLock,
+	});
+	container.register(TOKENS.AutoSyncRateLock, {
+		useClass: AutoSyncRateLock,
+	});
+	container.register(AutoSyncRateLock, {
+		useToken: TOKENS.AutoSyncRateLock,
 	});
 }

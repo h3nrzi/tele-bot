@@ -4,15 +4,15 @@
 
 **Blocked by:** 01 — Define `IRateLockService`, `LockedRate`, and DI tokens
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `AutoSyncRateLock` class is created in `src/modules/exchange-rate/` and implements `IRateLockService`
-- [ ] Dependencies: `WallexClient`, `IExchangeRateRepository`, `spreadPercent: string`
-- [ ] Happy path: Wallex returns a valid quote → applies spread → returns `LockedRate` with `rateSource: 'OTC_QUOTE'`, `exchangeRateId: null`, `exchangeRate: null`
-- [ ] Fallback path: Wallex throws → reads `findLatest()` → returns `LockedRate` with `rateSource: 'BASELINE_FALLBACK'`, correct entity fields
-- [ ] No-rate path: Wallex throws and `findLatest()` returns null → throws `NoExchangeRateError`
-- [ ] `AutoSyncRateLock` is registered in the Exchange Rate module's DI setup under `TOKENS.AutoSyncRateLock`
-- [ ] Unit test: OTC_QUOTE happy path — spread applied, correct `LockedRate` returned
-- [ ] Unit test: BASELINE_FALLBACK — Wallex throws, baseline rate returned
-- [ ] Unit test: both sources fail — `NoExchangeRateError` thrown
-- [ ] All existing tests continue to pass
+- [x] `AutoSyncRateLock` class is created in `src/modules/exchange-rate/` and implements `IRateLockService`
+- [x] Dependencies: `WallexClient`, `IExchangeRateRepository`, `spreadPercent: string`
+- [x] Happy path: Wallex returns a valid quote → applies spread → returns `LockedRate` with `rateSource: 'OTC_QUOTE'`, `exchangeRateId: null`, `exchangeRate: null`
+- [x] Fallback path: Wallex throws → reads `findLatest()` → returns `LockedRate` with `rateSource: 'BASELINE_FALLBACK'`, correct entity fields
+- [x] No-rate path: Wallex throws and `findLatest()` returns null → throws `NoExchangeRateError`
+- [x] `AutoSyncRateLock` is registered in the Exchange Rate module's DI setup under `TOKENS.AutoSyncRateLock`
+- [x] Unit test: OTC_QUOTE happy path — spread applied, correct `LockedRate` returned
+- [x] Unit test: BASELINE_FALLBACK — Wallex throws, baseline rate returned
+- [x] Unit test: both sources fail — `NoExchangeRateError` thrown
+- [x] All existing tests continue to pass
