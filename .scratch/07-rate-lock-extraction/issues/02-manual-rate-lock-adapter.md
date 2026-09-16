@@ -4,12 +4,12 @@
 
 **Blocked by:** 01 — Define `IRateLockService`, `LockedRate`, and DI tokens
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] `ManualRateLock` class is created in `src/modules/exchange-rate/` and implements `IRateLockService`
-- [ ] `resolve()` calls `exchangeRateRepo.findLatest()`; throws `NoExchangeRateError` when the result is null
-- [ ] `resolve()` returns a `LockedRate` with `rateSource: 'MANUAL'`, correct `lockedIrrPerUsd`, `exchangeRateId`, and `exchangeRate`
-- [ ] `ManualRateLock` is registered in the Exchange Rate module's DI setup under `TOKENS.ManualRateLock`
-- [ ] Unit test: happy path — returns correct `LockedRate` with `rateSource: 'MANUAL'`
-- [ ] Unit test: no rate exists — throws `NoExchangeRateError`
-- [ ] All existing tests continue to pass
+- [x] `ManualRateLock` class is created in `src/modules/exchange-rate/` and implements `IRateLockService`
+- [x] `resolve()` calls `exchangeRateRepo.findLatest()`; throws `NoExchangeRateError` when the result is null
+- [x] `resolve()` returns a `LockedRate` with `rateSource: 'MANUAL'`, correct `lockedIrrPerUsd`, `exchangeRateId`, and `exchangeRate`
+- [x] `ManualRateLock` is registered in the Exchange Rate module's DI setup under `TOKENS.ManualRateLock`
+- [x] Unit test: happy path — returns correct `LockedRate` with `rateSource: 'MANUAL'`
+- [x] Unit test: no rate exists — throws `NoExchangeRateError`
+- [x] All existing tests continue to pass
