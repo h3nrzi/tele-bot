@@ -1,7 +1,7 @@
 import type { Buyer } from "@/modules/buyer/buyer.entity";
 import type { CatalogItem } from "@/modules/catalog/catalog.entity";
-import type { LedgerEntry } from "@/modules/ledger/ledger-entry.entity";
-import type { LedgerTransaction } from "@/modules/ledger/ledger-transaction.entity";
+import type { LedgerEntry } from "@/modules/ledger/entities/ledger-entry.entity";
+import type { LedgerTransaction } from "@/modules/ledger/entities/ledger-transaction.entity";
 import type { Order, OrderAdminNotification, OrderStatus } from "@/modules/order/order.entity";
 import type { Wallet } from "@/modules/wallet/wallet.entity";
 

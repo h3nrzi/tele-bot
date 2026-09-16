@@ -2,8 +2,8 @@ import { injectable, inject } from "tsyringe";
 import type Decimal from "decimal.js";
 import type { UsdAmount } from "@/core/shared/money.vo";
 import { TOKENS } from "@/core/di/tokens";
-import type { IExchangeRateRepository } from "@/modules/exchange-rate/exchange-rate.repository.interface";
-import type { IRateLockService, LockedRate } from "@/modules/exchange-rate/rate-lock.service.interface";
+import type { IExchangeRateRepository } from "@/modules/exchange-rate/interfaces/exchange-rate.repository.interface";
+import type { IRateLockService, LockedRate } from "@/modules/exchange-rate/interfaces/rate-lock.service.interface";
 import { NoExchangeRateError } from "@/modules/exchange-rate/exchange-rate.errors";
 import type { DbExecutor } from "@/core/database/types";
 

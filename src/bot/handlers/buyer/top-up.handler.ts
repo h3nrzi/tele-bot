@@ -1,7 +1,7 @@
 import type { BotContext } from "@/bot/context";
 import { resolveAdminIds } from "@/bot/middleware/admin.middleware";
-import type { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import type { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import type { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import type { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import type { BankAccountService } from "@/modules/bank-account/bank-account.service";
 import type { BuyerService } from "@/modules/buyer/buyer.service";
 import type { TopUpService } from "@/modules/top-up/top-up.service";

@@ -2,7 +2,7 @@ import type { Context } from "grammy";
 import { InlineKeyboard } from "grammy";
 import Decimal from "decimal.js";
 import type { BotConversation } from "@/bot/context";
-import type { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import type { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { isCancelCommand } from "@/core/shared/telegram.utils";
 import { formatIrr } from "@/core/shared/currency.utils";
 

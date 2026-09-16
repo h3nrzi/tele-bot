@@ -1,5 +1,5 @@
 import { InlineKeyboard } from "grammy";
-import type { IOtcPurchaseNotifier } from "@/modules/otc-purchase/otc-purchase.notifier.interface";
+import type { IOtcPurchaseNotifier } from "@/modules/otc-purchase/interfaces/otc-purchase.notifier.interface";
 import type { OtcPurchase } from "@/modules/otc-purchase/otc-purchase.entity";
 import { resolveAdminIds } from "@/bot/middleware/admin.middleware";
 import { formatIrr } from "@/core/shared/currency.utils";

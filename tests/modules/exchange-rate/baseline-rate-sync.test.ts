@@ -5,9 +5,9 @@ import {
 	BaselineRateSyncWorker,
 	type SyncBaselineRateDependencies,
 } from "@/modules/exchange-rate/baseline-rate-sync.worker";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
-import { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
+import { ExchangeRate } from "@/modules/exchange-rate/entities/exchange-rate.entity";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
 import { WallexNetworkError, WallexApiError } from "@/modules/wallex/wallex.errors";
 import { parseBotIdFromToken } from "@/core/shared/telegram.utils";

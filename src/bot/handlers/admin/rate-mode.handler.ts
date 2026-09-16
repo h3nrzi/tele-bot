@@ -1,6 +1,6 @@
 import { InlineKeyboard, type Context } from "grammy";
-import type { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import type { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import type { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import type { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
 import type { BaselineRateSyncWorker } from "@/modules/exchange-rate/baseline-rate-sync.worker";
 import { formatIrr } from "@/core/shared/currency.utils";

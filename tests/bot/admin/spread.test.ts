@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
 import { createMockFetch } from "@tests/helpers/mock-context";
 import { createBot } from "@/bot/bot";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { cleanSpreadInput, isValidSpreadInput, calculateSpreadExample } from "@/bot/handlers/admin/spread.conversation";
 
 describe("/spread Admin Command & Conversation", () => {

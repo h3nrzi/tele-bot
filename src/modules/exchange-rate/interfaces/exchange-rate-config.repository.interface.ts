@@ -1,4 +1,4 @@
-import type { ExchangeRateConfig, RateMode } from "./exchange-rate-config.entity";
+import type { ExchangeRateConfig, RateMode } from "@/modules/exchange-rate/entities/exchange-rate-config.entity";
 
 export interface UpsertExchangeRateConfigData {
 	mode?: RateMode | undefined;

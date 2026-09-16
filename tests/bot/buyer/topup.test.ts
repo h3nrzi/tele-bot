@@ -4,7 +4,7 @@ import { createMockFetch } from "@tests/helpers/mock-context";
 import { createBot } from "@/bot/bot";
 import { setTestRate, setTestActiveAccount } from "@tests/helpers/fixtures";
 import { topUpRequests } from "@/modules/top-up/top-up.schema";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
 import { WallexNetworkError } from "@/modules/wallex/wallex.errors";
 import { TOKENS } from "@/core/di/tokens";

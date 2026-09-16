@@ -1,4 +1,4 @@
-import { LedgerEntry } from "@/modules/ledger/ledger-entry.entity";
+import { LedgerEntry } from "./ledger-entry.entity";
 import { UsdAmount } from "@/core/shared/money.vo";
 import { LedgerInsufficientEntriesError, LedgerUnbalancedEntriesError } from "@/modules/ledger/ledger.errors";
 

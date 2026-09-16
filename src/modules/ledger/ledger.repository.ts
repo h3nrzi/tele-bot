@@ -2,8 +2,8 @@ import { injectable } from "tsyringe";
 import { eq, and, isNull, asc } from "drizzle-orm";
 import { ledgerTransactions, ledgerEntries } from "@/modules/ledger/ledger.schema";
 import type { DbExecutor } from "@/core/database/types";
-import { LedgerTransaction } from "@/modules/ledger/ledger-transaction.entity";
-import { LedgerEntry } from "@/modules/ledger/ledger-entry.entity";
+import { LedgerTransaction } from "@/modules/ledger/entities/ledger-transaction.entity";
+import { LedgerEntry } from "@/modules/ledger/entities/ledger-entry.entity";
 import type {
 	ILedgerRepository,
 	CreateLedgerTransactionParams,

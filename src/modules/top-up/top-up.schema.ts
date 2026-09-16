@@ -1,7 +1,7 @@
 import { pgTable, uuid, bigint, numeric, varchar, text, timestamp, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { users } from "@/modules/buyer/buyer.schema";
-import { exchangeRates } from "@/modules/exchange-rate/exchange-rate.schema";
+import { exchangeRates } from "@/modules/exchange-rate/schemas/exchange-rate.schema";
 
 export const topUpStatusEnum = pgEnum("top_up_status", [
 	"INITIATED",

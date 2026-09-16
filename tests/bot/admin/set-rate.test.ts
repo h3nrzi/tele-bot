@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
 import { createMockContext, createMockFetch } from "@tests/helpers/mock-context";
 import { handleSetRate, cleanRateInput, isValidRateInput } from "@/bot/handlers/admin";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { createBot } from "@/bot/bot";
-import { exchangeRates } from "@/modules/exchange-rate/exchange-rate.schema";
+import { exchangeRates } from "@/modules/exchange-rate/schemas/exchange-rate.schema";
 import { count } from "drizzle-orm";
 
 describe("/setrate Handler", () => {

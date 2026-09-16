@@ -20,8 +20,8 @@ import type {
 	OnOrderFulfilledContext,
 	OnOrderPlacedContext,
 	OnOrderRejectedContext,
-} from "@/modules/order/order.notifier.interface";
-import type { IOrderRepository } from "@/modules/order/order.repository.interface";
+} from "@/modules/order/interfaces/order.notifier.interface";
+import type { IOrderRepository } from "@/modules/order/interfaces/order.repository.interface";
 import { InlineKeyboard, type Bot } from "grammy";
 
 // Module-local notification context shapes (previously *NotificationContext in order.dto.ts)

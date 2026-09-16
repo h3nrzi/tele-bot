@@ -5,7 +5,7 @@ import type {
 	OnOrderFulfilledContext,
 	OnOrderRejectedContext,
 	OnOrderCancelledContext,
-} from "@/modules/order/order.notifier.interface";
+} from "@/modules/order/interfaces/order.notifier.interface";
 
 /**
  * In-memory test helper implementation of IOrderNotifier.

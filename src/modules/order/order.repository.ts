@@ -12,7 +12,7 @@ import type {
 	CreateOrderParams,
 	CreateOrderAdminNotificationParams,
 	UpdateOrderStatusFields,
-} from "@/modules/order/order.repository.interface";
+} from "@/modules/order/interfaces/order.repository.interface";
 import type { AdminOrderQueueItem } from "@/modules/order/dtos/order.dto";
 import { UsdAmount } from "@/core/shared/money.vo";
 import { TOKENS } from "@/core/di/tokens";

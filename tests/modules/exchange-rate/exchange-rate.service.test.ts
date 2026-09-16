@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
-import { exchangeRates } from "@/modules/exchange-rate/exchange-rate.schema";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import { ExchangeRateRepository } from "@/modules/exchange-rate/exchange-rate.repository";
+import { exchangeRates } from "@/modules/exchange-rate/schemas/exchange-rate.schema";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import { ExchangeRateRepository } from "@/modules/exchange-rate/repositories/exchange-rate.repository";
 import { InvalidExchangeRateError } from "@/modules/exchange-rate/exchange-rate.errors";
 import { count } from "drizzle-orm";
 

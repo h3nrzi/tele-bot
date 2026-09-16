@@ -2,8 +2,8 @@ import "reflect-metadata";
 import { describe, it, expect, vi } from "vitest";
 import { LedgerService } from "@/modules/ledger/ledger.service";
 import type { ILedgerRepository, CreateLedgerTransactionParams } from "@/modules/ledger/ledger.repository.interface";
-import { LedgerTransaction } from "@/modules/ledger/ledger-transaction.entity";
-import { LedgerEntry } from "@/modules/ledger/ledger-entry.entity";
+import { LedgerTransaction } from "@/modules/ledger/entities/ledger-transaction.entity";
+import { LedgerEntry } from "@/modules/ledger/entities/ledger-entry.entity";
 
 describe("LedgerService", () => {
 	it("records top-up credit with balanced double-entry SYSTEM_CASH DEBIT and BUYER_WALLET CREDIT", async () => {

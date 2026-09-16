@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { LedgerTransaction } from "@/modules/ledger/ledger-transaction.entity";
-import { LedgerEntry } from "@/modules/ledger/ledger-entry.entity";
+import { LedgerTransaction } from "@/modules/ledger/entities/ledger-transaction.entity";
+import { LedgerEntry } from "@/modules/ledger/entities/ledger-entry.entity";
 import { UsdAmount } from "@/core/shared/money.vo";
 import { LedgerInsufficientEntriesError, LedgerUnbalancedEntriesError } from "@/modules/ledger/ledger.errors";
 

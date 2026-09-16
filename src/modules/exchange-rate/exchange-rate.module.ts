@@ -1,12 +1,12 @@
 import type { DependencyContainer } from "tsyringe";
 import { TOKENS } from "@/core/di/tokens";
-import { DrizzleExchangeRateRepository } from "@/modules/exchange-rate/exchange-rate.repository";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import { DrizzleExchangeRateConfigRepository } from "@/modules/exchange-rate/exchange-rate-config.repository";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { DrizzleExchangeRateRepository } from "@/modules/exchange-rate/repositories/exchange-rate.repository";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import { DrizzleExchangeRateConfigRepository } from "@/modules/exchange-rate/repositories/exchange-rate-config.repository";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { BaselineRateSyncWorker } from "@/modules/exchange-rate/baseline-rate-sync.worker";
-import { ManualRateLock } from "@/modules/exchange-rate/manual-rate-lock.service";
-import { AutoSyncRateLock } from "@/modules/exchange-rate/auto-sync-rate-lock.service";
+import { ManualRateLock } from "@/modules/exchange-rate/services/manual-rate-lock.service";
+import { AutoSyncRateLock } from "@/modules/exchange-rate/services/auto-sync-rate-lock.service";
 
 export function registerExchangeRateModule(container: DependencyContainer): void {
 	container.register(TOKENS.ExchangeRateRepository, {

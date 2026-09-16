@@ -1,13 +1,13 @@
 import { injectable, inject } from "tsyringe";
 import { eq } from "drizzle-orm";
-import { exchangeRateConfig } from "@/modules/exchange-rate/exchange-rate-config.schema";
+import { exchangeRateConfig } from "@/modules/exchange-rate/schemas/exchange-rate-config.schema";
 import { getDefaultDb, type DbClient } from "@/core/database/client";
 import type { DbExecutor } from "@/core/database/types";
-import { ExchangeRateConfig } from "@/modules/exchange-rate/exchange-rate-config.entity";
+import { ExchangeRateConfig } from "@/modules/exchange-rate/entities/exchange-rate-config.entity";
 import type {
 	IExchangeRateConfigRepository,
 	UpsertExchangeRateConfigData,
-} from "./exchange-rate-config.repository.interface";
+} from "@/modules/exchange-rate/interfaces/exchange-rate-config.repository.interface";
 import { TOKENS } from "@/core/di/tokens";
 
 @injectable()

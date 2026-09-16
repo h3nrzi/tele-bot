@@ -5,7 +5,7 @@ import { DrizzleOtcPurchaseRepository } from "@/modules/otc-purchase/otc-purchas
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
 import { BuyerService } from "@/modules/buyer/buyer.service";
 import { TopUpService } from "@/modules/top-up/top-up.service";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import {
 	DuplicateActiveOtcPurchaseError,
 	InvalidOtcPurchaseStateError,

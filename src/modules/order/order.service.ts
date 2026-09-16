@@ -7,7 +7,7 @@ import type { Buyer } from "@/modules/buyer/buyer.entity";
 import { BuyerNotFoundError } from "@/modules/buyer/buyer.errors";
 import type { IBuyerRepository } from "@/modules/buyer/buyer.repository.interface";
 import type { ICatalogRepository } from "@/modules/catalog/catalog.repository.interface";
-import type { LedgerTransaction } from "@/modules/ledger/ledger-transaction.entity";
+import type { LedgerTransaction } from "@/modules/ledger/entities/ledger-transaction.entity";
 import { LedgerService } from "@/modules/ledger/ledger.service";
 import type {
 	AdminOrderQueueItem,
@@ -35,8 +35,8 @@ import {
 	OrderNotOwnedByBuyerError,
 	OrderRejectionNoteRequiredError,
 } from "@/modules/order/order.errors";
-import type { IOrderNotifier } from "@/modules/order/order.notifier.interface";
-import type { IOrderRepository } from "@/modules/order/order.repository.interface";
+import type { IOrderNotifier } from "@/modules/order/interfaces/order.notifier.interface";
+import type { IOrderRepository } from "@/modules/order/interfaces/order.repository.interface";
 import type { Wallet } from "@/modules/wallet/wallet.entity";
 import { WalletNotFoundError } from "@/modules/wallet/wallet.errors";
 import type { IWalletRepository } from "@/modules/wallet/wallet.repository.interface";

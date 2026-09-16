@@ -8,8 +8,8 @@ import { TopUpService } from "@/modules/top-up/top-up.service";
 import { BuyerService } from "@/modules/buyer/buyer.service";
 import { CatalogService } from "@/modules/catalog/catalog.service";
 import { OrderService } from "@/modules/order/order.service";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 
 import { createSetCardConversation, SETCARD_CONVERSATION_ID } from "@/bot/handlers/admin/set-card.conversation";
 import { createSetRateConversation, SETRATE_CONVERSATION_ID } from "@/bot/handlers/admin/set-rate.conversation";

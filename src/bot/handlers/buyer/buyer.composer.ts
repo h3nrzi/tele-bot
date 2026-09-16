@@ -17,8 +17,8 @@ import { handleMyOrderCommand, handleBuyerCancelOrderCallback } from "@/bot/hand
 import { BuyerService } from "@/modules/buyer/buyer.service";
 import { WalletService } from "@/modules/wallet/wallet.service";
 import { TopUpService } from "@/modules/top-up/top-up.service";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { BankAccountService } from "@/modules/bank-account/bank-account.service";
 import { CatalogService } from "@/modules/catalog/catalog.service";
 import { OrderService } from "@/modules/order/order.service";

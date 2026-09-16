@@ -3,7 +3,7 @@ import type { DbClient } from "@/core/database/client";
 import { getDefaultDb } from "@/core/database/client";
 import type { DbExecutor } from "@/core/database/types";
 import type { ITopUpRequestRepository } from "@/modules/top-up/top-up.repository.interface";
-import type { IExchangeRateRepository } from "@/modules/exchange-rate/exchange-rate.repository.interface";
+import type { IExchangeRateRepository } from "@/modules/exchange-rate/interfaces/exchange-rate.repository.interface";
 import type { IBuyerRepository } from "@/modules/buyer/buyer.repository.interface";
 import type { IWalletRepository } from "@/modules/wallet/wallet.repository.interface";
 import { LedgerService } from "@/modules/ledger/ledger.service";
@@ -18,8 +18,8 @@ import {
 	NoActiveTopUpRequestError,
 } from "@/modules/top-up/top-up.errors";
 import { NoExchangeRateError } from "@/modules/exchange-rate/exchange-rate.errors";
-import type { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
-import type { IRateLockService } from "@/modules/exchange-rate/rate-lock.service.interface";
+import type { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
+import type { IRateLockService } from "@/modules/exchange-rate/interfaces/rate-lock.service.interface";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
 import { computeIrrAmount } from "@/core/shared/currency.utils";
 import { WalletNotFoundError } from "@/modules/wallet/wallet.errors";

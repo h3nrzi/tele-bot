@@ -1,10 +1,10 @@
 import { injectable, inject } from "tsyringe";
 import { desc } from "drizzle-orm";
-import { exchangeRates } from "@/modules/exchange-rate/exchange-rate.schema";
+import { exchangeRates } from "@/modules/exchange-rate/schemas/exchange-rate.schema";
 import { getDefaultDb, type DbClient } from "@/core/database/client";
 import type { DbExecutor } from "@/core/database/types";
-import { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
-import type { IExchangeRateRepository } from "@/modules/exchange-rate/exchange-rate.repository.interface";
+import { ExchangeRate } from "@/modules/exchange-rate/entities/exchange-rate.entity";
+import type { IExchangeRateRepository } from "@/modules/exchange-rate/interfaces/exchange-rate.repository.interface";
 import { TOKENS } from "@/core/di/tokens";
 
 @injectable()

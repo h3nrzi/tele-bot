@@ -1,9 +1,9 @@
 import type Decimal from "decimal.js";
 import type { TopUpRequest } from "@/modules/top-up/top-up-request.entity";
-import type { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
+import type { ExchangeRate } from "@/modules/exchange-rate/entities/exchange-rate.entity";
 import type { Wallet } from "@/modules/wallet/wallet.entity";
-import type { LedgerTransaction } from "@/modules/ledger/ledger-transaction.entity";
-import type { LedgerEntry } from "@/modules/ledger/ledger-entry.entity";
+import type { LedgerTransaction } from "@/modules/ledger/entities/ledger-transaction.entity";
+import type { LedgerEntry } from "@/modules/ledger/entities/ledger-entry.entity";
 
 export interface InitiateTopUpInput {
 	userId?: string;

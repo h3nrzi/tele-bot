@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import {
 	InvalidSpreadError,
 	InvalidSyncIntervalError,
 	InvalidRateModeError,
 } from "@/modules/exchange-rate/exchange-rate.errors";
-import { exchangeRateConfig } from "@/modules/exchange-rate/exchange-rate-config.schema";
+import { exchangeRateConfig } from "@/modules/exchange-rate/schemas/exchange-rate-config.schema";
 import { count } from "drizzle-orm";
 
 describe("Exchange Rate Config Application Service", () => {

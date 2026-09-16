@@ -2,7 +2,7 @@ import { injectable, inject } from "tsyringe";
 import { eq, inArray, and, asc } from "drizzle-orm";
 import { wallexOtcPurchases } from "./otc-purchase.schema";
 import { OtcPurchase } from "./otc-purchase.entity";
-import type { IOtcPurchaseRepository } from "./otc-purchase.repository.interface";
+import type { IOtcPurchaseRepository } from "./interfaces/otc-purchase.repository.interface";
 import { DuplicateActiveOtcPurchaseError } from "./otc-purchase.errors";
 import { getDefaultDb, type DbClient } from "@/core/database/client";
 import type { DbExecutor } from "@/core/database/types";

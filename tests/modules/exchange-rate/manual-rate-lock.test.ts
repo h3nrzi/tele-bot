@@ -2,13 +2,13 @@ import "reflect-metadata";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Decimal from "decimal.js";
 import { container } from "tsyringe";
-import { ManualRateLock } from "@/modules/exchange-rate/manual-rate-lock.service";
-import type { IExchangeRateRepository } from "@/modules/exchange-rate/exchange-rate.repository.interface";
-import { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
+import { ManualRateLock } from "@/modules/exchange-rate/services/manual-rate-lock.service";
+import type { IExchangeRateRepository } from "@/modules/exchange-rate/interfaces/exchange-rate.repository.interface";
+import { ExchangeRate } from "@/modules/exchange-rate/entities/exchange-rate.entity";
 import { NoExchangeRateError } from "@/modules/exchange-rate/exchange-rate.errors";
 import { registerExchangeRateModule } from "@/modules/exchange-rate/exchange-rate.module";
 import { TOKENS } from "@/core/di/tokens";
-import type { IRateLockService } from "@/modules/exchange-rate/rate-lock.service.interface";
+import type { IRateLockService } from "@/modules/exchange-rate/interfaces/rate-lock.service.interface";
 
 describe("ManualRateLock Adapter", () => {
 	let mockExchangeRateRepo: {

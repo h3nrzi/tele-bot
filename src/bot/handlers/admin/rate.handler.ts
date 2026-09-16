@@ -1,6 +1,6 @@
 import type { Context } from "grammy";
-import type { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import type { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import type { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import type { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { formatIrr } from "@/core/shared/currency.utils";
 import { formatPersianDateTime } from "@/core/shared/date.utils";
 

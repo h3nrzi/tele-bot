@@ -1,7 +1,7 @@
 import type Decimal from "decimal.js";
 import type { UsdAmount } from "@/core/shared/money.vo";
 import type { RateSource } from "@/modules/top-up/top-up.schema";
-import type { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
+import type { ExchangeRate } from "@/modules/exchange-rate/entities/exchange-rate.entity";
 
 /**
  * Plain-data value object returned by IRateLockService.
@@ -21,4 +21,3 @@ export interface LockedRate {
 export interface IRateLockService {
 	resolve(usdAmount: Decimal | UsdAmount, spreadPercent?: string): Promise<LockedRate>;
 }
-

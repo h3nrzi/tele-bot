@@ -1,9 +1,9 @@
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "@/core/di/tokens";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
-import type { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import type { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
-import type { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
+import type { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import type { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
+import type { ExchangeRate } from "@/modules/exchange-rate/entities/exchange-rate.entity";
 import { normalizeChatId, parseBotIdFromToken } from "@/core/shared/telegram.utils";
 
 export interface SyncLogger {

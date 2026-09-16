@@ -24,8 +24,8 @@ import {
 	handleRateModeCancelCallback,
 } from "@/bot/handlers/admin/rate-mode.handler";
 import { SPREAD_CONVERSATION_ID } from "@/bot/handlers/admin/spread.conversation";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
 import { BaselineRateSyncWorker } from "@/modules/exchange-rate/baseline-rate-sync.worker";
 import { TOKENS } from "@/core/di/tokens";

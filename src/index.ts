@@ -4,7 +4,7 @@ import { createAppContainer } from "@/core/di/container";
 import { createDatabaseConnection } from "@/core/database/client";
 import { createBot, setupBotCommands } from "@/bot";
 import { TOKENS } from "@/core/di/tokens";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { BaselineRateSyncWorker } from "@/modules/exchange-rate/baseline-rate-sync.worker";
 import { parseBotIdFromToken } from "@/core/shared/telegram.utils";
 

@@ -1,4 +1,4 @@
-import type { ExchangeRate } from "@/modules/exchange-rate/exchange-rate.entity";
+import type { ExchangeRate } from "@/modules/exchange-rate/entities/exchange-rate.entity";
 
 /**
  * Domain Repository Interface for ExchangeRate.

@@ -3,9 +3,13 @@ import Decimal from "decimal.js";
 import type { DbClient } from "@/core/database/client";
 import { getDefaultDb } from "@/core/database/client";
 import type { DbExecutor } from "@/core/database/types";
-import type { IExchangeRateConfigRepository } from "./exchange-rate-config.repository.interface";
-import { ExchangeRateConfig, type RateMode } from "./exchange-rate-config.entity";
-import { InvalidSpreadError, InvalidSyncIntervalError, InvalidRateModeError } from "./exchange-rate.errors";
+import type { IExchangeRateConfigRepository } from "@/modules/exchange-rate/interfaces/exchange-rate-config.repository.interface";
+import { ExchangeRateConfig, type RateMode } from "@/modules/exchange-rate/entities/exchange-rate-config.entity";
+import {
+	InvalidSpreadError,
+	InvalidSyncIntervalError,
+	InvalidRateModeError,
+} from "@/modules/exchange-rate/exchange-rate.errors";
 import { normalizeChatId } from "@/core/shared/telegram.utils";
 import { TOKENS } from "@/core/di/tokens";
 

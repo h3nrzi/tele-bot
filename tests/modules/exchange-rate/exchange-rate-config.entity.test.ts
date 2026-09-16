@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ExchangeRateConfig, type RateMode } from "@/modules/exchange-rate/exchange-rate-config.entity";
+import { ExchangeRateConfig, type RateMode } from "@/modules/exchange-rate/entities/exchange-rate-config.entity";
 
 describe("Domain Entity: ExchangeRateConfig", () => {
 	const now = new Date();

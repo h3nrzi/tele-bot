@@ -7,9 +7,9 @@ import {
 	handleRateModeSwitchCallback,
 	handleRateModeCancelCallback,
 } from "@/bot/handlers/admin/rate-mode.handler";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
-import { ExchangeRateConfigService } from "@/modules/exchange-rate/exchange-rate-config.service";
-import { exchangeRates } from "@/modules/exchange-rate/exchange-rate.schema";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
+import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
+import { exchangeRates } from "@/modules/exchange-rate/schemas/exchange-rate.schema";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
 import type { BaselineRateSyncWorker } from "@/modules/exchange-rate/baseline-rate-sync.worker";
 import { WallexNetworkError } from "@/modules/wallex/wallex.errors";

@@ -5,7 +5,7 @@ import { OtcPurchase } from "@/modules/otc-purchase/otc-purchase.entity";
 import { DuplicateActiveOtcPurchaseError } from "@/modules/otc-purchase/otc-purchase.errors";
 import { BuyerService } from "@/modules/buyer/buyer.service";
 import { TopUpService } from "@/modules/top-up/top-up.service";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import { UsdAmount } from "@/core/shared/money.vo";
 import crypto from "node:crypto";
 

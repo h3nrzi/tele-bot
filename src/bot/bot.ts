@@ -8,7 +8,7 @@ import { createBuyerComposer } from "@/bot/handlers/buyer/buyer.composer";
 import type { DbClient } from "@/core/database/client";
 import { createAppContainer } from "@/core/di/container";
 import { TOKENS } from "@/core/di/tokens";
-import type { IOrderRepository } from "@/modules/order/order.repository.interface";
+import type { IOrderRepository } from "@/modules/order/interfaces/order.repository.interface";
 import { TopUpLimits } from "@/modules/top-up/top-up.limits.vo";
 import { conversations } from "@grammyjs/conversations";
 import { Bot, type BotConfig } from "grammy";

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
 import { topUpRequests } from "@/modules/top-up/top-up.schema";
-import { ExchangeRateService } from "@/modules/exchange-rate/exchange-rate.service";
+import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import { TopUpService } from "@/modules/top-up/top-up.service";
 import { BuyerService } from "@/modules/buyer/buyer.service";
 

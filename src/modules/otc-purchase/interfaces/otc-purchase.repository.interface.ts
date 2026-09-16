@@ -1,4 +1,4 @@
-import type { OtcPurchase } from "./otc-purchase.entity";
+import type { OtcPurchase } from "../otc-purchase.entity";
 
 export interface IOtcPurchaseRepository<TExecutor = unknown> {
 	/**
