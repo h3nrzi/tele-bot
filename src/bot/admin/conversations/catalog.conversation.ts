@@ -91,16 +91,9 @@ export function buildCatalogDashboardView(items: (CatalogItem | CatalogItemViewD
 		};
 	}
 
-	const lines = items.map((item, index) => {
-		const statusIndicator = item.isActive ? "🟢 فعال" : "🔴 غیرفعال";
-		const descLine = item.description ? `\n   📝 ${item.description}` : "";
-		return `${index + 1}. [${statusIndicator}] ${item.name}\n` + `   💰 قیمت: $${item.usdPrice}` + descLine;
-	});
-
 	const messageText =
-		`📦 کاتالوگ خدمات (مجموع: ${items.length} خدمت)\n\n` +
-		lines.join("\n\n") +
-		"\n\nبرای ویرایش یا تغییر وضعیت هر خدمت از دکمه‌های زیر استفاده کنید:";
+		`📦 مدیریت کاتالوگ خدمات (مجموع: ${items.length} خدمت)\n\n` +
+		"جهت مشاهده جزئیات، ویرایش یا تغییر وضعیت، خدمت مورد نظر را انتخاب کنید:";
 
 	return {
 		messageText,

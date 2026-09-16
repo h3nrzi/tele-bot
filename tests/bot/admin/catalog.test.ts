@@ -77,7 +77,14 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 		const repliedMessages: string[] = [];
 		const editedMessages: any[] = [];
 		const answeredCallbackQueries: any[] = [];
-		const { fetch: mockFetch } = createMockFetch(repliedMessages, [], editedMessages, answeredCallbackQueries);
+		const sentMessages: any[] = [];
+		const { fetch: mockFetch } = createMockFetch(
+			repliedMessages,
+			[],
+			editedMessages,
+			answeredCallbackQueries,
+			sentMessages,
+		);
 		const bot = createBot({
 			token: "test_token",
 			dbClient: db,
@@ -95,7 +102,7 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 				supports_inline_queries: false,
 			} as any,
 		});
-		return { bot, repliedMessages, editedMessages, answeredCallbackQueries };
+		return { bot, repliedMessages, editedMessages, answeredCallbackQueries, sentMessages };
 	}
 
 	describe("Utility functions", () => {
@@ -144,7 +151,7 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 		});
 	});
 
-	describe("Dashboard View & Toggle", () => {
+	describe("Dashboard View & Item Actions", () => {
 		it("renders empty catalog dashboard message when no items exist", async () => {
 			const { bot, repliedMessages } = createTestBot();
 
@@ -154,7 +161,7 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 			expect(repliedMessages[0]).toContain("هیچ خدمتی در کاتالوگ ثبت نشده است");
 		});
 
-		it("renders catalog items with active and inactive indicators in dashboard", async () => {
+		it("renders catalog items as buttons with active/inactive indicators in dashboard", async () => {
 			const item1 = await createTestCatalogItem(container, {
 				name: "Telegram Premium 1 Month",
 				description: "Instant activation",
@@ -169,18 +176,78 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 				isActive: false,
 			});
 
-			const { bot, repliedMessages } = createTestBot();
+			const { bot, repliedMessages, sentMessages } = createTestBot();
 
 			await bot.handleUpdate(makeMessageUpdate(1, adminChatId, "/catalog", "Admin"));
 
 			expect(repliedMessages).toHaveLength(1);
-			expect(repliedMessages[0]).toContain("Telegram Premium 1 Month");
-			expect(repliedMessages[0]).toContain("$4.99");
-			expect(repliedMessages[0]).toContain("VPN 1 Year");
-			expect(repliedMessages[0]).toContain("$30.00");
+			expect(repliedMessages[0]).toContain("کاتالوگ خدمات");
+
+			const flatButtons = sentMessages[0]?.reply_markup?.inline_keyboard?.flat() ?? [];
+			expect(flatButtons).toHaveLength(3); // item1, item2, and add new
+			expect(flatButtons[0]?.text).toContain("Telegram Premium 1 Month");
+			expect(flatButtons[0]?.text).toContain("$4.99");
+			expect(flatButtons[0]?.text).toContain("🟢");
+			expect(flatButtons[0]?.callback_data).toBe(`catalog:view:${item1.id}`);
+
+			expect(flatButtons[1]?.text).toContain("VPN 1 Year");
+			expect(flatButtons[1]?.text).toContain("$30.00");
+			expect(flatButtons[1]?.text).toContain("🔴");
+			expect(flatButtons[1]?.callback_data).toBe(`catalog:view:${item2.id}`);
+
+			expect(flatButtons[2]?.callback_data).toBe("catalog:add");
 		});
 
-		it("toggles is_active immediately when tapping deactivate/reactivate button", async () => {
+		it("opens item detail/action view when tapping a catalog item button (catalog:view:<id>)", async () => {
+			const item = await createTestCatalogItem(container, {
+				name: "Telegram Stars 500",
+				description: "In-game and gift stars",
+				usdPrice: "9.99",
+				isActive: true,
+			});
+
+			const { bot, editedMessages } = createTestBot();
+
+			await bot.handleUpdate(makeCallbackQueryUpdate(1, adminChatId, `catalog:view:${item.id}`));
+
+			expect(editedMessages).toHaveLength(1);
+			expect(editedMessages[0]?.text).toContain("جزئیات خدمت");
+			expect(editedMessages[0]?.text).toContain("Telegram Stars 500");
+			expect(editedMessages[0]?.text).toContain("$9.99");
+			expect(editedMessages[0]?.text).toContain("In-game and gift stars");
+			expect(editedMessages[0]?.text).toContain("🟢 فعال");
+
+			const keyboard = editedMessages[0]?.reply_markup?.inline_keyboard;
+			expect(keyboard).toHaveLength(2);
+			// Row 1: [Edit] and [Deactivate]
+			expect(keyboard[0][0]?.text).toContain("ویرایش");
+			expect(keyboard[0][0]?.callback_data).toBe(`catalog:edit:${item.id}`);
+			expect(keyboard[0][1]?.text).toContain("غیرفعال‌سازی");
+			expect(keyboard[0][1]?.callback_data).toBe(`catalog:toggle:${item.id}`);
+			// Row 2: [Back to list]
+			expect(keyboard[1][0]?.text).toContain("بازگشت به لیست خدمات");
+			expect(keyboard[1][0]?.callback_data).toBe("catalog:list");
+		});
+
+		it("returns to catalog dashboard list when clicking back button (catalog:list)", async () => {
+			await createTestCatalogItem(container, {
+				name: "Netflix 1 Month",
+				usdPrice: "12.00",
+			});
+
+			const { bot, editedMessages } = createTestBot();
+
+			await bot.handleUpdate(makeCallbackQueryUpdate(1, adminChatId, "catalog:list"));
+
+			expect(editedMessages).toHaveLength(1);
+			expect(editedMessages[0]?.text).toContain("کاتالوگ خدمات");
+
+			const flatButtons = editedMessages[0]?.reply_markup?.inline_keyboard?.flat() ?? [];
+			expect(flatButtons.some((btn: any) => btn.text.includes("Netflix 1 Month"))).toBe(true);
+			expect(flatButtons.some((btn: any) => btn.callback_data === "catalog:add")).toBe(true);
+		});
+
+		it("toggles is_active from item detail view and refreshes the view immediately", async () => {
 			const item = await createTestCatalogItem(container, {
 				name: "Service Item",
 				usdPrice: "10.00",
@@ -196,6 +263,8 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 
 			expect(inDbAfterDeactivate?.isActive).toBe(false);
 			expect(editedMessages.length).toBeGreaterThanOrEqual(1);
+			expect(editedMessages[0]?.text).toContain("🔴 غیرفعال");
+			expect(editedMessages[0]?.reply_markup?.inline_keyboard[0][1]?.text).toContain("فعال‌سازی");
 
 			// Step 2: Reactivate
 			await bot.handleUpdate(makeCallbackQueryUpdate(2, adminChatId, `catalog:toggle:${item.id}`));
@@ -203,6 +272,9 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 			const [inDbAfterReactivate] = await db.select().from(catalogItems).where(eq(catalogItems.id, item.id));
 
 			expect(inDbAfterReactivate?.isActive).toBe(true);
+			expect(editedMessages.length).toBeGreaterThanOrEqual(2);
+			expect(editedMessages[1]?.text).toContain("🟢 فعال");
+			expect(editedMessages[1]?.reply_markup?.inline_keyboard[0][1]?.text).toContain("غیرفعال‌سازی");
 		});
 	});
 

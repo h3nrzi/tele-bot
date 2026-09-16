@@ -13,6 +13,8 @@ import {
 	handleCatalogToggleCallback,
 	handleCatalogAddCallback,
 	handleCatalogEditCallback,
+	handleCatalogViewCallback,
+	handleCatalogListCallback,
 } from "@/bot/admin/handlers/catalog.handler";
 import { handleOrdersCommand } from "@/bot/admin/handlers/orders.handler";
 import { handleClaimOrderCallback } from "@/bot/admin/handlers/claim.handler";
@@ -65,6 +67,8 @@ export interface AdminComposerOptions {
  * - callbackQuery review:<requestId>
  * - callbackQuery approve:<requestId>
  * - callbackQuery reject:<requestId>
+ * - callbackQuery catalog:view:<itemId>
+ * - callbackQuery catalog:list
  * - callbackQuery catalog:toggle:<itemId>
  * - callbackQuery catalog:add
  * - callbackQuery catalog:edit:<itemId>
@@ -276,6 +280,14 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
 
 	composer.callbackQuery(/^reject:(.+)$/, adminAuth, async (ctx) => {
 		await handleRejectCallback(ctx);
+	});
+
+	composer.callbackQuery(/^catalog:view:(.+)$/, adminAuth, async (ctx) => {
+		await handleCatalogViewCallback(ctx, catalogService);
+	});
+
+	composer.callbackQuery("catalog:list", adminAuth, async (ctx) => {
+		await handleCatalogListCallback(ctx, catalogService);
 	});
 
 	composer.callbackQuery(/^catalog:toggle:(.+)$/, adminAuth, async (ctx) => {
