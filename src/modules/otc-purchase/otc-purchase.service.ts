@@ -34,7 +34,7 @@ export interface OtcPurchaseServiceOptions {
 export class OtcPurchaseService {
   private readonly otcPurchaseRepo: IOtcPurchaseRepository;
   private readonly wallexClient: WallexClient;
-  private defaultNotifier?: IOtcPurchaseNotifier | undefined;
+  private readonly notifier?: IOtcPurchaseNotifier | undefined;
 
   constructor(
     @inject(TOKENS.OtcPurchaseRepository)
@@ -47,20 +47,12 @@ export class OtcPurchaseService {
     if ('otcPurchaseRepo' in repoOrOptions) {
       this.otcPurchaseRepo = repoOrOptions.otcPurchaseRepo;
       this.wallexClient = repoOrOptions.wallexClient;
-      this.defaultNotifier = repoOrOptions.notifier;
+      this.notifier = repoOrOptions.notifier;
     } else {
       this.otcPurchaseRepo = repoOrOptions;
       this.wallexClient = wallexClient!;
-      this.defaultNotifier = notifier;
+      this.notifier = notifier;
     }
-  }
-
-  public setNotifier(notifier: IOtcPurchaseNotifier): void {
-    this.defaultNotifier = notifier;
-  }
-
-  public getNotifier(): IOtcPurchaseNotifier | undefined {
-    return this.defaultNotifier;
   }
 
   /**
@@ -179,16 +171,16 @@ export class OtcPurchaseService {
           await dependencies.notifySuccess(purchase);
         } else if (dependencies?.notifier) {
           await dependencies.notifier.notifySuccess(purchase);
-        } else if (this.defaultNotifier) {
-          await this.defaultNotifier.notifySuccess(purchase);
+        } else if (this.notifier) {
+          await this.notifier.notifySuccess(purchase);
         }
       } else if (purchase.isFailed()) {
         if (dependencies?.notifyFailure) {
           await dependencies.notifyFailure(purchase, error);
         } else if (dependencies?.notifier) {
           await dependencies.notifier.notifyFailure(purchase, error);
-        } else if (this.defaultNotifier) {
-          await this.defaultNotifier.notifyFailure(purchase, error);
+        } else if (this.notifier) {
+          await this.notifier.notifyFailure(purchase, error);
         }
       }
     } catch (notifyErr) {

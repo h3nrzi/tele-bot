@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import type { BotContext } from '@/bot/context';
 import { registerConversations } from '@/bot/conversations';
 import { createAdminComposer } from '@/bot/handlers/admin/admin.composer';
@@ -8,7 +9,6 @@ import type { DbClient } from '@/core/database/client';
 import { createAppContainer } from '@/core/di/container';
 import { TOKENS } from '@/core/di/tokens';
 import type { IOrderRepository } from '@/modules/order/order.repository.interface';
-import { OtcPurchaseService } from '@/modules/otc-purchase/otc-purchase.service';
 import { TopUpLimits } from '@/modules/top-up/top-up.limits.vo';
 import { conversations } from '@grammyjs/conversations';
 import { Bot, type BotConfig } from 'grammy';
@@ -75,15 +75,6 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
     adminIds: options?.adminIds ?? process.env.ADMIN_IDS,
   });
   appContainer.register(TOKENS.OtcPurchaseNotifier, { useValue: otcNotifier });
-  if (
-    appContainer.isRegistered(TOKENS.OtcPurchaseService) ||
-    appContainer.isRegistered(OtcPurchaseService)
-  ) {
-    try {
-      const otcService = appContainer.resolve(OtcPurchaseService);
-      otcService.setNotifier(otcNotifier);
-    } catch {}
-  }
 
   // 1. Plugins & Conversations
   bot.use(conversations());
