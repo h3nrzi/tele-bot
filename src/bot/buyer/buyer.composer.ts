@@ -14,6 +14,7 @@ import {
 	handleShopConfirmCallback,
 } from "@/bot/buyer/handlers/shop.handler";
 import { handleMyOrderCommand, handleBuyerCancelOrderCallback } from "@/bot/buyer/handlers/myorder.handler";
+import { handleAccountCommand, handleBuyerCancelTopUpCallback } from "@/bot/buyer/handlers/account.handler";
 import { BuyerService } from "@/modules/buyer/buyer.service";
 import { WalletService } from "@/modules/wallet/wallet.service";
 import { TopUpService } from "@/modules/top-up/top-up.service";
@@ -69,6 +70,15 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 		await handleStart(ctx, buyerService, { adminIds: options?.adminIds });
 	});
 
+	composer.command("account", async (ctx) => {
+		await handleAccountCommand(ctx, {
+			buyerService,
+			walletService,
+			orderService,
+			topUpService,
+		});
+	});
+
 	composer.command("shop", async (ctx) => {
 		await handleShopCommand(ctx, catalogService);
 	});
@@ -101,6 +111,15 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 	});
 
 	// Menu Button Handlers (Hears)
+	composer.hears(["👤 حساب کاربری", "حساب کاربری", "پروفایل", "حساب"], async (ctx) => {
+		await handleAccountCommand(ctx, {
+			buyerService,
+			walletService,
+			orderService,
+			topUpService,
+		});
+	});
+
 	composer.hears(["🛍️ فروشگاه خدمات", "فروشگاه خدمات", "فروشگاه", "خرید خدمات"], async (ctx) => {
 		await handleShopCommand(ctx, catalogService);
 	});
@@ -175,6 +194,10 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 
 	composer.callbackQuery(/^order:cancel:(.+)$/, async (ctx) => {
 		await handleBuyerCancelOrderCallback(ctx, { orderService });
+	});
+
+	composer.callbackQuery("account:topup:cancel", async (ctx) => {
+		await handleBuyerCancelTopUpCallback(ctx, { buyerService, topUpService });
 	});
 
 	// Media

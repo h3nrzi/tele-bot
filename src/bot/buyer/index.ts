@@ -9,4 +9,6 @@ export * from "@/bot/buyer/keyboards/shop.keyboards";
 export * from "@/bot/buyer/handlers/shop.handler";
 export * from "@/bot/buyer/keyboards/order.keyboards";
 export * from "@/bot/buyer/handlers/myorder.handler";
+export * from "@/bot/buyer/keyboards/account.keyboards";
+export * from "@/bot/buyer/handlers/account.handler";
 export * from "@/bot/buyer/buyer.composer";

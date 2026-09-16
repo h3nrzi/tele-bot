@@ -16,12 +16,12 @@ All new callbacks use the `account:` namespace. The `[❌ لغو درخواست]
 
 **Blocked by:** 01 (service queries), 02 (menu button + command registered)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `composer.command("account", ...)` and `composer.hears(["👤 حساب کاربری", ...], ...)` both route to the Profile Card handler in `BuyerComposer`.
-- [ ] Profile Card message contains Telegram ID, username, registration date, Available Balance, and order-status breakdown.
-- [ ] `INITIATED` Top-Up alert renders correct copy with no cancel button.
-- [ ] `PENDING` Top-Up alert renders correct copy with an inline cancel button; tapping it cancels the request.
-- [ ] `[📦 تاریخچه سفارش‌ها]` and `[💳 تاریخچه تراکنش‌ها]` buttons are always present on the Profile Card.
-- [ ] `tests/bot/buyer/account.test.ts` created, covering all of the above cases (mirrors `myorder.test.ts` pattern).
-- [ ] CI is green.
+- [x] `composer.command("account", ...)` and `composer.hears(["👤 حساب کاربری", ...], ...)` both route to the Profile Card handler in `BuyerComposer`.
+- [x] Profile Card message contains Telegram ID, username, registration date, Available Balance, and order-status breakdown.
+- [x] `INITIATED` Top-Up alert renders correct copy with no cancel button.
+- [x] `PENDING` Top-Up alert renders correct copy with an inline cancel button; tapping it cancels the request.
+- [x] `[📦 تاریخچه سفارش‌ها]` and `[💳 تاریخچه تراکنش‌ها]` buttons are always present on the Profile Card.
+- [x] `tests/bot/buyer/account.test.ts` created, covering all of the above cases (mirrors `myorder.test.ts` pattern).
+- [x] CI is green.
