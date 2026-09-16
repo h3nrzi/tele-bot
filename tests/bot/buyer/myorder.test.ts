@@ -331,33 +331,6 @@ describe("Buyer /myorder Command & Order Cancellation Flow (Ticket 08)", () => {
 			expect(text).toContain("Netflix 1 Month");
 			expect(text).toContain("امکان لغو آن وجود ندارد");
 		});
-
-		it("responds to menu button '📦 آخرین سفارش'", async () => {
-			const { buyer, wallet } = await createTestBuyer(container, {
-				telegramChatId: buyerChatId,
-				telegramUsername: "buyer_user",
-			});
-
-			await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
-
-			const item = await createTestCatalogItem(container, {
-				name: "ExpressVPN 1 Year",
-				usdPrice: "30.00",
-				isActive: true,
-			});
-
-			await placeTestOrder(container, {
-				userId: buyer.id,
-				catalogItemId: item.id,
-			});
-
-			const { bot, repliedMessages } = createTestBot();
-
-			await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, "📦 آخرین سفارش", "Buyer"));
-
-			expect(repliedMessages).toHaveLength(1);
-			expect(repliedMessages[0]).toContain("ExpressVPN 1 Year");
-		});
 	});
 
 	describe("Order Cancellation Callback (order:cancel:<orderId>)", () => {

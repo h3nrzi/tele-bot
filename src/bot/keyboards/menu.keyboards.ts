@@ -1,7 +1,7 @@
 import { Keyboard } from "grammy";
 
 export function getBuyerMainMenuKeyboard(): Keyboard {
-	return new Keyboard().text("🛍️ فروشگاه خدمات").text("📦 آخرین سفارش").row().text("💰 مدیریت کیف پول").resized();
+	return new Keyboard().text("🛍️ فروشگاه خدمات").text("👤 حساب کاربری").row().text("💳 مدیریت کیف پول").resized();
 }
 
 export function getBuyerWalletMenuKeyboard(): Keyboard {

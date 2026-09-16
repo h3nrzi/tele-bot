@@ -9,10 +9,10 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `getBuyerMainMenuKeyboard()` emits `👤 حساب کاربری` and `💳 مدیریت کیف پول`; button count is still 3.
-- [ ] `/account` appears in `BUYER_BOT_COMMANDS`.
-- [ ] All existing wallet `hears` patterns still route correctly.
-- [ ] The old `📦 آخرین سفارش` `hears` block is removed.
-- [ ] Keyboard snapshot / command-list tests pass; CI is green.
+- [x] `getBuyerMainMenuKeyboard()` emits `👤 حساب کاربری` and `💳 مدیریت کیف پول`; button count is still 3.
+- [x] `/account` appears in `BUYER_BOT_COMMANDS`.
+- [x] All existing wallet `hears` patterns still route correctly.
+- [x] The old `📦 آخرین سفارش` `hears` block is removed.
+- [x] Keyboard snapshot / command-list tests pass; CI is green.

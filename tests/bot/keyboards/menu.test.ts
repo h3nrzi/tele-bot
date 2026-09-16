@@ -20,9 +20,12 @@ describe("Role-based Menus and Keyboards", () => {
 		expect(keyboard).toBeDefined();
 		const flatButtons = keyboard.build().flat();
 		const buttonTexts = flatButtons.map((btn: any) => (typeof btn === "string" ? btn : btn.text));
+		expect(flatButtons).toHaveLength(3);
 		expect(buttonTexts).toContain("🛍️ فروشگاه خدمات");
-		expect(buttonTexts).toContain("📦 آخرین سفارش");
-		expect(buttonTexts).toContain("💰 مدیریت کیف پول");
+		expect(buttonTexts).toContain("👤 حساب کاربری");
+		expect(buttonTexts).toContain("💳 مدیریت کیف پول");
+		expect(buttonTexts).not.toContain("📦 آخرین سفارش");
+		expect(buttonTexts).not.toContain("💰 مدیریت کیف پول");
 	});
 
 	it("creates valid Buyer wallet submenu reply keyboard structure", () => {
@@ -117,6 +120,22 @@ describe("Role-based Menus and Keyboards", () => {
 					chat: { id: buyerChatId, type: "private", first_name: "Buyer" },
 					from: { id: buyerChatId, is_bot: false, first_name: "Buyer" },
 					text: "💰 مدیریت کیف پول",
+				},
+			});
+
+			expect(repliedMessages).toHaveLength(1);
+			expect(repliedMessages[0]).toContain("مدیریت کیف پول");
+		});
+
+		it("triggers wallet submenu reply when sending '💳 مدیریت کیف پول'", async () => {
+			await bot.handleUpdate({
+				update_id: 21,
+				message: {
+					message_id: 21,
+					date: Math.floor(Date.now() / 1000),
+					chat: { id: buyerChatId, type: "private", first_name: "Buyer" },
+					from: { id: buyerChatId, is_bot: false, first_name: "Buyer" },
+					text: "💳 مدیریت کیف پول",
 				},
 			});
 
@@ -308,11 +327,18 @@ describe("Role-based Menus and Keyboards", () => {
 				}),
 			};
 
-			const { setupBotCommands } = await import("@/bot/commands");
+			const { setupBotCommands, BUYER_BOT_COMMANDS } = await import("@/bot/commands");
 			await setupBotCommands(mockApi, `${adminChatId}`);
 
 			expect(mockApi.setChatMenuButton).toHaveBeenCalledTimes(2); // global + admin chat
 			expect(mockApi.setMyCommands).toHaveBeenCalledTimes(2); // default scope + admin chat scope
+
+			const defaultCommandsCall = calls.find(
+				(c) => c.method === "setMyCommands" && c.args.options?.scope?.type === "all_private_chats",
+			);
+			expect(defaultCommandsCall).toBeDefined();
+			expect(defaultCommandsCall.args.commands.some((cmd: any) => cmd.command === "account")).toBe(true);
+			expect(BUYER_BOT_COMMANDS.some((cmd) => cmd.command === "account")).toBe(true);
 		});
 	});
 });
