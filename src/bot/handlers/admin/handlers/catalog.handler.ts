@@ -5,7 +5,7 @@ import {
 	buildCatalogDashboardView,
 	ADD_CATALOG_ITEM_CONVERSATION_ID,
 	EDIT_CATALOG_ITEM_CONVERSATION_ID,
-} from "@/bot/handlers/admin/catalog.conversation";
+} from "@/bot/handlers/admin/conversations/catalog.conversation";
 import type { BotContext } from "@/bot/context";
 
 export interface CatalogHandlerOptions {

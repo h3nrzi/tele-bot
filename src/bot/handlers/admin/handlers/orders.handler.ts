@@ -5,7 +5,7 @@ import { isAdmin } from "@/bot/middleware/admin.middleware";
 import { formatUsd } from "@/core/shared/currency.utils";
 import { formatTimeAgo } from "@/core/shared/date.utils";
 import { escapeMarkdown } from "@/core/shared/telegram.utils";
-import { getAdminOrderQueueItemKeyboard, formatAdminDisplay } from "@/bot/handlers/admin/order.keyboards";
+import { getAdminOrderQueueItemKeyboard, formatAdminDisplay } from "@/bot/handlers/admin/keyboards/order.keyboards";
 
 export interface OrdersHandlerOptions {
 	adminIds?: string | Set<bigint> | undefined;

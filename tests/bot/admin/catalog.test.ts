@@ -4,7 +4,7 @@ import { createMockFetch } from "@tests/helpers/mock-context";
 import { createBot } from "@/bot/bot";
 import { catalogItems } from "@/modules/catalog/catalog.schema";
 import { createTestCatalogItem } from "@tests/helpers/fixtures";
-import { isKeepCommand, isSkipCommand, isCancelCommand } from "@/bot/handlers/admin/catalog.conversation";
+import { isKeepCommand, isSkipCommand, isCancelCommand } from "@/bot/handlers/admin/conversations/catalog.conversation";
 import { count, eq } from "drizzle-orm";
 
 describe("/catalog Admin Command, Dashboard & Conversations", () => {

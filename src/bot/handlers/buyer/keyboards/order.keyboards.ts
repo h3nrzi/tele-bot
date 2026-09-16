@@ -4,7 +4,7 @@ import type { CatalogItem } from "@/modules/catalog/catalog.entity";
 import { formatUsd } from "@/core/shared/currency.utils";
 import { formatPersianDateTime } from "@/core/shared/date.utils";
 import { escapeMarkdown } from "@/core/shared/telegram.utils";
-import { ORDER_REJECTION_CATEGORIES, type OrderRejectionCategoryCode } from "@/bot/handlers/admin/order.keyboards";
+import { ORDER_REJECTION_CATEGORIES, type OrderRejectionCategoryCode } from "@/bot/handlers/admin/keyboards/order.keyboards";
 
 export interface MyOrderViewResult {
 	messageText: string;

@@ -1,7 +1,7 @@
 import type { Context } from "grammy";
 import { InlineKeyboard } from "grammy";
 import type { OrderService } from "@/modules/order/order.service";
-import { buildMyOrderView } from "@/bot/handlers/buyer/order.keyboards";
+import { buildMyOrderView } from "@/bot/handlers/buyer/keyboards/order.keyboards";
 import { formatUsd } from "@/core/shared/currency.utils";
 import { isValidUuid } from "@/core/shared/telegram.utils";
 import { InvalidOrderStatusError, OrderNotFoundError, OrderNotOwnedByBuyerError } from "@/modules/order/order.errors";

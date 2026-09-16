@@ -5,7 +5,7 @@ import {
 	formatOtcPurchaseSuccessMessage,
 	formatOtcPurchaseFailureMessage,
 	getOtcRetryKeyboard,
-} from "@/bot/handlers/admin/otc-purchase.notifier";
+} from "@/bot/notifications/otc-purchase.notifier";
 import { OtcPurchase } from "@/modules/otc-purchase/otc-purchase.entity";
 
 describe("TelegramOtcPurchaseNotifier", () => {

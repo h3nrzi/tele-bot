@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { Context } from "grammy";
-import { handleOtcRetryCallback } from "@/bot/handlers/admin/otc-retry.handler";
+import { handleOtcRetryCallback } from "@/bot/handlers/admin/handlers/otc-retry.handler";
 import {
 	DuplicateActiveOtcPurchaseError,
 	InvalidOtcPurchaseStateError,

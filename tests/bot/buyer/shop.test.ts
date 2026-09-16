@@ -6,7 +6,7 @@ import { createTestBuyer, createTestCatalogItem, placeTestOrder } from "@tests/h
 import { wallets } from "@/modules/wallet/wallet.schema";
 import { orders, ledgerTransactions, ledgerEntries, orderAdminNotifications } from "@/core/database/schema";
 import { count, eq } from "drizzle-orm";
-import { buildShopView, buildOrderConfirmationView } from "@/bot/handlers/buyer/shop.keyboards";
+import { buildShopView, buildOrderConfirmationView } from "@/bot/handlers/buyer/keyboards/shop.keyboards";
 
 describe("Buyer /shop Command & Order Confirmation Prompt (Ticket 03)", () => {
 	const { db, container } = setupTestDatabase();

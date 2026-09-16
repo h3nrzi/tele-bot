@@ -6,7 +6,7 @@ import { createTestBuyer, createTestCatalogItem, placeTestOrder, claimTestOrder 
 import { orders } from "@/modules/order/order.schema";
 import { wallets } from "@/modules/wallet/wallet.schema";
 import { eq } from "drizzle-orm";
-import { getAdminOrderQueueItemKeyboard } from "@/bot/handlers/admin/order.keyboards";
+import { getAdminOrderQueueItemKeyboard } from "@/bot/handlers/admin/keyboards/order.keyboards";
 
 describe("/orders Admin Queue Command (Ticket 09)", () => {
 	const { db, container } = setupTestDatabase();

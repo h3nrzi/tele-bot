@@ -3,7 +3,7 @@ import { InlineKeyboard } from "grammy";
 import type { CatalogService } from "@/modules/catalog/catalog.service";
 import type { BuyerService } from "@/modules/buyer/buyer.service";
 import type { OrderService } from "@/modules/order/order.service";
-import { buildShopView, buildOrderConfirmationView } from "@/bot/handlers/buyer/shop.keyboards";
+import { buildShopView, buildOrderConfirmationView } from "@/bot/handlers/buyer/keyboards/shop.keyboards";
 import { formatUsd } from "@/core/shared/currency.utils";
 import { InsufficientBalanceForOrderError, CatalogItemUnavailableError } from "@/modules/order/order.errors";
 

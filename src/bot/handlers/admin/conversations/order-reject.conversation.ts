@@ -7,7 +7,7 @@ import {
 	type OrderRejectionCategoryCode,
 	getOrderRejectionCategoriesKeyboard,
 	getOrderRejectionNotePromptKeyboard,
-} from "@/bot/handlers/admin/order.keyboards";
+} from "@/bot/handlers/admin/keyboards/order.keyboards";
 
 import {
 	InvalidOrderStatusError,

@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import {
 	getFulfilOrderConfirmationKeyboard,
 	getAdminOrderFulfilledKeyboard,
-} from "@/bot/handlers/admin/order.keyboards";
+} from "@/bot/handlers/admin/keyboards/order.keyboards";
 
 describe("Admin Order Fulfilment Handler & Conversation (Ticket 06)", () => {
 	const { db, container } = setupTestDatabase();

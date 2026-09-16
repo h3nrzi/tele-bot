@@ -3,7 +3,7 @@ import type { BotContext } from "@/bot/context";
 import type { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import type { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
 import { formatIrr } from "@/core/shared/currency.utils";
-import { SETRATE_CONVERSATION_ID, cleanRateInput, isValidRateInput } from "@/bot/handlers/admin/set-rate.conversation";
+import { SETRATE_CONVERSATION_ID, cleanRateInput, isValidRateInput } from "@/bot/handlers/admin/conversations/set-rate.conversation";
 
 /**
  * Handles the /setrate command for Admins.

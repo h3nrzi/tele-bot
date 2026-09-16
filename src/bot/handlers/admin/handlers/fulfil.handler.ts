@@ -1,6 +1,6 @@
 import type { BotContext } from "@/bot/context";
 import type { OrderService } from "@/modules/order/order.service";
-import { FULFIL_ORDER_CONVERSATION_ID } from "@/bot/handlers/admin/fulfil.conversation";
+import { FULFIL_ORDER_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/fulfil.conversation";
 
 export interface FulfilHandlerDependencies {
 	orderService: OrderService;

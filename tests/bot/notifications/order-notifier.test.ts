@@ -5,7 +5,7 @@ import {
 	formatBuyerOrderFulfilledMessage,
 	formatBuyerOrderRejectedMessage,
 	formatBuyerOrderCancelledMessage,
-} from "@/bot/handlers/admin/order.notifier";
+} from "@/bot/notifications/order.notifier";
 import { Order, OrderAdminNotification } from "@/modules/order/order.entity";
 import { Buyer } from "@/modules/buyer/buyer.entity";
 import { CatalogItem } from "@/modules/catalog/catalog.entity";

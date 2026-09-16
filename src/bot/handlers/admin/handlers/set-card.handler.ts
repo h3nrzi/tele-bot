@@ -1,5 +1,5 @@
 import type { BotContext } from "@/bot/context";
-import { SETCARD_CONVERSATION_ID } from "@/bot/handlers/admin/set-card.conversation";
+import { SETCARD_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/set-card.conversation";
 
 /**
  * Handles the /setcard command by entering the setcard conversation.

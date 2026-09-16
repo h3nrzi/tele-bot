@@ -1,6 +1,6 @@
 import type { BotContext } from "@/bot/context";
 import type { OrderService } from "@/modules/order/order.service";
-import { REJECT_ORDER_CONVERSATION_ID } from "@/bot/handlers/admin/order-reject.conversation";
+import { REJECT_ORDER_CONVERSATION_ID } from "@/bot/handlers/admin/conversations/order-reject.conversation";
 import { isValidUuid } from "@/core/shared/telegram.utils";
 
 export interface RejectOrderHandlerDependencies {
