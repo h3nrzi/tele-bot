@@ -4,6 +4,7 @@ import type { TopUpRequest } from "@/modules/top-up/top-up-request.entity";
 import type { Order, OrderStatus } from "@/modules/order/order.entity";
 import type { CatalogItem } from "@/modules/catalog/catalog.entity";
 import type { OrderCountBreakdownResult, RecentOrderWithCatalogItem } from "@/modules/order/dtos/order.dto";
+import type { RecentWalletTransactionEntry } from "@/modules/ledger/ledger.repository.interface";
 import { formatUsd, formatIrr } from "@/core/shared/currency.utils";
 import { formatPersianDate, formatPersianDateTime } from "@/core/shared/date.utils";
 import { escapeMarkdown } from "@/core/shared/telegram.utils";
@@ -213,5 +214,54 @@ export function buildOrderDetailView(params: OrderDetailViewParams): OrderDetail
 		messageText,
 		keyboard,
 		hasCancelButton,
+	};
+}
+
+export interface TransactionHistoryViewResult {
+	messageText: string;
+	keyboard: InlineKeyboard;
+	isEmpty: boolean;
+}
+
+/**
+ * Builds the text and inline keyboard for the 5-transaction history list view.
+ */
+export function buildTransactionHistoryView(
+	entries: RecentWalletTransactionEntry[],
+): TransactionHistoryViewResult {
+	const keyboard = new InlineKeyboard();
+	keyboard.text("🔙 بازگشت به پروفایل", ACCOUNT_CALLBACKS.PROFILE);
+
+	if (!entries || entries.length === 0) {
+		const messageText =
+			`💳 *تاریخچه تراکنش‌ها*\n\n` +
+			`شما تاکنون هیچ تراکنشی نداشته‌اید.`;
+
+		return {
+			messageText,
+			keyboard,
+			isEmpty: true,
+		};
+	}
+
+	const displayEntries = entries.slice(0, 5);
+	const lines = displayEntries.map((item) => {
+		const isCredit = item.entry.direction === "CREDIT";
+		const indicator = isCredit ? "➕" : "➖";
+		const sign = isCredit ? "+" : "-";
+		const formattedAmount = `${sign}${formatUsd(item.entry.usdAmount)}`;
+		const date = formatPersianDate(item.entry.createdAt);
+		const narrative = escapeMarkdown(item.narrative || "تراکنش");
+		return `${indicator} ${narrative}: ${formattedAmount} | ${date}`;
+	});
+
+	const messageText =
+		`💳 *تاریخچه تراکنش‌های شما:*\n\n` +
+		lines.join("\n");
+
+	return {
+		messageText,
+		keyboard,
+		isEmpty: false,
 	};
 }

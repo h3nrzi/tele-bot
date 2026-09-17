@@ -15,11 +15,13 @@ import {
 } from "@tests/helpers/fixtures";
 import { wallets } from "@/modules/wallet/wallet.schema";
 import { orders } from "@/modules/order/order.schema";
+import { topUpRequests } from "@/modules/top-up/top-up.schema";
 import { eq } from "drizzle-orm";
 import {
 	buildProfileCardView,
 	buildOrderHistoryListView,
 	buildOrderDetailView,
+	buildTransactionHistoryView,
 	ACCOUNT_CALLBACKS,
 	ORDER_STATUS_EMOJIS,
 } from "@/bot/buyer/keyboards/account.keyboards";
@@ -28,6 +30,10 @@ import { Order } from "@/modules/order/order.entity";
 import { CatalogItem } from "@/modules/catalog/catalog.entity";
 import { TopUpRequest } from "@/modules/top-up/top-up-request.entity";
 import { TopUpService } from "@/modules/top-up/top-up.service";
+import { LedgerEntry } from "@/modules/ledger/entities/ledger-entry.entity";
+import type { ILedgerRepository } from "@/modules/ledger/ledger.repository.interface";
+import { TOKENS } from "@/core/di/tokens";
+import { formatPersianDate } from "@/core/shared/date.utils";
 
 describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 	const { db, container } = setupTestDatabase();
@@ -470,6 +476,107 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const flatButtons = keyboard.inline_keyboard.flat() as any[];
 			expect(flatButtons.some((b) => b.callback_data.startsWith("order:cancel:"))).toBe(false);
 			expect(flatButtons.some((b) => b.callback_data === ACCOUNT_CALLBACKS.ORDERS)).toBe(true);
+		});
+	});
+
+	describe("Unit: buildTransactionHistoryView (Ticket 05)", () => {
+		it("renders empty-state message and back button when transactions array is empty", () => {
+			const { messageText, keyboard, isEmpty } = buildTransactionHistoryView([]);
+
+			expect(isEmpty).toBe(true);
+			expect(messageText).toContain("تاریخچه تراکنش‌ها");
+			expect(messageText).toContain("شما تاکنون هیچ تراکنشی نداشته‌اید");
+
+			const flatButtons = keyboard.inline_keyboard.flat() as any[];
+			expect(flatButtons).toHaveLength(1);
+			expect(flatButtons[0].callback_data).toBe(ACCOUNT_CALLBACKS.PROFILE);
+			expect(flatButtons[0].text).toContain("بازگشت به پروفایل");
+		});
+
+		it("renders credit entry with ➕, +$<amount>, narrative, and Persian date", () => {
+			const creditEntry = new LedgerEntry({
+				id: "entry-1",
+				ledgerTransactionId: "tx-1",
+				accountType: "BUYER_WALLET",
+				direction: "CREDIT",
+				usdAmount: "50.00",
+				walletId: "wallet-1",
+				createdAt: new Date("2026-06-15T12:00:00Z"),
+			});
+
+			const { messageText, keyboard, isEmpty } = buildTransactionHistoryView([
+				{ entry: creditEntry, narrative: "شارژ حساب کاربری" },
+			]);
+
+			expect(isEmpty).toBe(false);
+			expect(messageText).toContain("تاریخچه تراکنش‌های شما");
+			expect(messageText).toContain("➕ شارژ حساب کاربری: +$50.00");
+			expect(messageText).toContain(formatPersianDate(creditEntry.createdAt));
+
+			const flatButtons = keyboard.inline_keyboard.flat() as any[];
+			expect(flatButtons).toHaveLength(1);
+			expect(flatButtons[0].callback_data).toBe(ACCOUNT_CALLBACKS.PROFILE);
+			expect(flatButtons[0].text).toContain("بازگشت به پروفایل");
+		});
+
+		it("renders debit entry with ➖, -$<amount>, narrative, and Persian date", () => {
+			const debitEntry = new LedgerEntry({
+				id: "entry-2",
+				ledgerTransactionId: "tx-2",
+				accountType: "BUYER_WALLET",
+				direction: "DEBIT",
+				usdAmount: "12.50",
+				walletId: "wallet-1",
+				createdAt: new Date("2026-06-16T12:00:00Z"),
+			});
+
+			const { messageText, isEmpty } = buildTransactionHistoryView([
+				{ entry: debitEntry, narrative: "خرید اشتراک" },
+			]);
+
+			expect(isEmpty).toBe(false);
+			expect(messageText).toContain("➖ خرید اشتراک: -$12.50");
+			expect(messageText).toContain(formatPersianDate(debitEntry.createdAt));
+		});
+
+		it("caps displayed entries at 5 when more are provided", () => {
+			const entries = Array.from({ length: 7 }, (_, i) => ({
+				entry: new LedgerEntry({
+					id: `entry-${i}`,
+					ledgerTransactionId: `tx-${i}`,
+					accountType: "BUYER_WALLET",
+					direction: i % 2 === 0 ? "CREDIT" : "DEBIT",
+					usdAmount: `${(i + 1) * 10}.00`,
+					walletId: "wallet-1",
+					createdAt: new Date(2026, 0, i + 1),
+				}),
+				narrative: `تراکنش شماره ${i + 1}`,
+			}));
+
+			const { messageText } = buildTransactionHistoryView(entries);
+
+			expect(messageText).toContain("تراکنش شماره 1");
+			expect(messageText).toContain("تراکنش شماره 5");
+			expect(messageText).not.toContain("تراکنش شماره 6");
+			expect(messageText).not.toContain("تراکنش شماره 7");
+		});
+
+		it("escapes markdown characters in narrative", () => {
+			const entry = new LedgerEntry({
+				id: "entry-special",
+				ledgerTransactionId: "tx-special",
+				accountType: "BUYER_WALLET",
+				direction: "DEBIT",
+				usdAmount: "10.00",
+				walletId: "wallet-1",
+				createdAt: new Date(),
+			});
+
+			const { messageText } = buildTransactionHistoryView([
+				{ entry, narrative: "Order_special [test] *bold*" },
+			]);
+
+			expect(messageText).toContain("Order\\_special \\[test] \\*bold\\*");
 		});
 	});
 
@@ -1230,6 +1337,252 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			expect(editedMessages).toHaveLength(1);
 			expect(editedMessages[0].text).toContain("حساب کاربری");
 			expect(editedMessages[0].text).toContain("profile\\_back\\_user");
+		});
+	});
+
+	describe("Integration: Transaction History Bot Routing (Ticket 05)", () => {
+		it("renders empty state message when buyer has no transactions", async () => {
+			await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "empty_tx_user",
+			});
+
+			const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
+
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					30,
+					buyerChatId,
+					ACCOUNT_CALLBACKS.TRANSACTIONS,
+					1,
+					"Empty",
+					"empty_tx_user",
+				),
+			);
+
+			expect(answeredCallbackQueries).toHaveLength(1);
+			expect(editedMessages).toHaveLength(1);
+			expect(editedMessages[0].text).toContain("تاریخچه تراکنش‌ها");
+			expect(editedMessages[0].text).toContain("شما تاکنون هیچ تراکنشی نداشته‌اید");
+
+			const flatButtons = editedMessages[0].reply_markup.inline_keyboard.flat();
+			expect(flatButtons).toHaveLength(1);
+			expect(flatButtons[0].callback_data).toBe(ACCOUNT_CALLBACKS.PROFILE);
+			expect(flatButtons[0].text).toContain("بازگشت به پروفایل");
+		});
+
+		it("renders recent transactions in descending order with credit and debit indicators", async () => {
+			const { buyer, wallet } = await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "tx_history_user",
+			});
+
+			const ledgerRepo = container.resolve<ILedgerRepository<any>>(TOKENS.LedgerRepository);
+
+			// 1. Credit: Top-up $50
+			const [topUp] = await db
+				.insert(topUpRequests)
+				.values({
+					userId: buyer.id,
+					lockedIrrPerUsd: 600000n,
+					rateSource: "MANUAL",
+					usdAmount: "50.00",
+					irrAmount: 30000000n,
+					status: "APPROVED",
+					expiresAt: new Date(Date.now() + 3600000),
+				})
+				.returning();
+
+			await ledgerRepo.createTransactionWithEntries(
+				{
+					topUpRequestId: topUp!.id,
+					narrative: "شارژ کیف پول",
+					entries: [
+						{ accountType: "SYSTEM_CASH", direction: "DEBIT", usdAmount: "50.00", walletId: null },
+						{ accountType: "BUYER_WALLET", direction: "CREDIT", usdAmount: "50.00", walletId: wallet.id },
+					],
+				},
+				db,
+			);
+
+			// 2. Debit: Service purchase $15
+			const item = await createTestCatalogItem(container, {
+				name: "اکانت پرمیوم",
+				usdPrice: "15.00",
+				isActive: true,
+			});
+			const [order] = await db
+				.insert(orders)
+				.values({
+					userId: buyer.id,
+					catalogItemId: item.id,
+					usdPriceSnapshot: "15.00",
+					status: "PLACED",
+				})
+				.returning();
+
+			await ledgerRepo.createTransactionWithEntries(
+				{
+					orderId: order!.id,
+					narrative: "خرید اکانت پرمیوم",
+					entries: [
+						{ accountType: "BUYER_WALLET", direction: "DEBIT", usdAmount: "15.00", walletId: wallet.id },
+						{ accountType: "SYSTEM_CASH", direction: "CREDIT", usdAmount: "15.00", walletId: null },
+					],
+				},
+				db,
+			);
+
+			const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
+
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					31,
+					buyerChatId,
+					ACCOUNT_CALLBACKS.TRANSACTIONS,
+					1,
+					"TxUser",
+					"tx_history_user",
+				),
+			);
+
+			expect(answeredCallbackQueries).toHaveLength(1);
+			expect(editedMessages).toHaveLength(1);
+			const text = editedMessages[0].text;
+			expect(text).toContain("تاریخچه تراکنش‌های شما");
+			expect(text).toContain("➖ خرید اکانت پرمیوم: -$15.00");
+			expect(text).toContain("➕ شارژ کیف پول: +$50.00");
+
+			// Most recent (debit) appears before older (credit) in the text
+			const debitIdx = text.indexOf("خرید اکانت پرمیوم");
+			const creditIdx = text.indexOf("شارژ کیف پول");
+			expect(debitIdx).toBeLessThan(creditIdx);
+
+			const flatButtons = editedMessages[0].reply_markup.inline_keyboard.flat();
+			expect(flatButtons).toHaveLength(1);
+			expect(flatButtons[0].callback_data).toBe(ACCOUNT_CALLBACKS.PROFILE);
+		});
+
+		it("shows only up to 5 most recent transactions when buyer has more", async () => {
+			const { buyer, wallet } = await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "many_tx_user",
+			});
+
+			const ledgerRepo = container.resolve<ILedgerRepository<any>>(TOKENS.LedgerRepository);
+
+			// Insert 7 transactions
+			for (let i = 1; i <= 7; i++) {
+				const [req] = await db
+					.insert(topUpRequests)
+					.values({
+						userId: buyer.id,
+						lockedIrrPerUsd: 600000n,
+						rateSource: "MANUAL",
+						usdAmount: `${i * 10}.00`,
+						irrAmount: BigInt(i * 10 * 600000),
+						status: "APPROVED",
+						expiresAt: new Date(Date.now() + 3600000),
+					})
+					.returning();
+
+				await ledgerRepo.createTransactionWithEntries(
+					{
+						topUpRequestId: req!.id,
+						narrative: `تراکنش ${i}`,
+						entries: [
+							{ accountType: "SYSTEM_CASH", direction: "DEBIT", usdAmount: `${i * 10}.00`, walletId: null },
+							{ accountType: "BUYER_WALLET", direction: "CREDIT", usdAmount: `${i * 10}.00`, walletId: wallet.id },
+						],
+					},
+					db,
+				);
+			}
+
+			const { bot, editedMessages } = createTestBot();
+
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					32,
+					buyerChatId,
+					ACCOUNT_CALLBACKS.TRANSACTIONS,
+					1,
+					"ManyTx",
+					"many_tx_user",
+				),
+			);
+
+			expect(editedMessages).toHaveLength(1);
+			const text = editedMessages[0].text;
+			// Descending order: 7, 6, 5, 4, 3 should be present; 2 and 1 should not
+			expect(text).toContain("تراکنش 7");
+			expect(text).toContain("تراکنش 6");
+			expect(text).toContain("تراکنش 5");
+			expect(text).toContain("تراکنش 4");
+			expect(text).toContain("تراکنش 3");
+			expect(text).not.toContain("تراکنش 2");
+			expect(text).not.toContain("تراکنش 1");
+		});
+
+		it("re-renders Profile Card when [🔙 بازگشت به پروفایل] is tapped from transaction history", async () => {
+			await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "back_from_tx_user",
+			});
+
+			const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
+
+			// First open transaction history
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					33,
+					buyerChatId,
+					ACCOUNT_CALLBACKS.TRANSACTIONS,
+					1,
+					"BackUser",
+					"back_from_tx_user",
+				),
+			);
+
+			expect(editedMessages).toHaveLength(1);
+			expect(editedMessages[0].text).toContain("تاریخچه تراکنش‌ها");
+
+			// Then tap back button
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					34,
+					buyerChatId,
+					ACCOUNT_CALLBACKS.PROFILE,
+					1,
+					"BackUser",
+					"back_from_tx_user",
+				),
+			);
+
+			expect(answeredCallbackQueries).toHaveLength(2);
+			expect(editedMessages).toHaveLength(2);
+			expect(editedMessages[1].text).toContain("حساب کاربری");
+			expect(editedMessages[1].text).toContain("back\\_from\\_tx\\_user");
+		});
+
+		it("alerts buyer when an unregistered user triggers account:transactions", async () => {
+			const { bot, answeredCallbackQueries, editedMessages } = createTestBot();
+
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					35,
+					999888777,
+					ACCOUNT_CALLBACKS.TRANSACTIONS,
+					1,
+					"Unknown",
+					"unknown_user",
+				),
+			);
+
+			expect(answeredCallbackQueries).toHaveLength(1);
+			expect(answeredCallbackQueries[0].show_alert).toBe(true);
+			expect(answeredCallbackQueries[0].text).toContain("کاربر یافت نشد");
+			expect(editedMessages).toHaveLength(0);
 		});
 	});
 });

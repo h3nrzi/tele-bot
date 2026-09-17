@@ -3,10 +3,12 @@ import type { BuyerService } from "@/modules/buyer/buyer.service";
 import type { WalletService } from "@/modules/wallet/wallet.service";
 import type { OrderService } from "@/modules/order/order.service";
 import type { TopUpService } from "@/modules/top-up/top-up.service";
+import type { LedgerService } from "@/modules/ledger/ledger.service";
 import {
 	buildProfileCardView,
 	buildOrderHistoryListView,
 	buildOrderDetailView,
+	buildTransactionHistoryView,
 	ACCOUNT_ORDER_CALLBACK_REGEX,
 } from "@/bot/buyer/keyboards/account.keyboards";
 import { CannotCancelPendingTopUpError, NoActiveTopUpRequestError } from "@/modules/top-up/top-up.errors";
@@ -305,6 +307,52 @@ export async function handleProfileCardCallback(
 		orderCounts,
 		activeTopUp,
 	});
+
+	try {
+		await ctx.answerCallbackQuery();
+	} catch {}
+
+	await safeEditMessageText(ctx, messageText, keyboard);
+}
+
+export interface AccountTransactionsDependencies {
+	buyerService: BuyerService;
+	walletService: WalletService;
+	ledgerService: LedgerService;
+}
+
+/**
+ * Handles the [💳 تاریخچه تراکنش‌ها] callback query (account:transactions).
+ * Edits the message in place to show the 5-transaction history list or empty-state message.
+ */
+export async function handleAccountTransactionsCallback(
+	ctx: Context,
+	deps: AccountTransactionsDependencies,
+): Promise<void> {
+	const sender = ctx.from;
+	if (!sender) {
+		return;
+	}
+
+	const { buyerService, walletService, ledgerService } = deps;
+
+	const buyer = await buyerService.findByTelegramChatId(sender.id);
+	if (!buyer) {
+		try {
+			await ctx.answerCallbackQuery({
+				text: "⚠️ کاربر یافت نشد.",
+				show_alert: true,
+			});
+		} catch {}
+		return;
+	}
+
+	const walletResult = await walletService.getBuyerWallet({ telegramChatId: sender.id });
+	const entries = walletResult?.wallet
+		? await ledgerService.getRecentWalletTransactions(walletResult.wallet.id, 5)
+		: [];
+
+	const { messageText, keyboard } = buildTransactionHistoryView(entries);
 
 	try {
 		await ctx.answerCallbackQuery();

@@ -10,12 +10,12 @@ The Transaction History view:
 
 **Blocked by:** 01 (needs `getRecentWalletTransactions`), 03 (Profile Card must exist as the entry point)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `account:transactions` callback handler edits the message to the transaction history view.
-- [ ] Up to 5 entries are shown in descending date order.
-- [ ] Each entry displays the correct credit/debit indicator, narrative, USD amount, and date.
-- [ ] Empty-state message shown when the Buyer has no ledger history.
-- [ ] `[🔙 بازگشت به پروفایل]` re-renders the Profile Card correctly.
-- [ ] `account.test.ts` extended to cover all of the above.
-- [ ] CI is green.
+- [x] `account:transactions` callback handler edits the message to the transaction history view.
+- [x] Up to 5 entries are shown in descending date order.
+- [x] Each entry displays the correct credit/debit indicator, narrative, USD amount, and date.
+- [x] Empty-state message shown when the Buyer has no ledger history.
+- [x] `[🔙 بازگشت به پروفایل]` re-renders the Profile Card correctly.
+- [x] `account.test.ts` extended to cover all of the above.
+- [x] CI is green.

@@ -20,6 +20,7 @@ import {
 	handleAccountOrdersCallback,
 	handleAccountOrderDetailCallback,
 	handleProfileCardCallback,
+	handleAccountTransactionsCallback,
 } from "@/bot/buyer/handlers/account.handler";
 import { ACCOUNT_CALLBACKS, ACCOUNT_ORDER_CALLBACK_REGEX } from "@/bot/buyer/keyboards/account.keyboards";
 import { BuyerService } from "@/modules/buyer/buyer.service";
@@ -30,6 +31,7 @@ import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exch
 import { BankAccountService } from "@/modules/bank-account/bank-account.service";
 import { CatalogService } from "@/modules/catalog/catalog.service";
 import { OrderService } from "@/modules/order/order.service";
+import { LedgerService } from "@/modules/ledger/ledger.service";
 
 export interface BuyerComposerOptions {
 	container?: DependencyContainer | undefined;
@@ -41,6 +43,7 @@ export interface BuyerComposerOptions {
 	bankAccountService?: BankAccountService | undefined;
 	catalogService?: CatalogService | undefined;
 	orderService?: OrderService | undefined;
+	ledgerService?: LedgerService | undefined;
 	adminIds?: string | Set<bigint> | undefined;
 }
 
@@ -59,6 +62,7 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 	const bankAccountService = options?.bankAccountService ?? container?.resolve(BankAccountService);
 	const catalogService = options?.catalogService ?? container?.resolve(CatalogService);
 	const orderService = options?.orderService ?? container?.resolve(OrderService);
+	const ledgerService = options?.ledgerService ?? container?.resolve(LedgerService);
 
 	if (
 		!buyerService ||
@@ -67,7 +71,8 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 		!exchangeRateService ||
 		!bankAccountService ||
 		!catalogService ||
-		!orderService
+		!orderService ||
+		!ledgerService
 	) {
 		throw new Error("All required services or a container must be provided to createBuyerComposer");
 	}
@@ -217,6 +222,14 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 			walletService,
 			orderService,
 			topUpService,
+		});
+	});
+
+	composer.callbackQuery(ACCOUNT_CALLBACKS.TRANSACTIONS, async (ctx) => {
+		await handleAccountTransactionsCallback(ctx, {
+			buyerService,
+			walletService,
+			ledgerService,
 		});
 	});
 
