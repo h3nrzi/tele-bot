@@ -119,3 +119,15 @@ export interface OrderCountBreakdownResult {
 	cancelled: number;
 }
 
+export interface GetOrderDetailForBuyerInput {
+	orderId: string;
+	telegramChatId?: bigint | number | string | undefined;
+	userId?: string | undefined;
+}
+
+export interface BuyerOrderDetailResult {
+	order: Order;
+	catalogItem: CatalogItem | null;
+	buyer: Buyer;
+}
+

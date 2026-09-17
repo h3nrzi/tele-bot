@@ -16,14 +16,14 @@ Cancellation from detail uses the existing `order:cancel:<orderId>` callback; th
 
 **Blocked by:** 03 (Profile Card must exist as the entry point)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `account:orders` callback handler edits the message to the 5-order history list.
-- [ ] Orders beyond 5 are not shown.
-- [ ] Empty-state message shown when the Buyer has no orders.
-- [ ] `account:order:<orderId>` callback edits the message to the full detail view.
-- [ ] `[❌ لغو سفارش]` appears only on `PLACED` orders.
-- [ ] `[🔙 بازگشت به لیست]` is always present on the detail view.
-- [ ] Cancel-from-detail flow triggers the existing `order:cancel:<orderId>` callback correctly; refund confirmation message is shown.
-- [ ] `account.test.ts` extended to cover all of the above.
-- [ ] CI is green.
+- [x] `account:orders` callback handler edits the message to the 5-order history list.
+- [x] Orders beyond 5 are not shown.
+- [x] Empty-state message shown when the Buyer has no orders.
+- [x] `account:order:<orderId>` callback edits the message to the full detail view.
+- [x] `[❌ لغو سفارش]` appears only on `PLACED` orders.
+- [x] `[🔙 بازگشت به لیست]` is always present on the detail view.
+- [x] Cancel-from-detail flow triggers the existing `order:cancel:<orderId>` callback correctly; refund confirmation message is shown.
+- [x] `account.test.ts` extended to cover all of the above.
+- [x] CI is green.

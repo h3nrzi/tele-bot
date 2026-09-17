@@ -417,4 +417,85 @@ describe("Account Hub Service Queries (Ticket 01)", () => {
 			expect(wallet2Txs[0]!.entry.usdAmount.toFixed(2)).toBe("99.00");
 		});
 	});
+
+	describe("OrderService.getOrderDetailForBuyer", () => {
+		it("returns order with catalogItem and buyer when owned by the buyer", async () => {
+			const { buyer, wallet } = await createTestBuyer(container, {
+				telegramChatId: 20020,
+				telegramUsername: "detail_buyer",
+			});
+
+			await db.update(wallets).set({ availableBalance: "500.00" }).where(eq(wallets.id, wallet.id));
+
+			const item = await createTestCatalogItem(container, {
+				name: "Spotify Premium 1 Year",
+				usdPrice: "14.99",
+				isActive: true,
+			});
+
+			const { order } = await placeTestOrder(container, {
+				userId: buyer.id,
+				catalogItemId: item.id,
+			});
+
+			const orderService = container.resolve(OrderService);
+			const result = await orderService.getOrderDetailForBuyer({
+				orderId: order.id,
+				telegramChatId: buyer.telegramChatId,
+			});
+
+			expect(result).not.toBeNull();
+			expect(result!.order.id).toBe(order.id);
+			expect(result!.order.status).toBe("PLACED");
+			expect(result!.catalogItem).not.toBeNull();
+			expect(result!.catalogItem!.name).toBe("Spotify Premium 1 Year");
+			expect(result!.buyer.id).toBe(buyer.id);
+		});
+
+		it("returns null when order belongs to a different buyer", async () => {
+			const { buyer: owner, wallet } = await createTestBuyer(container, {
+				telegramChatId: 20021,
+				telegramUsername: "owner_user",
+			});
+			const { buyer: otherBuyer } = await createTestBuyer(container, {
+				telegramChatId: 20022,
+				telegramUsername: "other_user",
+			});
+
+			await db.update(wallets).set({ availableBalance: "500.00" }).where(eq(wallets.id, wallet.id));
+
+			const item = await createTestCatalogItem(container, {
+				name: "Item",
+				usdPrice: "10.00",
+			});
+
+			const { order } = await placeTestOrder(container, {
+				userId: owner.id,
+				catalogItemId: item.id,
+			});
+
+			const orderService = container.resolve(OrderService);
+			const result = await orderService.getOrderDetailForBuyer({
+				orderId: order.id,
+				telegramChatId: otherBuyer.telegramChatId,
+			});
+
+			expect(result).toBeNull();
+		});
+
+		it("returns null when order does not exist", async () => {
+			const { buyer } = await createTestBuyer(container, {
+				telegramChatId: 20023,
+				telegramUsername: "buyer_nonexistent",
+			});
+
+			const orderService = container.resolve(OrderService);
+			const result = await orderService.getOrderDetailForBuyer({
+				orderId: "00000000-0000-0000-0000-000000000000",
+				telegramChatId: buyer.telegramChatId,
+			});
+
+			expect(result).toBeNull();
+		});
+	});
 });

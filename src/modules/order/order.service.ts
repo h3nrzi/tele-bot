@@ -23,6 +23,8 @@ import type {
 	PlaceOrderResult,
 	RecentOrderWithCatalogItem,
 	OrderCountBreakdownResult,
+	GetOrderDetailForBuyerInput,
+	BuyerOrderDetailResult,
 	RejectOrderInput,
 	RejectOrderResult,
 } from "@/modules/order/dtos/order.dto";
@@ -740,5 +742,30 @@ export class OrderService {
 		const client = executor ?? this.db ?? getDefaultDb();
 		const buyer = await this.resolveBuyer({ telegramChatId }, client);
 		return await this.orderRepo.getCountBreakdownByBuyerId(buyer.id, client);
+	}
+
+	/**
+	 * Retrieves an Order for a Buyer by orderId, asserting ownership.
+	 * Returns null if the order doesn't exist or is not owned by the buyer.
+	 */
+	public async getOrderDetailForBuyer(
+		input: GetOrderDetailForBuyerInput,
+		executor?: DbExecutor,
+	): Promise<BuyerOrderDetailResult | null> {
+		const client = executor ?? this.db ?? getDefaultDb();
+		const buyer = await this.resolveBuyer(input, client);
+
+		const order = await this.orderRepo.findById(input.orderId, client);
+		if (!order || order.userId !== buyer.id) {
+			return null;
+		}
+
+		const catalogItem = await this.catalogRepo.findById(order.catalogItemId, client);
+
+		return {
+			order,
+			catalogItem,
+			buyer,
+		};
 	}
 }

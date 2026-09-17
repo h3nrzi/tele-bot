@@ -1,16 +1,32 @@
 import { InlineKeyboard } from "grammy";
 import type { Buyer } from "@/modules/buyer/buyer.entity";
 import type { TopUpRequest } from "@/modules/top-up/top-up-request.entity";
-import type { OrderCountBreakdownResult } from "@/modules/order/dtos/order.dto";
+import type { Order, OrderStatus } from "@/modules/order/order.entity";
+import type { CatalogItem } from "@/modules/catalog/catalog.entity";
+import type { OrderCountBreakdownResult, RecentOrderWithCatalogItem } from "@/modules/order/dtos/order.dto";
 import { formatUsd, formatIrr } from "@/core/shared/currency.utils";
-import { formatPersianDate } from "@/core/shared/date.utils";
+import { formatPersianDate, formatPersianDateTime } from "@/core/shared/date.utils";
 import { escapeMarkdown } from "@/core/shared/telegram.utils";
+import { ORDER_STATUS_LABELS } from "@/bot/buyer/keyboards/order.keyboards";
+import { ORDER_REJECTION_CATEGORIES, type OrderRejectionCategoryCode } from "@/bot/admin/keyboards/order.keyboards";
 
 export const ACCOUNT_CALLBACKS = {
 	ORDERS: "account:orders",
+	ORDER_PREFIX: "account:order:",
 	TRANSACTIONS: "account:transactions",
 	TOPUP_CANCEL: "account:topup:cancel",
+	PROFILE: "account:profile",
 } as const;
+
+export const ACCOUNT_ORDER_CALLBACK_REGEX = new RegExp(`^${ACCOUNT_CALLBACKS.ORDER_PREFIX}(.+)$`);
+
+export const ORDER_STATUS_EMOJIS: Record<OrderStatus, string> = {
+	PLACED: "⏳",
+	PROCESSING: "⏳",
+	FULFILLED: "✅",
+	REJECTED: "❌",
+	CANCELLED: "❌",
+};
 
 export interface ProfileCardViewParams {
 	buyer: Buyer;
@@ -72,5 +88,130 @@ export function buildProfileCardView(params: ProfileCardViewParams): ProfileCard
 	return {
 		messageText,
 		keyboard,
+	};
+}
+
+export interface OrderHistoryListViewResult {
+	messageText: string;
+	keyboard: InlineKeyboard;
+	isEmpty: boolean;
+}
+
+/**
+ * Builds the text and inline keyboard for the 5-order history list view.
+ */
+export function buildOrderHistoryListView(orders: RecentOrderWithCatalogItem[]): OrderHistoryListViewResult {
+	const keyboard = new InlineKeyboard();
+
+	if (!orders || orders.length === 0) {
+		const messageText =
+			`📦 *تاریخچه سفارش‌ها*\n\n` +
+			`شما تاکنون هیچ سفارشی ثبت نکرده‌اید.\n` +
+			`برای مشاهده و خرید خدمات، لطفاً به بخش 🛍️ *فروشگاه خدمات* مراجعه کنید.`;
+
+		keyboard.text("🔙 بازگشت به پروفایل", ACCOUNT_CALLBACKS.PROFILE);
+
+		return {
+			messageText,
+			keyboard,
+			isEmpty: true,
+		};
+	}
+
+	const messageText = `📦 *تاریخچه سفارش‌های شما:*\n\nبرای مشاهده جزئیات هر سفارش، روی آن کلیک کنید:`;
+
+	const displayOrders = orders.slice(0, 5);
+	for (const item of displayOrders) {
+		const emoji = ORDER_STATUS_EMOJIS[item.order.status] ?? "📦";
+		const date = formatPersianDate(item.order.createdAt);
+		const buttonText = `${emoji} ${item.catalogItemName} — ${date}`;
+		keyboard.text(buttonText, `${ACCOUNT_CALLBACKS.ORDER_PREFIX}${item.order.id}`).row();
+	}
+
+	keyboard.text("🔙 بازگشت به پروفایل", ACCOUNT_CALLBACKS.PROFILE);
+
+	return {
+		messageText,
+		keyboard,
+		isEmpty: false,
+	};
+}
+
+export interface OrderDetailViewParams {
+	order: Order;
+	catalogItem?: CatalogItem | null;
+}
+
+export interface OrderDetailViewResult {
+	messageText: string;
+	keyboard: InlineKeyboard;
+	hasCancelButton: boolean;
+}
+
+/**
+ * Builds the text and inline keyboard for the order detail view in Account Hub.
+ */
+export function buildOrderDetailView(params: OrderDetailViewParams): OrderDetailViewResult {
+	const { order, catalogItem } = params;
+
+	const itemName = catalogItem ? catalogItem.name : "خدمت انتخابی";
+	const statusLabel = ORDER_STATUS_LABELS[order.status] ?? order.status;
+
+	let messageText =
+		`📦 *جزئیات سفارش:*\n\n` +
+		`🆔 شناسه سفارش: #${order.id}\n` +
+		`🛍️ نام خدمت: ${escapeMarkdown(itemName)}\n` +
+		`💵 مبلغ سفارش: ${formatUsd(order.usdPriceSnapshot)}\n` +
+		`📊 وضعیت: ${statusLabel}\n` +
+		`📅 تاریخ ثبت: ${formatPersianDateTime(order.createdAt)}`;
+
+	if (order.status === "PROCESSING") {
+		messageText += `\n\nℹ️ سفارش شما در حال حاضر در حال پردازش توسط ادمین است و امکان لغو آن وجود ندارد.`;
+	} else if (order.status === "REJECTED") {
+		const categoryInfo =
+			order.rejectionCategory && order.rejectionCategory in ORDER_REJECTION_CATEGORIES
+				? ORDER_REJECTION_CATEGORIES[order.rejectionCategory as OrderRejectionCategoryCode]
+				: null;
+
+		let reasonText = "";
+		if (categoryInfo) {
+			if (categoryInfo.code === "OTHER") {
+				reasonText = order.rejectionNote ? escapeMarkdown(order.rejectionNote) : categoryInfo.label;
+			} else {
+				reasonText = categoryInfo.label;
+				if (order.rejectionNote) {
+					reasonText += `\n💬 توضیحات: ${escapeMarkdown(order.rejectionNote)}`;
+				}
+			}
+		} else if (order.rejectionCategory) {
+			reasonText = escapeMarkdown(order.rejectionCategory);
+			if (order.rejectionNote) {
+				reasonText += `\n💬 توضیحات: ${escapeMarkdown(order.rejectionNote)}`;
+			}
+		} else if (order.rejectionNote) {
+			reasonText = escapeMarkdown(order.rejectionNote);
+		}
+
+		if (reasonText) {
+			messageText += `\n\nعلت رد سفارش: ${reasonText}`;
+		}
+	} else if (order.status === "FULFILLED" && order.deliveryContent) {
+		messageText += `\n\n📦 مشخصات تحویل:\n${escapeMarkdown(order.deliveryContent)}`;
+	}
+
+	const keyboard = new InlineKeyboard();
+	let hasCancelButton = false;
+
+	if (order.status === "PLACED") {
+		keyboard.text("❌ لغو سفارش", `order:cancel:${order.id}`).row();
+		hasCancelButton = true;
+	}
+
+	keyboard.text("🔙 بازگشت به لیست", ACCOUNT_CALLBACKS.ORDERS);
+
+	return {
+		messageText,
+		keyboard,
+		hasCancelButton,
 	};
 }

@@ -14,7 +14,14 @@ import {
 	handleShopConfirmCallback,
 } from "@/bot/buyer/handlers/shop.handler";
 import { handleMyOrderCommand, handleBuyerCancelOrderCallback } from "@/bot/buyer/handlers/myorder.handler";
-import { handleAccountCommand, handleBuyerCancelTopUpCallback } from "@/bot/buyer/handlers/account.handler";
+import {
+	handleAccountCommand,
+	handleBuyerCancelTopUpCallback,
+	handleAccountOrdersCallback,
+	handleAccountOrderDetailCallback,
+	handleProfileCardCallback,
+} from "@/bot/buyer/handlers/account.handler";
+import { ACCOUNT_CALLBACKS, ACCOUNT_ORDER_CALLBACK_REGEX } from "@/bot/buyer/keyboards/account.keyboards";
 import { BuyerService } from "@/modules/buyer/buyer.service";
 import { WalletService } from "@/modules/wallet/wallet.service";
 import { TopUpService } from "@/modules/top-up/top-up.service";
@@ -194,6 +201,23 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 
 	composer.callbackQuery(/^order:cancel:(.+)$/, async (ctx) => {
 		await handleBuyerCancelOrderCallback(ctx, { orderService });
+	});
+
+	composer.callbackQuery(ACCOUNT_CALLBACKS.ORDERS, async (ctx) => {
+		await handleAccountOrdersCallback(ctx, { buyerService, orderService });
+	});
+
+	composer.callbackQuery(ACCOUNT_ORDER_CALLBACK_REGEX, async (ctx) => {
+		await handleAccountOrderDetailCallback(ctx, { buyerService, orderService });
+	});
+
+	composer.callbackQuery(ACCOUNT_CALLBACKS.PROFILE, async (ctx) => {
+		await handleProfileCardCallback(ctx, {
+			buyerService,
+			walletService,
+			orderService,
+			topUpService,
+		});
 	});
 
 	composer.callbackQuery("account:topup:cancel", async (ctx) => {
