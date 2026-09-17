@@ -493,7 +493,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			expect(flatButtons[0].text).toContain("بازگشت به پروفایل");
 		});
 
-		it("renders credit entry with ➕, +$<amount>, narrative, and Persian date", () => {
+		it("renders credit entry with ➕, +$<amount>, narrative, and Persian date in card format", () => {
 			const creditEntry = new LedgerEntry({
 				id: "entry-1",
 				ledgerTransactionId: "tx-1",
@@ -510,7 +510,8 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 
 			expect(isEmpty).toBe(false);
 			expect(messageText).toContain("تاریخچه تراکنش‌های شما");
-			expect(messageText).toContain("➕ شارژ حساب کاربری: +$50.00");
+			expect(messageText).toContain("➕ *شارژ حساب کاربری*");
+			expect(messageText).toContain("▫️ مبلغ: `+$50.00`");
 			expect(messageText).toContain(formatPersianDate(creditEntry.createdAt));
 
 			const flatButtons = keyboard.inline_keyboard.flat() as any[];
@@ -519,7 +520,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			expect(flatButtons[0].text).toContain("بازگشت به پروفایل");
 		});
 
-		it("renders debit entry with ➖, -$<amount>, narrative, and Persian date", () => {
+		it("renders debit entry with ➖, -$<amount>, narrative, and Persian date in card format", () => {
 			const debitEntry = new LedgerEntry({
 				id: "entry-2",
 				ledgerTransactionId: "tx-2",
@@ -535,8 +536,72 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			]);
 
 			expect(isEmpty).toBe(false);
-			expect(messageText).toContain("➖ خرید اشتراک: -$12.50");
+			expect(messageText).toContain("➖ *خرید اشتراک*");
+			expect(messageText).toContain("▫️ مبلغ: `-$12.50`");
 			expect(messageText).toContain(formatPersianDate(debitEntry.createdAt));
+		});
+
+		it("translates English order cancellation refund narrative into Persian with short order ID", () => {
+			const entry = new LedgerEntry({
+				id: "entry-refund",
+				ledgerTransactionId: "tx-refund",
+				accountType: "BUYER_WALLET",
+				direction: "CREDIT",
+				usdAmount: "20.00",
+				walletId: "wallet-1",
+				createdAt: new Date("2026-09-17T10:00:00Z"),
+			});
+
+			const { messageText } = buildTransactionHistoryView([
+				{ entry, narrative: "Order cancellation refund for order d367195f-2018-4412-ab40-93fcd4fbadb0" },
+			]);
+
+			expect(messageText).toContain("➕ *استرداد وجه لغو سفارش*");
+			expect(messageText).toContain("▫️ مبلغ: `+$20.00`");
+			expect(messageText).toContain("▫️ کد سفارش: `#d367195f`");
+		});
+
+		it("translates English order rejection refund, placement spend, and top-up approval narratives", () => {
+			const rejEntry = new LedgerEntry({
+				id: "entry-rej",
+				ledgerTransactionId: "tx-rej",
+				accountType: "BUYER_WALLET",
+				direction: "CREDIT",
+				usdAmount: "15.00",
+				walletId: "wallet-1",
+				createdAt: new Date("2026-09-17T10:00:00Z"),
+			});
+			const spendEntry = new LedgerEntry({
+				id: "entry-spd",
+				ledgerTransactionId: "tx-spd",
+				accountType: "BUYER_WALLET",
+				direction: "DEBIT",
+				usdAmount: "15.00",
+				walletId: "wallet-1",
+				createdAt: new Date("2026-09-17T09:00:00Z"),
+			});
+			const topUpEntry = new LedgerEntry({
+				id: "entry-tu",
+				ledgerTransactionId: "tx-tu",
+				accountType: "BUYER_WALLET",
+				direction: "CREDIT",
+				usdAmount: "30.00",
+				walletId: "wallet-1",
+				createdAt: new Date("2026-09-17T08:00:00Z"),
+			});
+
+			const { messageText } = buildTransactionHistoryView([
+				{ entry: rejEntry, narrative: "Order rejection refund for order 11223344-5566-7788-9900-aabbccddeeff" },
+				{ entry: spendEntry, narrative: "Order placement spend for order 11223344-5566-7788-9900-aabbccddeeff" },
+				{ entry: topUpEntry, narrative: "Top-up approval for request req-99887766" },
+			]);
+
+			expect(messageText).toContain("➕ *استرداد وجه رد سفارش*");
+			expect(messageText).toContain("▫️ کد سفارش: `#11223344`");
+			expect(messageText).toContain("➖ *پرداخت هزینه سفارش*");
+			expect(messageText).toContain("➕ *شارژ کیف پول*");
+			expect(messageText).toContain("▫️ کد پیگیری: `#req-9988`");
+			expect(messageText).toContain("────────────────────");
 		});
 
 		it("caps displayed entries at 5 when more are provided", () => {
@@ -1450,8 +1515,10 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			expect(editedMessages).toHaveLength(1);
 			const text = editedMessages[0].text;
 			expect(text).toContain("تاریخچه تراکنش‌های شما");
-			expect(text).toContain("➖ خرید اکانت پرمیوم: -$15.00");
-			expect(text).toContain("➕ شارژ کیف پول: +$50.00");
+			expect(text).toContain("➖ *خرید اکانت پرمیوم*");
+			expect(text).toContain("▫️ مبلغ: `-$15.00`");
+			expect(text).toContain("➕ *شارژ کیف پول*");
+			expect(text).toContain("▫️ مبلغ: `+$50.00`");
 
 			// Most recent (debit) appears before older (credit) in the text
 			const debitIdx = text.indexOf("خرید اکانت پرمیوم");

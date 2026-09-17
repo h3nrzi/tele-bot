@@ -223,6 +223,92 @@ export interface TransactionHistoryViewResult {
 	isEmpty: boolean;
 }
 
+export interface ParsedTransactionNarrative {
+	title: string;
+	referenceLabel?: string;
+	referenceCode?: string;
+}
+
+/**
+ * Parses and translates English ledger narratives into clean Persian titles and reference codes.
+ */
+export function parseTransactionNarrative(
+	narrative: string | null | undefined,
+): ParsedTransactionNarrative {
+	if (!narrative || !narrative.trim()) {
+		return { title: "تراکنش" };
+	}
+
+	const trimmed = narrative.trim();
+
+	const cancelMatch = trimmed.match(/^Order cancellation refund for order\s+([a-zA-Z0-9_-]+)$/i);
+	if (cancelMatch) {
+		const rawId = cancelMatch[1]!.replace(/^#/, "");
+		const shortId = rawId.length > 8 ? rawId.slice(0, 8) : rawId;
+		return {
+			title: "استرداد وجه لغو سفارش",
+			referenceLabel: "کد سفارش",
+			referenceCode: shortId,
+		};
+	}
+
+	const rejectMatch = trimmed.match(/^Order rejection refund for order\s+([a-zA-Z0-9_-]+)$/i);
+	if (rejectMatch) {
+		const rawId = rejectMatch[1]!.replace(/^#/, "");
+		const shortId = rawId.length > 8 ? rawId.slice(0, 8) : rawId;
+		return {
+			title: "استرداد وجه رد سفارش",
+			referenceLabel: "کد سفارش",
+			referenceCode: shortId,
+		};
+	}
+
+	const refundMatch = trimmed.match(/^Order refund for order\s+([a-zA-Z0-9_-]+)$/i);
+	if (refundMatch) {
+		const rawId = refundMatch[1]!.replace(/^#/, "");
+		const shortId = rawId.length > 8 ? rawId.slice(0, 8) : rawId;
+		return {
+			title: "بازگشت وجه سفارش",
+			referenceLabel: "کد سفارش",
+			referenceCode: shortId,
+		};
+	}
+
+	const spendMatch = trimmed.match(/^Order placement spend for order\s+([a-zA-Z0-9_-]+)$/i);
+	if (spendMatch) {
+		const rawId = spendMatch[1]!.replace(/^#/, "");
+		const shortId = rawId.length > 8 ? rawId.slice(0, 8) : rawId;
+		return {
+			title: "پرداخت هزینه سفارش",
+			referenceLabel: "کد سفارش",
+			referenceCode: shortId,
+		};
+	}
+
+	const topUpMatch = trimmed.match(/^Top-up approval for request\s+([a-zA-Z0-9_-]+)$/i);
+	if (topUpMatch) {
+		const rawId = topUpMatch[1]!.replace(/^#/, "");
+		const shortId = rawId.length > 8 ? rawId.slice(0, 8) : rawId;
+		return {
+			title: "شارژ کیف پول",
+			referenceLabel: "کد پیگیری",
+			referenceCode: shortId,
+		};
+	}
+
+	if (/^Original spend$/i.test(trimmed)) {
+		return { title: "پرداخت هزینه سفارش" };
+	}
+
+	if (/^Top-up approval$/i.test(trimmed)) {
+		return { title: "شارژ کیف پول" };
+	}
+
+	return {
+		title: trimmed,
+	};
+}
+
 /**
  * Builds the text and inline keyboard for the 5-transaction history list view.
  */
@@ -245,19 +331,34 @@ export function buildTransactionHistoryView(
 	}
 
 	const displayEntries = entries.slice(0, 5);
-	const lines = displayEntries.map((item) => {
+	const cards = displayEntries.map((item) => {
 		const isCredit = item.entry.direction === "CREDIT";
 		const indicator = isCredit ? "➕" : "➖";
 		const sign = isCredit ? "+" : "-";
 		const formattedAmount = `${sign}${formatUsd(item.entry.usdAmount)}`;
 		const date = formatPersianDate(item.entry.createdAt);
-		const narrative = escapeMarkdown(item.narrative || "تراکنش");
-		return `${indicator} ${narrative}: ${formattedAmount} | ${date}`;
+		const { title, referenceLabel, referenceCode } = parseTransactionNarrative(item.narrative);
+
+		const escapedTitle = escapeMarkdown(title);
+		const formattedTitle = title.includes("*") ? escapedTitle : `*${escapedTitle}*`;
+
+		let card =
+			`${indicator} ${formattedTitle}\n` +
+			`▫️ مبلغ: \`${formattedAmount}\`\n` +
+			`▫️ تاریخ: ${date}`;
+
+		if (referenceCode) {
+			const label = referenceLabel || "کد پیگیری";
+			card += `\n▫️ ${label}: \`#${referenceCode}\``;
+		}
+
+		return card;
 	});
 
 	const messageText =
-		`💳 *تاریخچه تراکنش‌های شما:*\n\n` +
-		lines.join("\n");
+		`💳 *تاریخچه تراکنش‌های شما:*\n` +
+		`━━━━━━━━━━━━━━━━━━━━\n\n` +
+		cards.join("\n\n────────────────────\n\n");
 
 	return {
 		messageText,
