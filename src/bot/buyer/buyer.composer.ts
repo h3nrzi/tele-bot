@@ -168,7 +168,17 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 	});
 
 	composer.hears(
-		["➕ افزایش درخواست", "افزایش درخواست", "➕ افزایش موجودی", "افزایش موجودی", "شارژ کیف پول"],
+		[
+			"➕ درخواست افزایش",
+			"درخواست افزایش",
+			"➕ درخواست افزایش موجودی",
+			"درخواست افزایش موجودی",
+			"➕ افزایش موجودی",
+			"افزایش موجودی",
+			"شارژ کیف پول",
+			"➕ افزایش درخواست",
+			"افزایش درخواست",
+		],
 		async (ctx) => {
 			await handleTopUpCommand(ctx, {
 				exchangeRateService,

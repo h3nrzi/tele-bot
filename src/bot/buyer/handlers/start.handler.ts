@@ -41,7 +41,7 @@ export async function handleStart(
 
 	if (result.isNew) {
 		await ctx.reply(
-			`سلام! به Tele-Bot خوش آمدید.\n\n` +
+			`سلام! به Voltix خوش آمدید.\n\n` +
 				`کیف پول شما با موفقیت ایجاد شد.\n` +
 				`موجودی فعلی شما: ${formatUsd("0.00")}\n\n` +
 				`از دکمه‌های زیر برای دسترسی به امکانات استفاده کنید.`,

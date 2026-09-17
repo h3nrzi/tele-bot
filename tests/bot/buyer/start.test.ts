@@ -22,7 +22,7 @@ describe("/start Handler", () => {
 		await handleStart(ctx, buyerService);
 
 		expect(ctx.reply).toHaveBeenCalledTimes(1);
-		expect(repliedMessages[0]).toContain("Tele-Bot");
+		expect(repliedMessages[0]).toContain("Voltix");
 		expect(repliedMessages[0]).toContain("$0.00");
 		expect(repliedMessages[0]).toContain("کیف پول شما با موفقیت ایجاد شد");
 
@@ -45,7 +45,7 @@ describe("/start Handler", () => {
 		// First call: registers new Buyer
 		await handleStart(ctx, buyerService);
 		expect(ctx.reply).toHaveBeenCalledTimes(1);
-		expect(repliedMessages[0]).toContain("Tele-Bot");
+		expect(repliedMessages[0]).toContain("Voltix");
 
 		// Update wallet balance to simulate previous activity
 		const [buyer] = await db
@@ -134,7 +134,7 @@ describe("/start Handler", () => {
 		});
 
 		expect(repliedMessages).toHaveLength(1);
-		expect(repliedMessages[0]).toContain("Tele-Bot");
+		expect(repliedMessages[0]).toContain("Voltix");
 		expect(repliedMessages[0]).toContain("$0.00");
 	});
 

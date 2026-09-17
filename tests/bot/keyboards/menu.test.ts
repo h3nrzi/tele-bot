@@ -34,7 +34,7 @@ describe("Role-based Menus and Keyboards", () => {
 		const flatButtons = keyboard.build().flat();
 		const buttonTexts = flatButtons.map((btn: any) => (typeof btn === "string" ? btn : btn.text));
 		expect(buttonTexts).toContain("💰 موجودی کیف پول");
-		expect(buttonTexts).toContain("➕ افزایش درخواست");
+		expect(buttonTexts).toContain("➕ درخواست افزایش");
 		expect(buttonTexts).toContain("📋 پیگیری وضعیت");
 		expect(buttonTexts).toContain("❌ لغو درخواست");
 		expect(buttonTexts).toContain("🔙 بازگشت به منوی اصلی");
@@ -205,7 +205,7 @@ describe("Role-based Menus and Keyboards", () => {
 			});
 
 			expect(repliedMessages).toHaveLength(1);
-			expect(repliedMessages[0]).toContain("Tele-Bot");
+			expect(repliedMessages[0]).toContain("Voltix");
 		});
 	});
 

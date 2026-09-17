@@ -7,7 +7,7 @@ export function getBuyerMainMenuKeyboard(): Keyboard {
 export function getBuyerWalletMenuKeyboard(): Keyboard {
 	return new Keyboard()
 		.text("💰 موجودی کیف پول")
-		.text("➕ افزایش درخواست")
+		.text("➕ درخواست افزایش")
 		.row()
 		.text("📋 پیگیری وضعیت")
 		.text("❌ لغو درخواست")
