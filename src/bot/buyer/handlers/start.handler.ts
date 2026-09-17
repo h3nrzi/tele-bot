@@ -25,7 +25,7 @@ export async function handleStart(
 	if (isAdmin(ctx.from.id, options?.adminIds)) {
 		const greeting = displayName ? `سلام ${displayName} (ادمین گرامی)!` : `سلام ادمین گرامی!`;
 		await ctx.reply(
-			`${greeting}\nبه پنل مدیریت Tele-Bot خوش آمدید.\n\n` +
+			`${greeting}\nبه پنل مدیریت Voltix خوش آمدید.\n\n` +
 				`از منوی زیر می‌توانید نرخ ارز، کارت بانکی و صف درخواست‌های افزایش موجودی را مدیریت کنید:`,
 			{
 				reply_markup: getAdminMainMenuKeyboard(),
@@ -52,7 +52,7 @@ export async function handleStart(
 	} else {
 		const greeting = displayName ? `سلام ${displayName} عزیز!` : `سلام!`;
 		await ctx.reply(
-			`${greeting}\nبه Tele-Bot خوش آمدید.\n\n` +
+			`${greeting}\nبه Voltix خوش آمدید.\n\n` +
 				`موجودی کیف پول شما: ${formatUsd(result.wallet.availableBalance)}\n\n` +
 				`از منوی زیر گزینه مورد نظر خود را انتخاب کنید:`,
 			{

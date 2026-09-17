@@ -58,11 +58,11 @@ async function main(): Promise<void> {
 	console.log("Setting up Telegram command menus and chat menu button...");
 	await setupBotCommands(bot.api, process.env.ADMIN_IDS);
 
-	console.log("Starting Tele-Bot with long polling...");
+	console.log("Starting Voltix with long polling...");
 	await bot.start({
 		onStart: (botInfo) => {
 			syncWorker.setBotTelegramId(BigInt(botInfo.id));
-			console.log(`Tele-Bot is running as @${botInfo.username} (ID: ${botInfo.id})`);
+			console.log(`Voltix is running as @${botInfo.username} (ID: ${botInfo.id})`);
 		},
 	});
 }
