@@ -272,7 +272,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			expect(backBtn.text).toContain("بازگشت به پروفایل");
 		});
 
-		it("renders up to 5 order buttons with correct emoji, service name, and date", () => {
+		it("renders up to 5 order buttons with correct emoji and service name (without date clutter)", () => {
 			const ordersList = [
 				{
 					order: new Order({
@@ -309,13 +309,10 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			expect(orderButtons).toHaveLength(2);
 
 			expect(orderButtons[0].callback_data).toBe("account:order:order-1");
-			expect(orderButtons[0].text).toContain("✅");
-			expect(orderButtons[0].text).toContain("Service 1");
-			expect(orderButtons[0].text).toContain("—");
+			expect(orderButtons[0].text).toBe("✅ Service 1");
 
 			expect(orderButtons[1].callback_data).toBe("account:order:order-2");
-			expect(orderButtons[1].text).toContain("⏳");
-			expect(orderButtons[1].text).toContain("Service 2");
+			expect(orderButtons[1].text).toBe("⏳ Service 2");
 
 			const backBtn = flatButtons.find((b) => b.callback_data === ACCOUNT_CALLBACKS.PROFILE);
 			expect(backBtn).toBeDefined();

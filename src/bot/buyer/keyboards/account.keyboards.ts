@@ -124,8 +124,7 @@ export function buildOrderHistoryListView(orders: RecentOrderWithCatalogItem[]):
 	const displayOrders = orders.slice(0, 5);
 	for (const item of displayOrders) {
 		const emoji = ORDER_STATUS_EMOJIS[item.order.status] ?? "📦";
-		const date = formatPersianDate(item.order.createdAt);
-		const buttonText = `${emoji} ${item.catalogItemName} — ${date}`;
+		const buttonText = `${emoji} ${item.catalogItemName}`;
 		keyboard.text(buttonText, `${ACCOUNT_CALLBACKS.ORDER_PREFIX}${item.order.id}`).row();
 	}
 
