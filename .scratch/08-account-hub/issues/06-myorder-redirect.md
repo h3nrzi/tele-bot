@@ -9,10 +9,10 @@
 
 **Blocked by:** 04 (the 5-order history view must exist before `/myorder` can point at it)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `/myorder` command renders the 5-order history list, not a single-order message.
-- [ ] All existing `hears` aliases for `/myorder` also render the history list.
-- [ ] `myorder.test.ts` updated; all assertions pass against the new list view.
-- [ ] Existing cancel-callback tests in `myorder.test.ts` are unaffected.
-- [ ] CI is green.
+- [x] `/myorder` command renders the 5-order history list, not a single-order message.
+- [x] All existing `hears` aliases for `/myorder` also render the history list.
+- [x] `myorder.test.ts` updated; all assertions pass against the new list view.
+- [x] Existing cancel-callback tests in `myorder.test.ts` are unaffected.
+- [x] CI is green.

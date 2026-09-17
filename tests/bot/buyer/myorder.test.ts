@@ -7,6 +7,7 @@ import { wallets } from "@/modules/wallet/wallet.schema";
 import { orders, ledgerTransactions, orderAdminNotifications } from "@/core/database/schema";
 import { eq } from "drizzle-orm";
 import { buildMyOrderView } from "@/bot/buyer/keyboards/order.keyboards";
+import { ACCOUNT_CALLBACKS, ORDER_STATUS_EMOJIS } from "@/bot/buyer/keyboards/account.keyboards";
 
 describe("Buyer /myorder Command & Order Cancellation Flow (Ticket 08)", () => {
 	const { db, container } = setupTestDatabase();
@@ -117,6 +118,10 @@ describe("Buyer /myorder Command & Order Cancellation Flow (Ticket 08)", () => {
 			answeredCallbackQueries,
 			sentMessages,
 		};
+	}
+
+	function getFlatInlineButtons(message: any): any[] {
+		return message?.reply_markup?.inline_keyboard?.flat() ?? [];
 	}
 
 	describe("MyOrder View & Keyboard Unit Logic", () => {
@@ -252,22 +257,38 @@ describe("Buyer /myorder Command & Order Cancellation Flow (Ticket 08)", () => {
 		});
 	});
 
-	describe("/myorder Command via bot.handleUpdate", () => {
-		it("shows empty-state message when buyer has never placed an order", async () => {
+	describe("/myorder Command and Hears Aliases via bot.handleUpdate (Ticket 06)", () => {
+		it("prompts unregistered buyer to send /start", async () => {
+			const { bot, repliedMessages } = createTestBot();
+
+			await bot.handleUpdate(makeMessageUpdate(99, 999111888, "/myorder", "Unregistered"));
+
+			expect(repliedMessages).toHaveLength(1);
+			expect(repliedMessages[0]).toContain("ثبت نام نکرده‌اید");
+			expect(repliedMessages[0]).toContain("/start");
+		});
+
+		it("shows empty-state message and back button when buyer has never placed an order", async () => {
 			await createTestBuyer(container, {
 				telegramChatId: buyerChatId,
 				telegramUsername: "buyer_user",
 			});
 
-			const { bot, repliedMessages } = createTestBot();
+			const { bot, repliedMessages, sentMessages } = createTestBot();
 
 			await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, "/myorder", "Buyer"));
 
 			expect(repliedMessages).toHaveLength(1);
 			expect(repliedMessages[0]).toContain("هیچ سفارشی ثبت نکرده‌اید");
+			expect(repliedMessages[0]).toContain("فروشگاه خدمات");
+
+			const flatButtons = getFlatInlineButtons(sentMessages[0]);
+			expect(flatButtons).toHaveLength(1);
+			expect(flatButtons[0]?.callback_data).toBe(ACCOUNT_CALLBACKS.PROFILE);
+			expect(flatButtons[0]?.text).toContain("بازگشت به پروفایل");
 		});
 
-		it("shows latest order details and Cancel button when status is PLACED", async () => {
+		it("renders 5-order history list with inline buttons for placed orders", async () => {
 			const { buyer, wallet } = await createTestBuyer(container, {
 				telegramChatId: buyerChatId,
 				telegramUsername: "buyer_user",
@@ -286,27 +307,73 @@ describe("Buyer /myorder Command & Order Cancellation Flow (Ticket 08)", () => {
 				catalogItemId: item.id,
 			});
 
-			const { bot, repliedMessages } = createTestBot();
+			const { bot, repliedMessages, sentMessages } = createTestBot();
 
 			await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, "/myorder", "Buyer"));
 
 			expect(repliedMessages).toHaveLength(1);
 			const text = repliedMessages[0];
-			expect(text).toContain("Spotify Premium 1 Year");
-			expect(text).toContain("$14.99");
-			expect(text).toContain(order.id);
+			expect(text).toContain("تاریخچه سفارش‌های شما");
+
+			const flatButtons = getFlatInlineButtons(sentMessages[0]);
+			const orderBtn = flatButtons.find((b: any) => b.callback_data === `account:order:${order.id}`);
+			expect(orderBtn).toBeDefined();
+			expect(orderBtn.text).toContain("Spotify Premium 1 Year");
+			expect(orderBtn.text).toContain(ORDER_STATUS_EMOJIS.PLACED);
+
+			const backBtn = flatButtons.find((b: any) => b.callback_data === ACCOUNT_CALLBACKS.PROFILE);
+			expect(backBtn).toBeDefined();
 		});
 
-		it("shows explanation notice when order is in PROCESSING status", async () => {
+		it("renders up to 5 orders in descending order and caps display when more than 5 exist", async () => {
 			const { buyer, wallet } = await createTestBuyer(container, {
 				telegramChatId: buyerChatId,
-				telegramUsername: "buyer_user",
+				telegramUsername: "multi_order_buyer",
+			});
+
+			await db.update(wallets).set({ availableBalance: "200.00" }).where(eq(wallets.id, wallet.id));
+
+			const orderIds: string[] = [];
+			for (let i = 1; i <= 6; i++) {
+				const item = await createTestCatalogItem(container, {
+					name: `Service Item ${i}`,
+					usdPrice: "10.00",
+					isActive: true,
+				});
+				const { order } = await placeTestOrder(container, {
+					userId: buyer.id,
+					catalogItemId: item.id,
+				});
+				orderIds.push(order.id);
+			}
+
+			const { bot, sentMessages } = createTestBot();
+
+			await bot.handleUpdate(makeMessageUpdate(2, buyerChatId, "/myorder", "Buyer", "multi_order_buyer"));
+
+			const flatButtons = getFlatInlineButtons(sentMessages[0]);
+			const orderButtons = flatButtons.filter((b: any) => b.callback_data.startsWith("account:order:"));
+			expect(orderButtons).toHaveLength(5);
+
+			// Order 6, 5, 4, 3, 2 are shown; Order 1 (oldest) is capped out
+			expect(orderButtons.some((b: any) => b.callback_data === `account:order:${orderIds[5]}`)).toBe(true);
+			expect(orderButtons.some((b: any) => b.callback_data === `account:order:${orderIds[4]}`)).toBe(true);
+			expect(orderButtons.some((b: any) => b.callback_data === `account:order:${orderIds[3]}`)).toBe(true);
+			expect(orderButtons.some((b: any) => b.callback_data === `account:order:${orderIds[2]}`)).toBe(true);
+			expect(orderButtons.some((b: any) => b.callback_data === `account:order:${orderIds[1]}`)).toBe(true);
+			expect(orderButtons.some((b: any) => b.callback_data === `account:order:${orderIds[0]}`)).toBe(false);
+		});
+
+		it("all existing hears aliases for /myorder render the history list", async () => {
+			const { buyer, wallet } = await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "hears_buyer",
 			});
 
 			await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
 
 			const item = await createTestCatalogItem(container, {
-				name: "Netflix 1 Month",
+				name: "Telegram Stars 500",
 				usdPrice: "12.00",
 				isActive: true,
 			});
@@ -316,20 +383,21 @@ describe("Buyer /myorder Command & Order Cancellation Flow (Ticket 08)", () => {
 				catalogItemId: item.id,
 			});
 
-			await claimTestOrder(container, {
-				orderId: order.id,
-				adminTelegramId: BigInt(adminChatId),
-				adminUsername: "admin_ops",
-			});
+			const aliases = ["📦 آخرین سفارش", "آخرین سفارش", "پیگیری سفارش", "سفارش من", "وضعیت سفارش"];
 
-			const { bot, repliedMessages } = createTestBot();
+			for (let i = 0; i < aliases.length; i++) {
+				const alias = aliases[i]!;
+				const { bot, repliedMessages, sentMessages } = createTestBot();
 
-			await bot.handleUpdate(makeMessageUpdate(1, buyerChatId, "/myorder", "Buyer"));
+				await bot.handleUpdate(makeMessageUpdate(10 + i, buyerChatId, alias, "Buyer", "hears_buyer"));
 
-			expect(repliedMessages).toHaveLength(1);
-			const text = repliedMessages[0];
-			expect(text).toContain("Netflix 1 Month");
-			expect(text).toContain("امکان لغو آن وجود ندارد");
+				expect(repliedMessages).toHaveLength(1);
+				expect(repliedMessages[0]).toContain("تاریخچه سفارش‌های شما");
+
+				const flatButtons = getFlatInlineButtons(sentMessages[0]);
+				const orderBtn = flatButtons.find((b: any) => b.callback_data === `account:order:${order.id}`);
+				expect(orderBtn).toBeDefined();
+			}
 		});
 	});
 

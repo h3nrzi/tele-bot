@@ -137,6 +137,13 @@ export function createBuyerComposer(options?: BuyerComposerOptions): Composer<Bo
 	});
 
 	composer.hears(
+		["📦 آخرین سفارش", "آخرین سفارش", "پیگیری سفارش", "سفارش من", "وضعیت سفارش"],
+		async (ctx) => {
+			await handleMyOrderCommand(ctx, orderService);
+		},
+	);
+
+	composer.hears(
 		[
 			"💳 مدیریت کیف پول",
 			"💰 مدیریت کیف پول",

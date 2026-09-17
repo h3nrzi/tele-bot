@@ -1,10 +1,16 @@
 import type { Context } from "grammy";
 import { InlineKeyboard } from "grammy";
 import type { OrderService } from "@/modules/order/order.service";
-import { buildMyOrderView } from "@/bot/buyer/keyboards/order.keyboards";
+import type { RecentOrderWithCatalogItem } from "@/modules/order/dtos/order.dto";
+import { buildOrderHistoryListView } from "@/bot/buyer/keyboards/account.keyboards";
 import { formatUsd } from "@/core/shared/currency.utils";
 import { isValidUuid } from "@/core/shared/telegram.utils";
-import { InvalidOrderStatusError, OrderNotFoundError, OrderNotOwnedByBuyerError } from "@/modules/order/order.errors";
+import {
+	InvalidOrderStatusError,
+	OrderNotFoundError,
+	OrderNotOwnedByBuyerError,
+} from "@/modules/order/order.errors";
+import { BuyerNotFoundError } from "@/modules/buyer/buyer.errors";
 
 export interface BuyerCancelOrderDependencies {
 	orderService: OrderService;
@@ -12,7 +18,7 @@ export interface BuyerCancelOrderDependencies {
 
 /**
  * Handles the /myorder Buyer command and menu buttons.
- * Displays the most recent Order status, Catalog Item name, and Price Snapshot.
+ * Displays the recent 5 Orders as an Order History list view.
  */
 export async function handleMyOrderCommand(ctx: Context, orderService: OrderService): Promise<void> {
 	const sender = ctx.from;
@@ -20,11 +26,18 @@ export async function handleMyOrderCommand(ctx: Context, orderService: OrderServ
 		return;
 	}
 
-	const latestResult = await orderService.getLatestOrderForBuyer({
-		telegramChatId: sender.id,
-	});
+	let recentOrders: RecentOrderWithCatalogItem[] = [];
+	try {
+		recentOrders = await orderService.getRecentOrdersForBuyer(sender.id);
+	} catch (err: any) {
+		if (err instanceof BuyerNotFoundError) {
+			await ctx.reply("شما هنوز در ربات ثبت نام نکرده‌اید. لطفاً با ارسال /start ثبت نام خود را انجام دهید.");
+			return;
+		}
+		throw err;
+	}
 
-	const { messageText, keyboard } = buildMyOrderView(latestResult?.order ?? null, latestResult?.catalogItem ?? null);
+	const { messageText, keyboard } = buildOrderHistoryListView(recentOrders);
 
 	try {
 		await ctx.reply(messageText, {
