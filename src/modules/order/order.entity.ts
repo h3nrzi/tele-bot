@@ -1,4 +1,5 @@
 import { UsdAmount } from "@/core/shared/money.vo";
+import type { FulfillmentStrategy } from "@/modules/catalog/catalog.entity";
 
 export type OrderStatus = "PLACED" | "PROCESSING" | "FULFILLED" | "REJECTED" | "CANCELLED";
 
@@ -8,6 +9,8 @@ export interface OrderProps {
 	catalogItemId: string;
 	usdPriceSnapshot: string | UsdAmount;
 	status: OrderStatus;
+	fulfillmentStrategySnapshot?: FulfillmentStrategy | undefined;
+	buyerInputs?: Record<string, unknown> | null | undefined;
 	deliveryContent?: string | null;
 	rejectionCategory?: string | null;
 	rejectionNote?: string | null;
@@ -30,6 +33,8 @@ export class Order {
 	public readonly catalogItemId: string;
 	private readonly _usdPriceSnapshot: UsdAmount;
 	public readonly status: OrderStatus;
+	public readonly fulfillmentStrategySnapshot: FulfillmentStrategy;
+	public readonly buyerInputs: Record<string, unknown> | null;
 	public readonly deliveryContent: string | null;
 	public readonly rejectionCategory: string | null;
 	public readonly rejectionNote: string | null;
@@ -48,6 +53,8 @@ export class Order {
 		this._usdPriceSnapshot =
 			props.usdPriceSnapshot instanceof UsdAmount ? props.usdPriceSnapshot : new UsdAmount(props.usdPriceSnapshot);
 		this.status = props.status;
+		this.fulfillmentStrategySnapshot = props.fulfillmentStrategySnapshot ?? "PAYLOAD_DELIVERY";
+		this.buyerInputs = props.buyerInputs ?? null;
 		this.deliveryContent = props.deliveryContent ?? null;
 		this.rejectionCategory = props.rejectionCategory ?? null;
 		this.rejectionNote = props.rejectionNote ?? null;

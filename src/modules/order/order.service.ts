@@ -137,6 +137,8 @@ export class OrderService {
 					catalogItemId: catalogItem.id,
 					usdPriceSnapshot: priceSnapshot,
 					status: "PLACED",
+					fulfillmentStrategySnapshot: catalogItem.fulfillmentStrategy,
+					buyerInputs: input.buyerInputs ?? null,
 				},
 				tx,
 			);

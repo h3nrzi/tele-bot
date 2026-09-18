@@ -15,6 +15,7 @@ import { registerWallexModule } from "@/modules/wallex/wallex.module";
 import { registerOtcPurchaseModule } from "@/modules/otc-purchase/otc-purchase.module";
 import type { WallexClient } from "@/modules/wallex/wallex.client.interface";
 import type { WallexConfig } from "@/modules/wallex/wallex.config";
+import { CredentialCryptoService, type ICredentialCryptoService } from "@/core/crypto";
 
 export interface AppContainerOptions {
 	dbClient?: DbClient | undefined;
@@ -22,6 +23,7 @@ export interface AppContainerOptions {
 	topUpLimits?: TopUpLimits | undefined;
 	wallexClient?: WallexClient | undefined;
 	wallexConfig?: WallexConfig | undefined;
+	credentialCryptoService?: ICredentialCryptoService | undefined;
 	child?: boolean | undefined;
 }
 
@@ -74,7 +76,7 @@ export function createAppContainer(options?: AppContainerOptions): DependencyCon
 	registerWallexModule(targetContainer);
 	registerOtcPurchaseModule(targetContainer);
 
-	// 4. Client/Config overrides
+	// 4. Client/Config/Service overrides
 	if (options?.wallexConfig) {
 		targetContainer.register(TOKENS.WallexConfig, {
 			useValue: options.wallexConfig,
@@ -83,6 +85,15 @@ export function createAppContainer(options?: AppContainerOptions): DependencyCon
 	if (options?.wallexClient) {
 		targetContainer.register(TOKENS.WallexClient, {
 			useValue: options.wallexClient,
+		});
+	}
+	if (options?.credentialCryptoService) {
+		targetContainer.register(TOKENS.CredentialCryptoService, {
+			useValue: options.credentialCryptoService,
+		});
+	} else {
+		targetContainer.register(TOKENS.CredentialCryptoService, {
+			useFactory: () => new CredentialCryptoService(),
 		});
 	}
 

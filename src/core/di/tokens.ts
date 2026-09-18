@@ -40,6 +40,7 @@ export const TOKENS = {
 	OrderNotifier: Symbol("OrderNotifier"),
 	OtcPurchaseService: Symbol("OtcPurchaseService"),
 	OtcPurchaseNotifier: Symbol("OtcPurchaseNotifier"),
+	CredentialCryptoService: Symbol("CredentialCryptoService"),
 	BaselineRateSyncWorker: Symbol("BaselineRateSyncWorker"),
 	AutoSyncRateLock: Symbol("AutoSyncRateLock"),
 	ManualRateLock: Symbol("ManualRateLock"),

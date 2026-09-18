@@ -37,6 +37,10 @@ export class DrizzleOrderRepository implements IOrderRepository<DbExecutor> {
 				catalogItemId: params.catalogItemId,
 				usdPriceSnapshot: priceStr,
 				status: params.status ?? "PLACED",
+				...(params.fulfillmentStrategySnapshot !== undefined
+					? { fulfillmentStrategySnapshot: params.fulfillmentStrategySnapshot }
+					: {}),
+				...(params.buyerInputs !== undefined ? { buyerInputs: params.buyerInputs } : {}),
 			})
 			.returning();
 
@@ -276,6 +280,9 @@ export class DrizzleOrderRepository implements IOrderRepository<DbExecutor> {
 		if (fields?.rejectionNote !== undefined) {
 			updateValues.rejectionNote = fields.rejectionNote;
 		}
+		if (fields?.buyerInputs !== undefined) {
+			updateValues.buyerInputs = fields.buyerInputs;
+		}
 
 		const [row] = await db.update(orders).set(updateValues).where(eq(orders.id, id)).returning();
 
@@ -293,6 +300,8 @@ export class DrizzleOrderRepository implements IOrderRepository<DbExecutor> {
 			catalogItemId: row.catalogItemId,
 			usdPriceSnapshot: row.usdPriceSnapshot,
 			status: row.status,
+			fulfillmentStrategySnapshot: row.fulfillmentStrategySnapshot,
+			buyerInputs: row.buyerInputs,
 			deliveryContent: row.deliveryContent,
 			rejectionCategory: row.rejectionCategory,
 			rejectionNote: row.rejectionNote,

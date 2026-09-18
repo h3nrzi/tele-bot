@@ -10,11 +10,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Database schema includes `catalog_type` and `fulfillment_strategy` enums, new columns on `catalog_items` and `orders`, and migrations run cleanly.
-- [ ] Domain entities and repository layer expose the new polymorphic fields.
-- [ ] Credential crypto service encrypts plaintext strings into `{ ciphertext, iv, tag }` and successfully decrypts them using AES-256-GCM.
-- [ ] Attempting decryption with an invalid key, corrupted tag, or tampered ciphertext throws an error.
-- [ ] Missing or invalid `CREDENTIALS_ENCRYPTION_KEY` environment variable fails fast on startup or crypto service invocation.
-- [ ] All existing automated tests continue to pass.
+- [x] Database schema includes `catalog_type` and `fulfillment_strategy` enums, new columns on `catalog_items` and `orders`, and migrations run cleanly.
+- [x] Domain entities and repository layer expose the new polymorphic fields.
+- [x] Credential crypto service encrypts plaintext strings into `{ ciphertext, iv, tag }` and successfully decrypts them using AES-256-GCM.
+- [x] Attempting decryption with an invalid key, corrupted tag, or tampered ciphertext throws an error.
+- [x] Missing or invalid `CREDENTIALS_ENCRYPTION_KEY` environment variable fails fast on startup or crypto service invocation.
+- [x] All existing automated tests continue to pass.

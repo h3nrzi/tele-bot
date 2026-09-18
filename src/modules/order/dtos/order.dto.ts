@@ -9,6 +9,7 @@ export interface PlaceOrderInput {
 	userId?: string | undefined;
 	telegramChatId?: bigint | number | undefined;
 	catalogItemId: string;
+	buyerInputs?: Record<string, unknown> | null | undefined;
 }
 
 export interface OrderAdminNotificationPayload {

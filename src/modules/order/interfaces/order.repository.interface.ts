@@ -1,4 +1,5 @@
 import type { Order, OrderAdminNotification, OrderStatus } from "@/modules/order/order.entity";
+import type { FulfillmentStrategy } from "@/modules/catalog/catalog.entity";
 import type { UsdAmount } from "@/core/shared/money.vo";
 import type { AdminOrderQueueItem, RecentOrderWithCatalogItem, OrderCountBreakdownResult } from "@/modules/order/dtos/order.dto";
 
@@ -7,6 +8,8 @@ export interface CreateOrderParams {
 	catalogItemId: string;
 	usdPriceSnapshot: UsdAmount | string;
 	status?: OrderStatus | undefined;
+	fulfillmentStrategySnapshot?: FulfillmentStrategy | undefined;
+	buyerInputs?: Record<string, unknown> | null | undefined;
 }
 
 export interface CreateOrderAdminNotificationParams {
@@ -25,6 +28,7 @@ export interface UpdateOrderStatusFields {
 	deliveryContent?: string | null | undefined;
 	rejectionCategory?: string | null | undefined;
 	rejectionNote?: string | null | undefined;
+	buyerInputs?: Record<string, unknown> | null | undefined;
 	updatedAt?: Date | undefined;
 }
 

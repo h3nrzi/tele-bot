@@ -475,9 +475,35 @@ describe("Database Migrations", () => {
 		expect(entryFkMap["wallet_id"]).toEqual({ table: "wallets", col: "id" });
 	});
 
+	it("creates the catalog_type enum with all required values", async () => {
+		const res = await pool.query(`
+      SELECT e.enumlabel
+      FROM pg_type t
+      JOIN pg_enum e ON t.oid = e.enumtypid
+      WHERE t.typname = 'catalog_type'
+      ORDER BY e.enumsortorder
+    `);
+		const enumLabels = res.rows.map((row) => row.enumlabel);
+
+		expect(enumLabels).toEqual(["STATIC_DELIVERY", "DIRECT_ACCOUNT", "IDENTITY_HANDLE", "CONFIG_VPN"]);
+	});
+
+	it("creates the fulfillment_strategy enum with all required values", async () => {
+		const res = await pool.query(`
+      SELECT e.enumlabel
+      FROM pg_type t
+      JOIN pg_enum e ON t.oid = e.enumtypid
+      WHERE t.typname = 'fulfillment_strategy'
+      ORDER BY e.enumsortorder
+    `);
+		const enumLabels = res.rows.map((row) => row.enumlabel);
+
+		expect(enumLabels).toEqual(["PAYLOAD_DELIVERY", "ACTIVATION", "AUTOMATED_PANEL"]);
+	});
+
 	it("creates the catalog_items table with the required columns, types, and defaults", async () => {
 		const res = await pool.query(`
-      SELECT column_name, data_type, is_nullable, column_default
+      SELECT column_name, data_type, udt_name, is_nullable, column_default
       FROM information_schema.columns
       WHERE table_name = 'catalog_items'
     `);
@@ -486,6 +512,7 @@ describe("Database Migrations", () => {
 				r.column_name,
 				{
 					type: r.data_type,
+					udt: r.udt_name,
 					nullable: r.is_nullable,
 					default: r.column_default,
 				},
@@ -498,21 +525,42 @@ describe("Database Migrations", () => {
 
 		expect(cols["name"]).toEqual({
 			type: "character varying",
+			udt: "varchar",
 			nullable: "NO",
 			default: null,
 		});
 		expect(cols["description"]).toEqual({
 			type: "text",
+			udt: "text",
 			nullable: "YES",
 			default: null,
 		});
 		expect(cols["usd_price"]).toEqual({
 			type: "numeric",
+			udt: "numeric",
 			nullable: "NO",
 			default: null,
 		});
 		expect(cols["is_active"].type).toBe("boolean");
 		expect(cols["is_active"].nullable).toBe("NO");
+		expect(cols["catalog_type"]).toEqual({
+			type: "USER-DEFINED",
+			udt: "catalog_type",
+			nullable: "NO",
+			default: "'STATIC_DELIVERY'::catalog_type",
+		});
+		expect(cols["fulfillment_strategy"]).toEqual({
+			type: "USER-DEFINED",
+			udt: "fulfillment_strategy",
+			nullable: "NO",
+			default: "'PAYLOAD_DELIVERY'::fulfillment_strategy",
+		});
+		expect(cols["requirement_config"]).toEqual({
+			type: "jsonb",
+			udt: "jsonb",
+			nullable: "YES",
+			default: null,
+		});
 		expect(cols["created_at"].type).toBe("timestamp with time zone");
 		expect(cols["created_at"].nullable).toBe("NO");
 		expect(cols["updated_at"].type).toBe("timestamp with time zone");
@@ -562,6 +610,16 @@ describe("Database Migrations", () => {
 			type: "USER-DEFINED",
 			udt: "order_status",
 			nullable: "NO",
+		});
+		expect(cols["fulfillment_strategy_snapshot"]).toEqual({
+			type: "USER-DEFINED",
+			udt: "fulfillment_strategy",
+			nullable: "NO",
+		});
+		expect(cols["buyer_inputs"]).toEqual({
+			type: "jsonb",
+			udt: "jsonb",
+			nullable: "YES",
 		});
 		expect(cols["delivery_content"]).toEqual({
 			type: "text",
