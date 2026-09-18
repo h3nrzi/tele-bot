@@ -8,10 +8,10 @@
 
 **Blocked by:** 01 (Credential Crypto Service & Polymorphic Catalog Data Model), 03 (Buyer Pre-Placement Requirement Flow & Atomic Order Placement)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Initial broadcast notification to Admins shows non-sensitive inputs and masks the password.
-- [ ] Tapping `[▶ شروع پردازش]` decrypts the password and edits only the claiming Admin's message to reveal the credentials.
-- [ ] Non-claiming Admins see the claimed status with credentials remaining strictly masked.
-- [ ] Decrypted credentials are never logged to console or stored in unencrypted form.
-- [ ] End-to-end bot tests verify notification broadcast masking and claim-gated credential reveal.
+- [x] Initial broadcast notification to Admins shows non-sensitive inputs and masks the password.
+- [x] Tapping `[▶ شروع پردازش]` decrypts the password and edits only the claiming Admin's message to reveal the credentials.
+- [x] Non-claiming Admins see the claimed status with credentials remaining strictly masked.
+- [x] Decrypted credentials are never logged to console or stored in unencrypted form.
+- [x] End-to-end bot tests verify notification broadcast masking and claim-gated credential reveal.

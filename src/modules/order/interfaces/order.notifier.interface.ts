@@ -14,6 +14,10 @@ export interface OnOrderClaimedContext {
 	notifications: OrderAdminNotification[];
 	claimedByAdminTelegramId: bigint;
 	claimedByAdminUsername?: string | null | undefined;
+	catalogItem?: CatalogItem | undefined;
+	buyer?: Buyer | undefined;
+	revealedPassword?: string | undefined;
+	buyerBalance?: string | undefined;
 }
 
 export interface OnOrderFulfilledContext {

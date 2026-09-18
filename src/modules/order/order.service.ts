@@ -39,6 +39,7 @@ import {
 	OrderNotOwnedByBuyerError,
 	OrderRejectionNoteRequiredError,
 } from "@/modules/order/order.errors";
+import type { ICredentialCryptoService, EncryptedCredential } from "@/core/crypto/credential-crypto.interface";
 import type { IOrderNotifier } from "@/modules/order/interfaces/order.notifier.interface";
 import type { IOrderRepository } from "@/modules/order/interfaces/order.repository.interface";
 import type { Wallet } from "@/modules/wallet/wallet.entity";
@@ -62,6 +63,8 @@ export class OrderService {
 		private readonly ledgerService: LedgerService,
 		@inject(TOKENS.OrderNotifier)
 		private readonly notifier?: IOrderNotifier,
+		@inject(TOKENS.CredentialCryptoService)
+		private readonly cryptoService?: ICredentialCryptoService,
 	) {}
 
 	private async resolveBuyer(
@@ -259,17 +262,41 @@ export class OrderService {
 			claimedOrder = await executeClaim(client);
 		}
 
-		// 2. Fetch admin notifications for this order
+		// 2. Fetch admin notifications and order context
 		const notifications = await this.orderRepo.getAdminNotifications(claimedOrder.id, client);
+		const catalogItem = await this.catalogRepo.findById(claimedOrder.catalogItemId, client);
+		const buyer = await this.buyerRepo.findById(claimedOrder.userId, client);
+		const wallet = await this.walletRepo.findByUserId(claimedOrder.userId, client);
+
+		let revealedPassword: string | undefined;
+		const buyerInputs = claimedOrder.buyerInputs as Record<string, any> | null;
+		if (
+			this.cryptoService &&
+			buyerInputs?.password &&
+			typeof buyerInputs.password === "object" &&
+			"ciphertext" in buyerInputs.password &&
+			"iv" in buyerInputs.password &&
+			"tag" in buyerInputs.password
+		) {
+			try {
+				revealedPassword = this.cryptoService.decrypt(buyerInputs.password as EncryptedCredential);
+			} catch {
+				console.error(`Failed to decrypt credentials for order ${claimedOrder.id}`);
+			}
+		}
 
 		// 3. Dispatch admin notification updates (outside transaction, fire-and-forget)
 		if (this.notifier) {
 			try {
 				await this.notifier.onOrderClaimed({
 					order: claimedOrder,
+					catalogItem: catalogItem ?? undefined,
+					buyer: buyer ?? undefined,
 					notifications,
 					claimedByAdminTelegramId: BigInt(input.adminTelegramId),
 					claimedByAdminUsername: input.adminUsername,
+					revealedPassword,
+					buyerBalance: wallet?.availableBalance,
 				});
 			} catch (notifyErr) {
 				console.error(`Failed to update admin notifications for claimed order ${claimedOrder.id}:`, notifyErr);
