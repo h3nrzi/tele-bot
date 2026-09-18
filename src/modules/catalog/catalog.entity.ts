@@ -3,6 +3,17 @@ import { UsdAmount } from "@/core/shared/money.vo";
 export type CatalogType = "STATIC_DELIVERY" | "DIRECT_ACCOUNT" | "IDENTITY_HANDLE" | "CONFIG_VPN";
 export type FulfillmentStrategy = "PAYLOAD_DELIVERY" | "ACTIVATION" | "AUTOMATED_PANEL";
 
+export const DEFAULT_CATALOG_STRATEGY: Record<CatalogType, FulfillmentStrategy> = {
+	STATIC_DELIVERY: "PAYLOAD_DELIVERY",
+	DIRECT_ACCOUNT: "ACTIVATION",
+	IDENTITY_HANDLE: "ACTIVATION",
+	CONFIG_VPN: "PAYLOAD_DELIVERY",
+};
+
+export interface VpnRequirementConfig {
+	allowedRegions: string[];
+}
+
 export interface CatalogItemProps {
 	id: string;
 	name: string;

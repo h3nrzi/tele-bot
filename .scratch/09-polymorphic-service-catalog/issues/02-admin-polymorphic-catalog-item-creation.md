@@ -8,11 +8,11 @@
 
 **Blocked by:** 01 (Credential Crypto Service & Polymorphic Catalog Data Model)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Admin adding a catalog item is prompted to select a `CatalogType` via inline buttons.
-- [ ] The conversation auto-suggests the matching default `FulfillmentStrategy` and allows confirmation or override.
-- [ ] Selecting `CONFIG_VPN` allows configuring server region options saved into `requirement_config`.
-- [ ] Preview prompt shows catalog type, fulfillment strategy, price, and region options prior to final confirmation.
-- [ ] Newly created polymorphic items persist correctly to the database with active status.
-- [ ] End-to-end bot tests cover creating each catalog item type with its respective fulfillment strategy.
+- [x] Admin adding a catalog item is prompted to select a `CatalogType` via inline buttons.
+- [x] The conversation auto-suggests the matching default `FulfillmentStrategy` and allows confirmation or override.
+- [x] Selecting `CONFIG_VPN` allows configuring server region options saved into `requirement_config`.
+- [x] Preview prompt shows catalog type, fulfillment strategy, price, and region options prior to final confirmation.
+- [x] Newly created polymorphic items persist correctly to the database with active status.
+- [x] End-to-end bot tests cover creating each catalog item type with its respective fulfillment strategy.

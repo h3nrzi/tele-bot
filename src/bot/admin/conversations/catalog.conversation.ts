@@ -9,9 +9,17 @@ import {
 	getSkipInlineKeyboard,
 	getKeepInlineKeyboard,
 	getConfirmationInlineKeyboard,
+	getCatalogTypeSelectionKeyboard,
+	getCatalogStrategySelectionKeyboard,
+	getVpnRegionPresetsKeyboard,
+	CATALOG_TYPE_LABELS,
+	FULFILLMENT_STRATEGY_LABELS,
+	DEFAULT_CATALOG_STRATEGY,
+	VPN_REGION_PRESETS,
+	formatRequirementRegions,
 	type CatalogItemViewData,
 } from "@/bot/admin/keyboards/catalog.keyboards";
-import type { CatalogItem } from "@/modules/catalog/catalog.entity";
+import type { CatalogItem, CatalogType, FulfillmentStrategy } from "@/modules/catalog/catalog.entity";
 
 export type AddCatalogItemConversation = BotConversation;
 export type EditCatalogItemConversation = BotConversation;
@@ -117,6 +125,9 @@ async function refreshAndSendDashboard(
 			description: item.description,
 			usdPrice: item.usdPrice,
 			isActive: item.isActive,
+			catalogType: item.catalogType,
+			fulfillmentStrategy: item.fulfillmentStrategy,
+			requirementConfig: item.requirementConfig,
 		}));
 	});
 
@@ -126,7 +137,15 @@ async function refreshAndSendDashboard(
 
 /**
  * Creates the grammY conversation for Admin adding a new Catalog Item.
- * Flow: prompt name -> description (with [Skip] option) -> price -> confirmation -> create & refresh dashboard.
+ * Flow:
+ *  1. prompt name
+ *  2. description (with [Skip] option)
+ *  3. catalogType (inline buttons)
+ *  4. fulfillmentStrategy (auto-suggest default with option to confirm or override)
+ *  5. allowed regions (if CONFIG_VPN, presets or custom text)
+ *  6. price
+ *  7. preview & confirmation
+ *  8. create & refresh dashboard
  */
 export function createAddCatalogItemConversation(catalogService: CatalogService) {
 	return async function addCatalogItem(conversation: AddCatalogItemConversation, ctx: Context): Promise<void> {
@@ -198,7 +217,175 @@ export function createAddCatalogItemConversation(catalogService: CatalogService)
 			description = descText.trim() || null;
 		}
 
-		// Step 3: Prompt USD Price
+		// Step 3: Prompt CatalogType (inline buttons)
+		await ctx.reply("🗂 لطفاً نوع خدمت را از گزینه‌های زیر انتخاب کنید:", {
+			reply_markup: getCatalogTypeSelectionKeyboard(),
+		});
+
+		let catalogType: CatalogType;
+		while (true) {
+			const typeCtx = await conversation.wait();
+			const typeText = typeCtx.message?.text ?? "";
+			const typeCallback = typeCtx.callbackQuery?.data;
+
+			if (typeCallback === "flow:cancel" || isCancelCommand(typeText)) {
+				if (typeCtx.callbackQuery) {
+					try {
+						await typeCtx.answerCallbackQuery();
+					} catch {}
+				}
+				await typeCtx.reply("❌ عملیات افزودن خدمت جدید لغو شد.");
+				return;
+			}
+
+			const matchType = typeCallback?.match(
+				/^catalog:type:(STATIC_DELIVERY|DIRECT_ACCOUNT|IDENTITY_HANDLE|CONFIG_VPN)$/,
+			);
+			if (matchType && matchType[1]) {
+				if (typeCtx.callbackQuery) {
+					try {
+						await typeCtx.answerCallbackQuery();
+					} catch {}
+				}
+				catalogType = matchType[1] as CatalogType;
+				break;
+			}
+
+			const trimmed = typeText.trim().toUpperCase();
+			if (
+				trimmed === "STATIC_DELIVERY" ||
+				trimmed === "DIRECT_ACCOUNT" ||
+				trimmed === "IDENTITY_HANDLE" ||
+				trimmed === "CONFIG_VPN"
+			) {
+				catalogType = trimmed as CatalogType;
+				break;
+			}
+
+			await typeCtx.reply("❌ نوع خدمت نامعتبر است. لطفاً یکی از گزینه‌های زیر را انتخاب کنید:", {
+				reply_markup: getCatalogTypeSelectionKeyboard(),
+			});
+		}
+
+		// Step 4: Prompt FulfillmentStrategy (auto-suggest default with option to override)
+		const suggestedStrategy = DEFAULT_CATALOG_STRATEGY[catalogType];
+		await ctx.reply(
+			`⚙️ نحوه تحویل و انجام سفارش (استراتژی):\n\n` +
+				`پیشنهاد خودکار برای این نوع خدمت: *${FULFILLMENT_STRATEGY_LABELS[suggestedStrategy]}*\n\n` +
+				`می‌توانید استراتژی پیشنهادی را تایید کنید یا استراتژی دیگری انتخاب نمایید:`,
+			{
+				parse_mode: "Markdown",
+				reply_markup: getCatalogStrategySelectionKeyboard(suggestedStrategy),
+			},
+		);
+
+		let fulfillmentStrategy: FulfillmentStrategy;
+		while (true) {
+			const stratCtx = await conversation.wait();
+			const stratText = stratCtx.message?.text ?? "";
+			const stratCallback = stratCtx.callbackQuery?.data;
+
+			if (stratCallback === "flow:cancel" || isCancelCommand(stratText)) {
+				if (stratCtx.callbackQuery) {
+					try {
+						await stratCtx.answerCallbackQuery();
+					} catch {}
+				}
+				await stratCtx.reply("❌ عملیات افزودن خدمت جدید لغو شد.");
+				return;
+			}
+
+			if (stratCallback === "catalog:strategy:confirm_default" || isConfirmCommand(stratText)) {
+				if (stratCtx.callbackQuery) {
+					try {
+						await stratCtx.answerCallbackQuery();
+					} catch {}
+				}
+				fulfillmentStrategy = suggestedStrategy;
+				break;
+			}
+
+			const overrideMatch = stratCallback?.match(
+				/^catalog:strategy:(?:override:)?(PAYLOAD_DELIVERY|ACTIVATION|AUTOMATED_PANEL)$/,
+			);
+			if (overrideMatch && overrideMatch[1]) {
+				if (stratCtx.callbackQuery) {
+					try {
+						await stratCtx.answerCallbackQuery();
+					} catch {}
+				}
+				fulfillmentStrategy = overrideMatch[1] as FulfillmentStrategy;
+				break;
+			}
+
+			const stratUpper = stratText.trim().toUpperCase();
+			if (stratUpper === "PAYLOAD_DELIVERY" || stratUpper === "ACTIVATION" || stratUpper === "AUTOMATED_PANEL") {
+				fulfillmentStrategy = stratUpper as FulfillmentStrategy;
+				break;
+			}
+
+			await stratCtx.reply("❌ لطفاً استراتژی پیشنهادی را تایید کنید یا یکی از گزینه‌های موجود را انتخاب کنید:", {
+				reply_markup: getCatalogStrategySelectionKeyboard(suggestedStrategy),
+			});
+		}
+
+		// Step 5: If CONFIG_VPN, prompt server region presets or custom regions
+		let requirementConfig: Record<string, unknown> | null = null;
+		if (catalogType === "CONFIG_VPN") {
+			await ctx.reply(
+				`🌐 انتخاب مناطق سرور مجاز (VPN)\n\n` +
+					`لطفاً یکی از پیش‌فرض‌های زیر را انتخاب کنید یا کدهای مناطق مورد نظر را تایپ و ارسال نمایید (مثال: de, nl, fi):`,
+				{
+					reply_markup: getVpnRegionPresetsKeyboard(),
+				},
+			);
+
+			while (true) {
+				const regionCtx = await conversation.wait();
+				const regionText = regionCtx.message?.text ?? "";
+				const regionCallback = regionCtx.callbackQuery?.data;
+
+				if (regionCallback === "flow:cancel" || isCancelCommand(regionText)) {
+					if (regionCtx.callbackQuery) {
+						try {
+							await regionCtx.answerCallbackQuery();
+						} catch {}
+					}
+					await regionCtx.reply("❌ عملیات افزودن خدمت جدید لغو شد.");
+					return;
+				}
+
+				const presetMatch = regionCallback?.match(/^catalog:region:preset:(.+)$/);
+				if (presetMatch && presetMatch[1]) {
+					if (regionCtx.callbackQuery) {
+						try {
+							await regionCtx.answerCallbackQuery();
+						} catch {}
+					}
+					const foundPreset = VPN_REGION_PRESETS.find((p) => p.code === presetMatch[1]);
+					const allowedRegions = foundPreset ? foundPreset.regions : [presetMatch[1]];
+					requirementConfig = { allowedRegions };
+					break;
+				}
+
+				if (regionText.trim().length > 0) {
+					const rawTokens = regionText
+						.split(/[,\s]+/)
+						.map((t) => t.trim().toLowerCase())
+						.filter(Boolean);
+					if (rawTokens.length > 0) {
+						requirementConfig = { allowedRegions: rawTokens };
+						break;
+					}
+				}
+
+				await regionCtx.reply("❌ لطفاً یک پیش‌فرض را انتخاب کنید یا کدهای مناطق را به صورت متن ارسال نمایید:", {
+					reply_markup: getVpnRegionPresetsKeyboard(),
+				});
+			}
+		}
+
+		// Step 6: Prompt USD Price
 		await ctx.reply("لطفاً قیمت خدمت به دلار ($) را وارد کنید (مثال: 15.00):", {
 			reply_markup: new InlineKeyboard().text("❌ انصراف", "flow:cancel"),
 		});
@@ -230,12 +417,19 @@ export function createAddCatalogItemConversation(catalogService: CatalogService)
 			});
 		}
 
-		// Step 4: Confirmation (with inline buttons)
+		// Step 7: Confirmation (with inline buttons)
 		const descLine = description ? `\n📝 توضیحات: ${description}` : "\n📝 توضیحات: ندارد";
+		const typeLine = `\n🗂 نوع خدمت: ${CATALOG_TYPE_LABELS[catalogType]}`;
+		const stratLine = `\n⚙️ نحوه تحویل: ${FULFILLMENT_STRATEGY_LABELS[fulfillmentStrategy]}`;
+		const regionsLine = formatRequirementRegions(requirementConfig);
+
 		await ctx.reply(
 			`📋 پیش‌نمایش خدمت جدید:\n\n` +
 				`🏷 نام: ${name}` +
 				descLine +
+				typeLine +
+				stratLine +
+				regionsLine +
 				`\n💰 قیمت: $${usdPrice}\n\n` +
 				`آیا اطلاعات فوق را تایید می‌کنید؟`,
 			{
@@ -267,12 +461,15 @@ export function createAddCatalogItemConversation(catalogService: CatalogService)
 			} catch {}
 		}
 
-		// Step 5: Save & Refresh
+		// Step 8: Save & Refresh
 		const createdItem = await conversation.external(async () => {
 			const item = await catalogService.createCatalogItem({
 				name,
 				description,
 				usdPrice,
+				catalogType,
+				fulfillmentStrategy,
+				requirementConfig,
 			});
 			return {
 				id: item.id,
@@ -280,10 +477,18 @@ export function createAddCatalogItemConversation(catalogService: CatalogService)
 				description: item.description,
 				usdPrice: item.usdPrice,
 				isActive: item.isActive,
+				catalogType: item.catalogType,
+				fulfillmentStrategy: item.fulfillmentStrategy,
+				requirementConfig: item.requirementConfig,
 			};
 		});
 
-		await confirmCtx.reply(`✅ خدمت «${createdItem.name}» با موفقیت ایجاد شد!\n\nقیمت: $${createdItem.usdPrice}`);
+		await confirmCtx.reply(
+			`✅ خدمت «${createdItem.name}» با موفقیت ایجاد شد!\n\n` +
+				`نوع: ${CATALOG_TYPE_LABELS[createdItem.catalogType]}\n` +
+				`استراتژی: ${FULFILLMENT_STRATEGY_LABELS[createdItem.fulfillmentStrategy]}\n` +
+				`قیمت: $${createdItem.usdPrice}`,
+		);
 
 		await refreshAndSendDashboard(conversation, catalogService, confirmCtx);
 	};
