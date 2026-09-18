@@ -326,7 +326,7 @@ export class OrderService {
 	public async fulfilOrder(input: FulfilOrderInput, executor?: DbExecutor): Promise<FulfilOrderResult> {
 		const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 		const adminTelegramId = BigInt(input.adminTelegramId);
-		const trimmedDeliveryContent = input.deliveryContent.trim();
+		const trimmedDeliveryContent = input.deliveryContent?.trim() || null;
 
 		const executeFulfilment = async (tx: DbExecutor): Promise<{ order: Order; buyer: Buyer }> => {
 			// 1a. Lock order row
@@ -351,11 +351,14 @@ export class OrderService {
 
 			// 1d. Update to FULFILLED
 			const now = new Date();
+			const deliveryContentToPersist =
+				order.fulfillmentStrategySnapshot === "ACTIVATION" ? null : trimmedDeliveryContent;
+
 			const updatedOrder = await this.orderRepo.updateStatus(
 				order.id,
 				"FULFILLED",
 				{
-					deliveryContent: trimmedDeliveryContent,
+					deliveryContent: deliveryContentToPersist,
 					fulfilledAt: now,
 					updatedAt: now,
 				},
@@ -393,7 +396,7 @@ export class OrderService {
 				await this.notifier.onOrderFulfilled({
 					order: txResult.order,
 					buyer: txResult.buyer,
-					deliveryContent: trimmedDeliveryContent,
+					deliveryContent: txResult.order.deliveryContent ?? undefined,
 					notifications,
 					adminTelegramId,
 					adminUsername: input.adminUsername,

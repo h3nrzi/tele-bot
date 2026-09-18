@@ -8,10 +8,10 @@
 
 **Blocked by:** 01 (Credential Crypto Service & Polymorphic Catalog Data Model), 03 (Buyer Pre-Placement Requirement Flow & Atomic Order Placement)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Tapping `[📦 تحویل سفارش]` on an `ACTIVATION` order displays a direct confirmation prompt without launching a text input conversation.
-- [ ] Confirming an `ACTIVATION` order marks it `FULFILLED` and dispatches a dedicated activation message to the Buyer without empty payload sections.
-- [ ] `PAYLOAD_DELIVERY` orders retain the 3-step conversation and deliver plain-text `Delivery Content` to the Buyer.
-- [ ] Only the claiming Admin can execute fulfillment for either strategy.
-- [ ] End-to-end bot tests verify both activation and payload delivery fulfillment flows and Buyer notifications.
+- [x] Tapping `[📦 تحویل سفارش]` on an `ACTIVATION` order displays a direct confirmation prompt without launching a text input conversation.
+- [x] Confirming an `ACTIVATION` order marks it `FULFILLED` and dispatches a dedicated activation message to the Buyer without empty payload sections.
+- [x] `PAYLOAD_DELIVERY` orders retain the 3-step conversation and deliver plain-text `Delivery Content` to the Buyer.
+- [x] Only the claiming Admin can execute fulfillment for either strategy.
+- [x] End-to-end bot tests verify both activation and payload delivery fulfillment flows and Buyer notifications.

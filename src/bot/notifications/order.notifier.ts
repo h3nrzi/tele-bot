@@ -153,6 +153,14 @@ export function formatBuyerOrderFulfilledMessage(deliveryContent: string): strin
 	);
 }
 
+export function formatBuyerOrderActivatedMessage(): string {
+	return (
+		`🎉 سفارش شما با موفقیت فعال‌سازی شد!\n\n` +
+		`سرویس شما با موفقیت فعال‌سازی و ارتقا داده شد و اکنون آماده استفاده است.\n\n` +
+		`با تشکر از خرید شما.`
+	);
+}
+
 export function formatBuyerOrderRejectedMessage(params: {
 	orderId: string;
 	rejectionCategory: string;
@@ -356,8 +364,13 @@ export class TelegramOrderNotifier implements IOrderNotifier {
 	}
 
 	public async onOrderFulfilled(context: OnOrderFulfilledContext): Promise<void> {
-		// 1. Send delivery content to buyer
-		const buyerMessage = formatBuyerOrderFulfilledMessage(context.deliveryContent);
+		// 1. Send delivery content or activation message to buyer
+		let buyerMessage: string;
+		if (context.order.fulfillmentStrategySnapshot === "ACTIVATION") {
+			buyerMessage = formatBuyerOrderActivatedMessage();
+		} else {
+			buyerMessage = formatBuyerOrderFulfilledMessage(context.deliveryContent ?? "");
+		}
 		try {
 			await this.api.sendMessage(context.buyer.telegramChatId.toString(), buyerMessage);
 		} catch (sendErr) {

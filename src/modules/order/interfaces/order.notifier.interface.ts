@@ -23,7 +23,7 @@ export interface OnOrderClaimedContext {
 export interface OnOrderFulfilledContext {
 	order: Order;
 	buyer: Buyer;
-	deliveryContent: string;
+	deliveryContent?: string | null | undefined;
 	notifications: OrderAdminNotification[];
 	adminTelegramId: bigint;
 	adminUsername?: string | null | undefined;

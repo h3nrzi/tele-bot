@@ -367,4 +367,62 @@ describe("Order Fulfilment Service (Ticket 06)", () => {
 		expect(dbOrder?.status).toBe("FULFILLED");
 		expect(dbOrder?.deliveryContent).toBe(deliveryContent);
 	});
+
+	it("fulfils ACTIVATION order without deliveryContent -> sets status to FULFILLED, delivery_content to null, fulfilled_at set", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: 99112233,
+			telegramUsername: "activation_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "ChatGPT Plus 1 Month",
+			usdPrice: "20.00",
+			isActive: true,
+			catalogType: "DIRECT_ACCOUNT",
+			fulfillmentStrategy: "ACTIVATION",
+		});
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: { email: "buyer@example.com" },
+		});
+
+		expect(placedOrder.fulfillmentStrategySnapshot).toBe("ACTIVATION");
+
+		const adminTelegramId = 55443322n;
+
+		await claimTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId,
+			adminUsername: "support_admin",
+		});
+
+		const result = await fulfilTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId,
+			adminUsername: "support_admin",
+		});
+
+		// 1. Assert result entity
+		expect(result.order.status).toBe("FULFILLED");
+		expect(result.order.deliveryContent).toBeNull();
+		expect(result.order.fulfilledAt).toBeInstanceOf(Date);
+
+		// 2. Assert DB state
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+		expect(dbOrder?.status).toBe("FULFILLED");
+		expect(dbOrder?.deliveryContent).toBeNull();
+		expect(dbOrder?.fulfilledAt).toBeInstanceOf(Date);
+
+		// 3. Assert notifier received call without deliveryContent
+		expect(notifier.recordedFulfilled).toHaveLength(1);
+		const recorded = notifier.recordedFulfilled[0]!;
+		expect(recorded.order.id).toBe(placedOrder.id);
+		expect(recorded.order.fulfillmentStrategySnapshot).toBe("ACTIVATION");
+		expect(recorded.deliveryContent).toBeUndefined();
+	});
 });
+

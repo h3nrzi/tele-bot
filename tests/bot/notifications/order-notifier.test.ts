@@ -616,6 +616,69 @@ describe("TelegramOrderNotifier", () => {
 			expect(mockApi.editMessageReplyMarkup).toHaveBeenCalledTimes(1);
 			expect(edited[0].opts.reply_markup.inline_keyboard[0][0].text).toContain("✅ تکمیل شده توسط @superadmin");
 		});
+
+		it("sends dedicated activation message to buyer without empty payload sections for ACTIVATION orders", async () => {
+			const sentMessages: any[] = [];
+			const edited: any[] = [];
+			const mockApi = {
+				sendMessage: vi.fn(async (chatId, text, opts) => {
+					sentMessages.push({ chatId, text, opts });
+				}),
+				editMessageReplyMarkup: vi.fn(async (chatId, messageId, opts) => {
+					edited.push({ chatId, messageId, opts });
+				}),
+			};
+
+			const notifier = new TelegramOrderNotifier({
+				api: mockApi,
+			});
+
+			const activationOrder = new Order({
+				id: "order-uuid-activation-1234",
+				userId: dummyBuyer.id,
+				catalogItemId: "item-uuid-spotify",
+				status: "PROCESSING",
+				fulfillmentStrategySnapshot: "ACTIVATION",
+				buyerInputs: { email: "buyer@example.com" },
+				usdPriceSnapshot: "15.00",
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const notif = new OrderAdminNotification({
+				id: "notif-activation-1",
+				orderId: activationOrder.id,
+				adminTelegramId: 111222n,
+				chatId: 111222n,
+				messageId: 201n,
+				createdAt: new Date(),
+			});
+
+			await notifier.onOrderFulfilled({
+				order: activationOrder,
+				buyer: dummyBuyer,
+				notifications: [notif],
+				adminTelegramId: 111222n,
+				adminUsername: "@support_admin",
+			});
+
+			// 1. Sent to buyer
+			expect(mockApi.sendMessage).toHaveBeenCalledTimes(1);
+			expect(sentMessages[0].chatId).toBe("987654321");
+			const buyerMsg = sentMessages[0].text;
+			// Dedicated Persian activation notice
+			expect(buyerMsg).toContain("فعال‌سازی");
+			expect(buyerMsg).toMatch(/ارتقا|فعال/);
+			expect(buyerMsg).toContain("با تشکر از خرید شما");
+			// Must NOT contain empty payload sections
+			expect(buyerMsg).not.toContain("اطلاعات تحویل سفارش");
+			expect(buyerMsg).not.toContain("undefined");
+			expect(buyerMsg).not.toContain("null");
+
+			// 2. Admin notification updated to fulfilled layout
+			expect(mockApi.editMessageReplyMarkup).toHaveBeenCalledTimes(1);
+			expect(edited[0].opts.reply_markup.inline_keyboard[0][0].text).toContain("✅ تکمیل شده توسط @support_admin");
+		});
 	});
 
 	describe("onOrderRejected", () => {

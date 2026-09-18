@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import {
 	getFulfilOrderConfirmationKeyboard,
 	getAdminOrderFulfilledKeyboard,
+	getFulfilActivationConfirmationKeyboard,
 } from "@/bot/admin/keyboards/order.keyboards";
 
 describe("Admin Order Fulfilment Handler & Conversation (Ticket 06)", () => {
@@ -138,6 +139,15 @@ describe("Admin Order Fulfilment Handler & Conversation (Ticket 06)", () => {
 		expect(flatFulfilledButtons).toHaveLength(1);
 		expect(flatFulfilledButtons[0]?.text).toContain("تکمیل شده توسط @superadmin");
 		expect(flatFulfilledButtons[0]?.callback_data).toBe("order:noop");
+
+		const activationKeyboard = getFulfilActivationConfirmationKeyboard("order-123");
+		const flatActivationButtons = activationKeyboard.inline_keyboard.flat() as any[];
+
+		expect(flatActivationButtons).toHaveLength(2);
+		expect(flatActivationButtons[0]?.text).toBe("✓ تایید فعال‌سازی");
+		expect(flatActivationButtons[0]?.callback_data).toBe("order:activate:confirm:order-123");
+		expect(flatActivationButtons[1]?.text).toBe("❌ انصراف");
+		expect(flatActivationButtons[1]?.callback_data).toBe("order:activate:cancel:order-123");
 	});
 
 	it("rejects non-claiming Admin tapping [📦 Fulfil Order] with alert and blocks conversation", async () => {
@@ -406,4 +416,293 @@ describe("Admin Order Fulfilment Handler & Conversation (Ticket 06)", () => {
 		expect(dbOrder?.deliveryContent).toBeNull();
 		expect(dbOrder?.fulfilledAt).toBeNull();
 	});
+
+	it("ACTIVATION flow: tapping [📦 تحویل سفارش] displays direct confirmation prompt without launching text conversation, confirming fulfils order and sends activation message to buyer", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: buyerChatId,
+			telegramUsername: "spotify_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "Spotify Family Upgrade",
+			usdPrice: "15.00",
+			isActive: true,
+			catalogType: "DIRECT_ACCOUNT",
+			fulfillmentStrategy: "ACTIVATION",
+		});
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: { email: "spotify_user@example.com" },
+		});
+
+		expect(placedOrder.fulfillmentStrategySnapshot).toBe("ACTIVATION");
+
+		await db.insert(orderAdminNotifications).values([
+			{
+				adminTelegramId: BigInt(adminChatId1),
+				chatId: BigInt(adminChatId1),
+				messageId: 901n,
+				orderId: placedOrder.id,
+			},
+			{
+				adminTelegramId: BigInt(adminChatId2),
+				chatId: BigInt(adminChatId2),
+				messageId: 902n,
+				orderId: placedOrder.id,
+			},
+		]);
+
+		await claimTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId: BigInt(adminChatId1),
+			adminUsername: "lead_admin",
+		});
+
+		const { bot, repliedMessages, editedMessages, sentMessages, answeredCallbackQueries } = createTestBot();
+
+		// Step 1: Claiming Admin taps [📦 تحویل سفارش]
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(1, adminChatId1, `order:fulfil:${placedOrder.id}`, 901, "lead_admin"),
+		);
+
+		// Direct confirmation prompt displayed immediately without text conversation
+		expect(repliedMessages).toHaveLength(1);
+		expect(repliedMessages[0]).toContain("آیا فعال‌سازی حساب برای ایمیل spotify_user@example.com انجام شده است؟");
+
+		// Step 2: Claiming Admin confirms via [✓ تایید فعال‌سازی] callback query
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(2, adminChatId1, `order:activate:confirm:${placedOrder.id}`, 901, "lead_admin"),
+		);
+
+		// 1. Verify DB state: FULFILLED, deliveryContent null, fulfilledAt set
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+
+		expect(dbOrder).toBeDefined();
+		expect(dbOrder?.status).toBe("FULFILLED");
+		expect(dbOrder?.deliveryContent).toBeNull();
+		expect(dbOrder?.fulfilledAt).toBeInstanceOf(Date);
+
+		// 2. Verify Buyer received dedicated activation notification (no empty payload section)
+		expect(sentMessages.length).toBeGreaterThanOrEqual(1);
+		const buyerMessage = sentMessages.find((m) => Number(m.chat_id) === buyerChatId);
+		expect(buyerMessage).toBeDefined();
+		expect(buyerMessage?.text).toContain("فعال‌سازی");
+		expect(buyerMessage?.text).toMatch(/ارتقا|فعال/);
+		expect(buyerMessage?.text).not.toContain("اطلاعات تحویل سفارش");
+
+		// 3. Verify all Admin notifications updated to FULFILLED layout
+		expect(editedMessages.length).toBeGreaterThanOrEqual(2);
+		const admin1Edited = editedMessages.find((m) => Number(m.chat_id) === adminChatId1);
+		const admin2Edited = editedMessages.find((m) => Number(m.chat_id) === adminChatId2);
+
+		expect(admin1Edited).toBeDefined();
+		const admin1Buttons = admin1Edited?.reply_markup?.inline_keyboard?.flat() ?? [];
+		expect(admin1Buttons.some((b: any) => b.text.includes("تکمیل شده توسط @lead_admin"))).toBe(true);
+
+		expect(admin2Edited).toBeDefined();
+		const admin2Buttons = admin2Edited?.reply_markup?.inline_keyboard?.flat() ?? [];
+		expect(admin2Buttons.some((b: any) => b.text.includes("تکمیل شده توسط @lead_admin"))).toBe(true);
+
+		// 4. Verify Admin received confirmation reply
+		expect(repliedMessages[1]).toContain("با موفقیت فعال‌سازی شد");
+	});
+
+	it("ACTIVATION cancellation: tapping [❌ انصراف] on confirmation prompt cancels cleanly, leaving order in PROCESSING", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: buyerChatId,
+			telegramUsername: "cancel_activation_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "ChatGPT Plus",
+			usdPrice: "20.00",
+			isActive: true,
+			catalogType: "DIRECT_ACCOUNT",
+			fulfillmentStrategy: "ACTIVATION",
+		});
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: { email: "chatgpt_user@example.com" },
+		});
+
+		await claimTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId: BigInt(adminChatId1),
+			adminUsername: "lead_admin",
+		});
+
+		const { bot, repliedMessages } = createTestBot();
+
+		// Taps [📦 تحویل سفارش]
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(1, adminChatId1, `order:fulfil:${placedOrder.id}`, 901, "lead_admin"),
+		);
+
+		expect(repliedMessages[0]).toContain("آیا فعال‌سازی حساب برای ایمیل");
+
+		// Taps [❌ انصراف]
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(2, adminChatId1, `order:activate:cancel:${placedOrder.id}`, 901, "lead_admin"),
+		);
+
+		expect(repliedMessages[1]).toContain("لغو شد");
+
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+		expect(dbOrder?.status).toBe("PROCESSING");
+		expect(dbOrder?.deliveryContent).toBeNull();
+		expect(dbOrder?.fulfilledAt).toBeNull();
+	});
+
+	it("rejects non-claiming Admin attempting to confirm or cancel ACTIVATION order", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: buyerChatId,
+			telegramUsername: "auth_activation_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "Telegram Premium Gift",
+			usdPrice: "10.00",
+			isActive: true,
+			catalogType: "IDENTITY_HANDLE",
+			fulfillmentStrategy: "ACTIVATION",
+		});
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: { targetUsername: "alice" },
+		});
+
+		// Admin 1 claims
+		await claimTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId: BigInt(adminChatId1),
+			adminUsername: "lead_admin",
+		});
+
+		const { bot, answeredCallbackQueries, repliedMessages } = createTestBot();
+
+		// Admin 2 tries to confirm activation
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(1, adminChatId2, `order:activate:confirm:${placedOrder.id}`, 902, "other_admin"),
+		);
+
+		expect(answeredCallbackQueries).toHaveLength(1);
+		expect(answeredCallbackQueries[0]?.show_alert).toBe(true);
+		expect(answeredCallbackQueries[0]?.text).toMatch(/مجاز به تحویل این سفارش نیستید|ادمین دیگری/);
+
+		// Admin 2 tries to cancel activation
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(2, adminChatId2, `order:activate:cancel:${placedOrder.id}`, 902, "other_admin"),
+		);
+
+		expect(answeredCallbackQueries).toHaveLength(2);
+		expect(answeredCallbackQueries[1]?.show_alert).toBe(true);
+		expect(answeredCallbackQueries[1]?.text).toMatch(/مجاز به لغو این عملیات نیستید|ادمین دیگری/);
+
+		// Order remains PROCESSING
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+		expect(dbOrder?.status).toBe("PROCESSING");
+		expect(dbOrder?.fulfilledAt).toBeNull();
+		expect(repliedMessages).toHaveLength(0);
+	});
+
+	it("AUTOMATED_PANEL fallback: manual admin fulfillment falls back to payload delivery conversation", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: buyerChatId,
+			telegramUsername: "panel_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "WireGuard VPN Auto",
+			usdPrice: "8.00",
+			isActive: true,
+			catalogType: "CONFIG_VPN",
+			fulfillmentStrategy: "AUTOMATED_PANEL",
+		});
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: { region: "de" },
+		});
+
+		expect(placedOrder.fulfillmentStrategySnapshot).toBe("AUTOMATED_PANEL");
+
+		await claimTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId: BigInt(adminChatId1),
+			adminUsername: "lead_admin",
+		});
+
+		const { bot, repliedMessages } = createTestBot();
+
+		// Claiming Admin taps [📦 تحویل سفارش]
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(1, adminChatId1, `order:fulfil:${placedOrder.id}`, 901, "lead_admin"),
+		);
+
+		// Falls back to manual payload delivery conversation prompting for content
+		expect(repliedMessages).toHaveLength(1);
+		expect(repliedMessages[0]).toContain("تحویل سفارش");
+		expect(repliedMessages[0]).toContain("لطفاً اطلاعات یا محتوای تحویل سفارش");
+	});
+
+	it("rejects activation confirmation on non-activation order (e.g. PAYLOAD_DELIVERY)", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: buyerChatId,
+			telegramUsername: "payload_order_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "Software Key",
+			usdPrice: "25.00",
+			isActive: true,
+			catalogType: "STATIC_DELIVERY",
+			fulfillmentStrategy: "PAYLOAD_DELIVERY",
+		});
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+		});
+
+		await claimTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId: BigInt(adminChatId1),
+			adminUsername: "lead_admin",
+		});
+
+		const { bot, answeredCallbackQueries, repliedMessages } = createTestBot();
+
+		// Claiming admin erroneously invokes activation confirmation callback
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(1, adminChatId1, `order:activate:confirm:${placedOrder.id}`, 901, "lead_admin"),
+		);
+
+		expect(answeredCallbackQueries).toHaveLength(1);
+		expect(answeredCallbackQueries[0]?.show_alert).toBe(true);
+		expect(answeredCallbackQueries[0]?.text).toMatch(/فعال‌سازی نیست/);
+
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+		expect(dbOrder?.status).toBe("PROCESSING");
+		expect(dbOrder?.fulfilledAt).toBeNull();
+		expect(repliedMessages).toHaveLength(0);
+	});
 });
+
+

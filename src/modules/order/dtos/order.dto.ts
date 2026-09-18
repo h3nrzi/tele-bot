@@ -43,7 +43,7 @@ export interface FulfilOrderInput {
 	orderId: string;
 	adminTelegramId: bigint | number | string;
 	adminUsername?: string | null | undefined;
-	deliveryContent: string;
+	deliveryContent?: string | null | undefined;
 }
 
 export interface FulfilOrderResult {

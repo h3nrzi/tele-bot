@@ -85,6 +85,17 @@ export function getFulfilOrderConfirmationKeyboard(): InlineKeyboard {
 }
 
 /**
+ * Builds inline confirmation buttons for one-click ACTIVATION fulfillment:
+ * - [✓ تایید فعال‌سازی] (order:activate:confirm:<orderId>)
+ * - [❌ انصراف] (order:activate:cancel:<orderId>)
+ */
+export function getFulfilActivationConfirmationKeyboard(orderId: string): InlineKeyboard {
+	return new InlineKeyboard()
+		.text("✓ تایید فعال‌سازی", `order:activate:confirm:${orderId}`)
+		.text("❌ انصراف", `order:activate:cancel:${orderId}`);
+}
+
+/**
  * Builds inline status display for a fulfilled Order Admin Notification (FULFILLED status):
  * - [✅ تکمیل شده توسط @adminX] (non-interactive, callback: order:noop)
  */
