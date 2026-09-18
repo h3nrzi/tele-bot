@@ -13,12 +13,12 @@
 
 **Blocked by:** 01 (Credential Crypto Service & Polymorphic Catalog Data Model)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Underfunded buyers are stopped immediately before any input prompts appear.
-- [ ] Buyer input collection conversation validates email format, handles, and region choices according to the catalog item type.
-- [ ] Buyer's raw password message in Telegram is deleted immediately upon receipt.
-- [ ] Buyer can cancel the collection flow at any step with zero wallet debits or database side effects.
-- [ ] Final confirmation prompt displays masked password (`••••••••`) and all submitted metadata.
-- [ ] Order placement atomically debits the wallet, records ledger entries, and stores `fulfillment_strategy_snapshot` with encrypted `buyer_inputs`.
-- [ ] End-to-end bot tests verify the full requirement flow for each catalog type, message deletion, and database placement.
+- [x] Underfunded buyers are stopped immediately before any input prompts appear.
+- [x] Buyer input collection conversation validates email format, handles, and region choices according to the catalog item type.
+- [x] Buyer's raw password message in Telegram is deleted immediately upon receipt.
+- [x] Buyer can cancel the collection flow at any step with zero wallet debits or database side effects.
+- [x] Final confirmation prompt displays masked password (`••••••••`) and all submitted metadata.
+- [x] Order placement atomically debits the wallet, records ledger entries, and stores `fulfillment_strategy_snapshot` with encrypted `buyer_inputs`.
+- [x] End-to-end bot tests verify the full requirement flow for each catalog type, message deletion, and database placement.

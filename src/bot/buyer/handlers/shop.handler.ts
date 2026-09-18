@@ -6,6 +6,7 @@ import type { OrderService } from "@/modules/order/order.service";
 import { buildShopView, buildOrderConfirmationView } from "@/bot/buyer/keyboards/shop.keyboards";
 import { formatUsd } from "@/core/shared/currency.utils";
 import { InsufficientBalanceForOrderError, CatalogItemUnavailableError } from "@/modules/order/order.errors";
+import { COLLECT_ORDER_REQUIREMENTS_CONVERSATION_ID } from "@/bot/buyer/conversations/order-requirements.conversation";
 
 export interface ShopItemDependencies {
 	catalogService: CatalogService;
@@ -70,8 +71,37 @@ export async function handleShopItemCallback(ctx: Context, deps: ShopItemDepende
 		telegramUsername: sender.username ?? null,
 	});
 
-	const { messageText, keyboard } = buildOrderConfirmationView(item, wallet.availableBalance);
+	const { messageText, keyboard, hasSufficientBalance } = buildOrderConfirmationView(item, wallet.availableBalance);
 
+	// Fail-fast balance check: underfunded buyers are stopped immediately before any input prompts
+	if (!hasSufficientBalance) {
+		try {
+			await ctx.editMessageText(messageText, {
+				reply_markup: keyboard,
+			});
+		} catch {
+			await ctx.reply(messageText, {
+				reply_markup: keyboard,
+			});
+		}
+
+		try {
+			await ctx.answerCallbackQuery();
+		} catch {}
+		return;
+	}
+
+	// For items requiring dynamic inputs, enter requirement collection conversation
+	if (item.catalogType && item.catalogType !== "STATIC_DELIVERY") {
+		try {
+			await (ctx as any).conversation?.exit(COLLECT_ORDER_REQUIREMENTS_CONVERSATION_ID);
+		} catch {}
+
+		await (ctx as any).conversation?.enter(COLLECT_ORDER_REQUIREMENTS_CONVERSATION_ID);
+		return;
+	}
+
+	// STATIC_DELIVERY skips requirement collection directly to order confirmation view
 	try {
 		await ctx.editMessageText(messageText, {
 			reply_markup: keyboard,

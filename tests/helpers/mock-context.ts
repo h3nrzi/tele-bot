@@ -79,6 +79,11 @@ export interface MockAnsweredCallbackQuery {
 	show_alert?: boolean;
 }
 
+export interface MockDeletedMessage {
+	chat_id: number | string;
+	message_id: number | string;
+}
+
 /**
  * Creates a mock fetch function that captures sent messages/photos and returns valid Telegram API responses.
  */
@@ -88,6 +93,7 @@ export function createMockFetch(
 	editedMessages: MockEditedMessage[] = [],
 	answeredCallbackQueries: MockAnsweredCallbackQuery[] = [],
 	sentMessages: MockSentMessage[] = [],
+	deletedMessages: MockDeletedMessage[] = [],
 ): {
 	fetch: typeof fetch;
 	repliedMessages: string[];
@@ -95,6 +101,7 @@ export function createMockFetch(
 	editedMessages: MockEditedMessage[];
 	answeredCallbackQueries: MockAnsweredCallbackQuery[];
 	sentMessages: MockSentMessage[];
+	deletedMessages: MockDeletedMessage[];
 } {
 	let messageId = 1;
 	const mockFetch: typeof fetch = async (url: any, init?: any) => {
@@ -220,6 +227,16 @@ export function createMockFetch(
 				{ status: 200, headers: { "Content-Type": "application/json" } },
 			);
 		}
+		if (method === "deleteMessage") {
+			deletedMessages.push({
+				chat_id: body.chat_id,
+				message_id: body.message_id,
+			});
+			return new Response(JSON.stringify({ ok: true, result: true }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			});
+		}
 		if (method === "answerCallbackQuery") {
 			answeredCallbackQueries.push({
 				callback_query_id: body.callback_query_id,
@@ -244,6 +261,7 @@ export function createMockFetch(
 		editedMessages,
 		answeredCallbackQueries,
 		sentMessages,
+		deletedMessages,
 	};
 }
 
