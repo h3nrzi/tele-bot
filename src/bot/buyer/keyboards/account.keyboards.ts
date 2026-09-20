@@ -137,6 +137,47 @@ export function buildOrderHistoryListView(orders: RecentOrderWithCatalogItem[]):
 	};
 }
 
+export const REGION_FLAG_MAP: Record<string, string> = {
+	de: "🇩🇪 آلمان (de)",
+	nl: "🇳🇱 هلند (nl)",
+	fi: "🇫🇮 فنلاند (fi)",
+	us: "🇺🇸 آمریکا (us)",
+	gb: "🇬🇧 انگلیس (gb)",
+	fr: "🇫🇷 فرانسه (fr)",
+	tr: "🇹🇷 ترکیه (tr)",
+};
+
+/**
+ * Formats non-sensitive submitted buyer inputs for presentation in the Order Detail view.
+ * Strictly allowlists operational metadata (email, targetUsername, region) per ADR-0012,
+ * ensuring passwords and cryptographic payloads are never rendered in the view.
+ */
+export function formatBuyerInputsForOrderDetail(
+	buyerInputs: Record<string, unknown> | null | undefined,
+): string {
+	if (!buyerInputs || typeof buyerInputs !== "object") {
+		return "";
+	}
+
+	const lines: string[] = [];
+
+	if (buyerInputs.email && typeof buyerInputs.email === "string") {
+		lines.push(`📧 ایمیل: ${escapeMarkdown(buyerInputs.email)}`);
+	}
+
+	if (buyerInputs.targetUsername && (typeof buyerInputs.targetUsername === "string" || typeof buyerInputs.targetUsername === "number")) {
+		lines.push(`👤 شناسه / نام کاربری مقصد: ${escapeMarkdown(String(buyerInputs.targetUsername))}`);
+	}
+
+	if (buyerInputs.region && typeof buyerInputs.region === "string") {
+		const regionKey = buyerInputs.region.toLowerCase();
+		const regionLabel = REGION_FLAG_MAP[regionKey] ?? buyerInputs.region.toUpperCase();
+		lines.push(`🌐 منطقه سرور: ${escapeMarkdown(regionLabel)}`);
+	}
+
+	return lines.join("\n");
+}
+
 export interface OrderDetailViewParams {
 	order: Order;
 	catalogItem?: CatalogItem | null;
@@ -164,6 +205,11 @@ export function buildOrderDetailView(params: OrderDetailViewParams): OrderDetail
 		`💵 مبلغ سفارش: ${formatUsd(order.usdPriceSnapshot)}\n` +
 		`📊 وضعیت: ${statusLabel}\n` +
 		`📅 تاریخ ثبت: ${formatPersianDateTime(order.createdAt)}`;
+
+	const formattedInputs = formatBuyerInputsForOrderDetail(order.buyerInputs);
+	if (formattedInputs) {
+		messageText += `\n\n${formattedInputs}`;
+	}
 
 	if (order.status === "PROCESSING") {
 		messageText += `\n\nℹ️ سفارش شما در حال حاضر در حال پردازش توسط ادمین است و امکان لغو آن وجود ندارد.`;
@@ -195,8 +241,16 @@ export function buildOrderDetailView(params: OrderDetailViewParams): OrderDetail
 		if (reasonText) {
 			messageText += `\n\nعلت رد سفارش: ${reasonText}`;
 		}
-	} else if (order.status === "FULFILLED" && order.deliveryContent) {
-		messageText += `\n\n📦 مشخصات تحویل:\n${escapeMarkdown(order.deliveryContent)}`;
+
+		if (categoryInfo && "buyerGuidance" in categoryInfo && categoryInfo.buyerGuidance) {
+			messageText += `\n\n${categoryInfo.buyerGuidance}`;
+		}
+	} else if (order.status === "FULFILLED") {
+		if (order.fulfillmentStrategySnapshot === "ACTIVATION") {
+			messageText += `\n\n🎉 *تایید فعال‌سازی:* سرویس با موفقیت فعال‌سازی و بر روی حساب کاربری شما اعمال شد.`;
+		} else if (order.deliveryContent) {
+			messageText += `\n\n📦 مشخصات تحویل:\n${escapeMarkdown(order.deliveryContent)}`;
+		}
 	}
 
 	const keyboard = new InlineKeyboard();

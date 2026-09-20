@@ -9,11 +9,11 @@
 
 **Blocked by:** 03 (Buyer Pre-Placement Requirement Flow & Atomic Order Placement), 05 (Strategy-Driven Fulfillment), 06 (Terminal State Credential Redaction & Invalid Credentials Rejection)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Order Detail view in Account Hub displays submitted buyer inputs (email, handle, region).
-- [ ] Password values, ciphertexts, IVs, and tags are never displayed in the view.
-- [ ] `ACTIVATION` orders display an activation confirmation banner when fulfilled.
-- [ ] `PAYLOAD_DELIVERY` orders display delivery content when fulfilled.
-- [ ] `INVALID_CREDENTIALS` rejection reason and guidance are properly rendered for rejected orders.
-- [ ] End-to-end bot tests cover Account Hub detail views across all catalog types and statuses.
+- [x] Order Detail view in Account Hub displays submitted buyer inputs (email, handle, region).
+- [x] Password values, ciphertexts, IVs, and tags are never displayed in the view.
+- [x] `ACTIVATION` orders display an activation confirmation banner when fulfilled.
+- [x] `PAYLOAD_DELIVERY` orders display delivery content when fulfilled.
+- [x] `INVALID_CREDENTIALS` rejection reason and guidance are properly rendered for rejected orders.
+- [x] End-to-end bot tests cover Account Hub detail views across all catalog types and statuses.
