@@ -112,6 +112,14 @@ export const ORDER_REJECTION_CATEGORIES = {
 		labelEn: "Out of stock / temporarily unavailable",
 		buttonText: "📦 عدم موجودی / Out of stock",
 	},
+	INVALID_CREDENTIALS: {
+		code: "INVALID_CREDENTIALS",
+		label: "اطلاعات ورود نامعتبر / نیاز به تایید دو مرحله‌ای",
+		labelEn: "Invalid Credentials / 2FA Blocked",
+		buttonText: "🔐 اطلاعات نامعتبر / Invalid credentials",
+		buyerGuidance:
+			"💡 *راهنما:* لطفاً صحت اطلاعات ورود (نام کاربری / ایمیل و رمز عبور) خود را بررسی کرده یا در صورت فعال بودن تایید دو مرحله‌ای (2FA)، آن را موقتاً غیرفعال نموده و مجدداً ثبت سفارش کنید.",
+	},
 	CANNOT_VERIFY: {
 		code: "CANNOT_VERIFY",
 		label: "عدم امکان احراز اصالت سفارش",
@@ -141,17 +149,20 @@ export const ORDER_REJECTION_CATEGORIES = {
 export type OrderRejectionCategoryCode = keyof typeof ORDER_REJECTION_CATEGORIES;
 
 /**
- * Builds inline keyboard presenting 5 preset category buttons for Order rejection:
+ * Builds inline keyboard presenting preset category buttons for Order rejection:
  * 1. Out of stock / temporarily unavailable
- * 2. Cannot verify order legitimacy
- * 3. Technical issue — unable to fulfil
- * 4. Policy violation
- * 5. Other (enter text)
+ * 2. Invalid credentials / 2FA blocked
+ * 3. Cannot verify order legitimacy
+ * 4. Technical issue — unable to fulfil
+ * 5. Policy violation
+ * 6. Other (enter text)
  * + Cancel
  */
 export function getOrderRejectionCategoriesKeyboard(): InlineKeyboard {
 	return new InlineKeyboard()
 		.text(ORDER_REJECTION_CATEGORIES.OUT_OF_STOCK.buttonText, "order_reject_cat:OUT_OF_STOCK")
+		.row()
+		.text(ORDER_REJECTION_CATEGORIES.INVALID_CREDENTIALS.buttonText, "order_reject_cat:INVALID_CREDENTIALS")
 		.row()
 		.text(ORDER_REJECTION_CATEGORIES.CANNOT_VERIFY.buttonText, "order_reject_cat:CANNOT_VERIFY")
 		.row()

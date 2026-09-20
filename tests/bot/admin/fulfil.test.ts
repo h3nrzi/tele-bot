@@ -436,7 +436,14 @@ describe("Admin Order Fulfilment Handler & Conversation (Ticket 06)", () => {
 		const { order: placedOrder } = await placeTestOrder(container, {
 			userId: buyer.id,
 			catalogItemId: item.id,
-			buyerInputs: { email: "spotify_user@example.com" },
+			buyerInputs: {
+				email: "spotify_user@example.com",
+				password: {
+					ciphertext: "deadbeef",
+					iv: "1234",
+					tag: "5678",
+				},
+			},
 		});
 
 		expect(placedOrder.fulfillmentStrategySnapshot).toBe("ACTIVATION");
@@ -485,6 +492,10 @@ describe("Admin Order Fulfilment Handler & Conversation (Ticket 06)", () => {
 		expect(dbOrder?.status).toBe("FULFILLED");
 		expect(dbOrder?.deliveryContent).toBeNull();
 		expect(dbOrder?.fulfilledAt).toBeInstanceOf(Date);
+		expect(dbOrder?.buyerInputs).toEqual({
+			email: "spotify_user@example.com",
+			password: "[REDACTED]",
+		});
 
 		// 2. Verify Buyer received dedicated activation notification (no empty payload section)
 		expect(sentMessages.length).toBeGreaterThanOrEqual(1);

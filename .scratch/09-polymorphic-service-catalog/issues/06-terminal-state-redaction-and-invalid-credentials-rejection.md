@@ -8,10 +8,10 @@
 
 **Blocked by:** 01 (Credential Crypto Service & Polymorphic Catalog Data Model), 03 (Buyer Pre-Placement Requirement Flow & Atomic Order Placement), 05 (Strategy-Driven Fulfillment)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Sensitive password fields in `buyer_inputs` are replaced with `"[REDACTED]"` when an order is fulfilled, rejected, or cancelled.
-- [ ] Non-sensitive attributes (`email`, `targetUsername`, `region`) remain unchanged after redaction.
-- [ ] `INVALID_CREDENTIALS` appears as a selectable rejection category in the Admin rejection menu.
-- [ ] Rejecting with `INVALID_CREDENTIALS` automatically refunds the Buyer's wallet balance, creates refund ledger entries, and notifies the Buyer with specific guidance.
-- [ ] End-to-end tests verify at-rest credential redaction across all three terminal states and verify the rejection refund flow.
+- [x] Sensitive password fields in `buyer_inputs` are replaced with `"[REDACTED]"` when an order is fulfilled, rejected, or cancelled.
+- [x] Non-sensitive attributes (`email`, `targetUsername`, `region`) remain unchanged after redaction.
+- [x] `INVALID_CREDENTIALS` appears as a selectable rejection category in the Admin rejection menu.
+- [x] Rejecting with `INVALID_CREDENTIALS` automatically refunds the Buyer's wallet balance, creates refund ledger entries, and notifies the Buyer with specific guidance.
+- [x] End-to-end tests verify at-rest credential redaction across all three terminal states and verify the rejection refund flow.

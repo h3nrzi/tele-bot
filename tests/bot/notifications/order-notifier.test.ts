@@ -131,6 +131,31 @@ describe("TelegramOrderNotifier", () => {
 			expect(msg).not.toContain("🔒 پس از شروع پردازش نمایش داده می‌شود");
 		});
 
+		it("formatAdminOrderPlacedMessage formats buyerInputs with [REDACTED] when password is redacted", () => {
+			const orderRedacted = new Order({
+				id: "order-uuid-account-redacted",
+				userId: "buyer-uuid-1",
+				catalogItemId: "item-uuid-1",
+				status: "FULFILLED",
+				usdPriceSnapshot: "15.00",
+				buyerInputs: {
+					email: "user@example.com",
+					password: "[REDACTED]",
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const msg = formatAdminOrderPlacedMessage({
+				order: orderRedacted,
+				catalogItem: dummyItem,
+				buyer: dummyBuyer,
+			});
+
+			expect(msg).toContain("📧 ایمیل: user@example.com");
+			expect(msg).toContain("🔑 رمز عبور: [REDACTED]");
+		});
+
 		it("formatAdminOrderPlacedMessage formats targetUsername and VPN region correctly", () => {
 			const orderHandle = new Order({
 				id: "order-uuid-handle-1",
@@ -225,6 +250,25 @@ describe("TelegramOrderNotifier", () => {
 			expect(msg).toContain("Will restock tomorrow");
 			expect(msg).toContain("$29.99");
 			expect(msg).toContain("$100.00");
+		});
+
+		it("formatBuyerOrderRejectedMessage formats rejection notice with 2FA/credential guidance for INVALID_CREDENTIALS", () => {
+			const msg = formatBuyerOrderRejectedMessage({
+				orderId: "order-uuid-invalid-creds",
+				rejectionCategory: "INVALID_CREDENTIALS",
+				rejectionNote: null,
+				refundAmount: "19.99",
+				updatedBalance: "80.00",
+			});
+
+			expect(msg).toContain("❌ *سفارش شما رد شد*");
+			expect(msg).toContain("اطلاعات ورود نامعتبر / نیاز به تایید دو مرحله‌ای");
+			expect(msg).toContain("Invalid Credentials / 2FA Blocked");
+			expect(msg).toContain("راهنما:");
+			expect(msg).toContain("تایید دو مرحله‌ای (2FA)");
+			expect(msg).toContain("$19.99");
+			expect(msg).toContain("$80.00");
+			expect(msg).toContain("مبلغ سفارش به موجودی کیف پول شما بازگردانده شد.");
 		});
 
 		it("formatBuyerOrderCancelledMessage formats cancellation notice for buyer", () => {

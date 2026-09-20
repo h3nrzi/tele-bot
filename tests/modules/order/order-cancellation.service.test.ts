@@ -444,4 +444,68 @@ describe("Order Cancellation Service (Ticket 08)", () => {
 
 		expect(latest).toBeNull();
 	});
+
+	it("redacts sensitive password in buyerInputs at rest upon cancellation while preserving email and metadata", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: 77112233,
+			telegramUsername: "cancel_redact_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "Direct Account Plan",
+			usdPrice: "15.00",
+			isActive: true,
+			catalogType: "DIRECT_ACCOUNT",
+			fulfillmentStrategy: "ACTIVATION",
+		});
+
+		const encryptedPassword = {
+			ciphertext: "c001beefcafe",
+			iv: "998877665544",
+			tag: "33221100ffee",
+		};
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: {
+				email: "cancel_user@example.com",
+				password: encryptedPassword,
+				targetUsername: "@cancel_user",
+			},
+		});
+
+		// Balance debited to 35.00
+		const [preWallet] = await db.select().from(wallets).where(eq(wallets.id, wallet.id));
+		expect(preWallet?.availableBalance).toBe("35.00");
+
+		const result = await cancelTestOrder(container, {
+			orderId: placedOrder.id,
+			userId: buyer.id,
+		});
+
+		// 1. Assert result entity status and redaction
+		expect(result.order.status).toBe("CANCELLED");
+		expect(result.order.buyerInputs).toEqual({
+			email: "cancel_user@example.com",
+			password: "[REDACTED]",
+			targetUsername: "@cancel_user",
+		});
+
+		// 2. Assert DB row redaction
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+		expect(dbOrder?.status).toBe("CANCELLED");
+		expect(dbOrder?.buyerInputs).toEqual({
+			email: "cancel_user@example.com",
+			password: "[REDACTED]",
+			targetUsername: "@cancel_user",
+		});
+
+		// 3. Assert balance refunded
+		expect(result.wallet.availableBalance).toBe("50.00");
+		const [postWallet] = await db.select().from(wallets).where(eq(wallets.id, wallet.id));
+		expect(postWallet?.availableBalance).toBe("50.00");
+	});
 });

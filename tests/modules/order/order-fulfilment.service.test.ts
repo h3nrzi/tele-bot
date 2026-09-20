@@ -424,5 +424,67 @@ describe("Order Fulfilment Service (Ticket 06)", () => {
 		expect(recorded.order.fulfillmentStrategySnapshot).toBe("ACTIVATION");
 		expect(recorded.deliveryContent).toBeUndefined();
 	});
+
+	it("redacts sensitive password in buyerInputs at rest upon fulfilment while preserving email and metadata", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: 99223344,
+			telegramUsername: "redact_fulfil_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "Spotify Premium",
+			usdPrice: "10.00",
+			isActive: true,
+			catalogType: "DIRECT_ACCOUNT",
+			fulfillmentStrategy: "ACTIVATION",
+		});
+
+		const encryptedPassword = {
+			ciphertext: "deadbeef1234",
+			iv: "aabbccddeeff",
+			tag: "112233445566",
+		};
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: {
+				email: "spotify_buyer@example.com",
+				password: encryptedPassword,
+				region: "de",
+			},
+		});
+
+		const adminTelegramId = 77665544n;
+
+		await claimTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId,
+			adminUsername: "admin_spotify",
+		});
+
+		const result = await fulfilTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId,
+			adminUsername: "admin_spotify",
+		});
+
+		expect(result.order.status).toBe("FULFILLED");
+		expect(result.order.buyerInputs).toEqual({
+			email: "spotify_buyer@example.com",
+			password: "[REDACTED]",
+			region: "de",
+		});
+
+		// Verify database row
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+		expect(dbOrder?.buyerInputs).toEqual({
+			email: "spotify_buyer@example.com",
+			password: "[REDACTED]",
+			region: "de",
+		});
+	});
 });
 

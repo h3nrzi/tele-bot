@@ -23,6 +23,7 @@ import type {
 	OnOrderRejectedContext,
 } from "@/modules/order/interfaces/order.notifier.interface";
 import type { IOrderRepository } from "@/modules/order/interfaces/order.repository.interface";
+import { REDACTED_PASSWORD_SENTINEL } from "@/modules/order/order.utils";
 import { InlineKeyboard, type Bot } from "grammy";
 
 // Module-local notification context shapes (previously *NotificationContext in order.dto.ts)
@@ -79,7 +80,9 @@ export function formatAdminBuyerInputs(
 	}
 
 	if (buyerInputs.password) {
-		if (options?.decryptedPassword) {
+		if (buyerInputs.password === REDACTED_PASSWORD_SENTINEL) {
+			lines.push(`🔑 رمز عبور: ${REDACTED_PASSWORD_SENTINEL}`);
+		} else if (options?.decryptedPassword) {
 			lines.push(`🔑 رمز عبور: ${options.decryptedPassword}`);
 		} else {
 			lines.push(`🔑 رمز عبور: 🔒 پس از شروع پردازش نمایش داده می‌شود`);
@@ -178,13 +181,19 @@ export function formatBuyerOrderRejectedMessage(params: {
 
 	const noteLine = params.rejectionNote ? `💬 توضیحات: ${escapeMarkdown(params.rejectionNote)}\n` : "";
 
+	const guidanceLine =
+		categoryInfo && "buyerGuidance" in categoryInfo && categoryInfo.buyerGuidance
+			? `\n${categoryInfo.buyerGuidance}\n`
+			: "";
+
 	return (
 		`❌ *سفارش شما رد شد*\n\n` +
 		`📦 شناسه سفارش: #${shortOrderId}\n` +
 		`📋 علت رد: ${categoryLabel}\n` +
 		`${noteLine}` +
 		`💵 مبلغ برگشت داده شده به کیف پول: ${formatUsd(params.refundAmount)}\n` +
-		`💰 موجودی فعلی کیف پول شما: ${formatUsd(params.updatedBalance)}\n\n` +
+		`💰 موجودی فعلی کیف پول شما: ${formatUsd(params.updatedBalance)}\n` +
+		`${guidanceLine}\n` +
 		`مبلغ سفارش به موجودی کیف پول شما بازگردانده شد.`
 	);
 }

@@ -29,6 +29,7 @@ import type {
 	RejectOrderResult,
 } from "@/modules/order/dtos/order.dto";
 import { Order } from "@/modules/order/order.entity";
+import { redactBuyerInputs } from "@/modules/order/order.utils";
 import {
 	CatalogItemUnavailableError,
 	InsufficientBalanceForOrderError,
@@ -359,6 +360,7 @@ export class OrderService {
 				"FULFILLED",
 				{
 					deliveryContent: deliveryContentToPersist,
+					buyerInputs: redactBuyerInputs(order.buyerInputs),
 					fulfilledAt: now,
 					updatedAt: now,
 				},
@@ -492,6 +494,7 @@ export class OrderService {
 				{
 					rejectionCategory,
 					rejectionNote,
+					buyerInputs: redactBuyerInputs(order.buyerInputs),
 					rejectedAt: now,
 					updatedAt: now,
 				},
@@ -638,6 +641,7 @@ export class OrderService {
 				order.id,
 				"CANCELLED",
 				{
+					buyerInputs: redactBuyerInputs(order.buyerInputs),
 					cancelledAt: now,
 					updatedAt: now,
 				},
