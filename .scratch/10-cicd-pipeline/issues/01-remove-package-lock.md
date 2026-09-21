@@ -4,9 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `package-lock.json` is deleted and `.gitignore` is updated to ignore it going forward
-- [ ] An `.npmrc` file (or equivalent `package.json` `packageManager` field with corepack) is committed that causes `npm install` and `yarn install` to fail with a clear message
-- [ ] `pnpm install --frozen-lockfile` still succeeds against the existing `pnpm-lock.yaml`
-- [ ] The change is verified locally (running `npm install` in the repo produces an error)
+- [x] `package-lock.json` is deleted and `.gitignore` is updated to ignore it going forward
+- [x] An `.npmrc` file (or equivalent `package.json` `packageManager` field with corepack) is committed that causes `npm install` and `yarn install` to fail with a clear message
+- [x] `pnpm install --frozen-lockfile` still succeeds against the existing `pnpm-lock.yaml`
+- [x] The change is verified locally (running `npm install` in the repo produces an error)
