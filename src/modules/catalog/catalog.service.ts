@@ -56,6 +56,9 @@ export class CatalogService {
 				description,
 				usdPrice: usdPriceStr,
 				isActive,
+				catalogType: input.catalogType,
+				fulfillmentStrategy: input.fulfillmentStrategy,
+				requirementConfig: input.requirementConfig,
 			},
 			client,
 		);
@@ -120,6 +123,18 @@ export class CatalogService {
 
 		if (input.isActive !== undefined) {
 			updatePayload.isActive = input.isActive;
+		}
+
+		if (input.catalogType !== undefined) {
+			updatePayload.catalogType = input.catalogType;
+		}
+
+		if (input.fulfillmentStrategy !== undefined) {
+			updatePayload.fulfillmentStrategy = input.fulfillmentStrategy;
+		}
+
+		if (input.requirementConfig !== undefined) {
+			updatePayload.requirementConfig = input.requirementConfig;
 		}
 
 		updatePayload.updatedAt = new Date();

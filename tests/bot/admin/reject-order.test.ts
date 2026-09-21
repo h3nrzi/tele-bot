@@ -131,6 +131,7 @@ describe("Admin Order Rejection Handler & Conversation (Ticket 07)", () => {
 		const flatCatButtons = catKeyboard.inline_keyboard.flat() as any[];
 
 		expect(flatCatButtons.some((b) => b.callback_data === "order_reject_cat:OUT_OF_STOCK")).toBe(true);
+		expect(flatCatButtons.some((b) => b.callback_data === "order_reject_cat:INVALID_CREDENTIALS")).toBe(true);
 		expect(flatCatButtons.some((b) => b.callback_data === "order_reject_cat:CANNOT_VERIFY")).toBe(true);
 		expect(flatCatButtons.some((b) => b.callback_data === "order_reject_cat:TECHNICAL_ISSUE")).toBe(true);
 		expect(flatCatButtons.some((b) => b.callback_data === "order_reject_cat:POLICY_VIOLATION")).toBe(true);
@@ -398,5 +399,119 @@ describe("Admin Order Rejection Handler & Conversation (Ticket 07)", () => {
 
 		const [dbWallet] = await db.select().from(wallets).where(eq(wallets.id, wallet.id));
 		expect(dbWallet?.availableBalance).toBe("40.00"); // Remains debited
+	});
+
+	it("happy path: admin rejects DIRECT_ACCOUNT order with INVALID_CREDENTIALS -> password redacted in DB, buyer refunded with 2FA guidance, admin notifications edited", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: buyerChatId,
+			telegramUsername: "bad_creds_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "50.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "ChatGPT Plus",
+			usdPrice: "20.00",
+			isActive: true,
+			catalogType: "DIRECT_ACCOUNT",
+			fulfillmentStrategy: "ACTIVATION",
+		});
+
+		const encryptedPassword = {
+			ciphertext: "deadbeefcafe1234",
+			iv: "1234567890ab",
+			tag: "fedcba987654",
+		};
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: {
+				email: "openai_user@example.com",
+				password: encryptedPassword,
+				region: "us",
+			},
+		});
+
+		await db.insert(orderAdminNotifications).values([
+			{
+				adminTelegramId: BigInt(adminChatId1),
+				chatId: BigInt(adminChatId1),
+				messageId: 901n,
+				orderId: placedOrder.id,
+			},
+			{
+				adminTelegramId: BigInt(adminChatId2),
+				chatId: BigInt(adminChatId2),
+				messageId: 902n,
+				orderId: placedOrder.id,
+			},
+		]);
+
+		const { bot, repliedMessages, editedMessages, sentMessages } = createTestBot();
+
+		// Step 1: Admin taps [✗ Reject] on order notification
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(1, adminChatId1, `order:reject:${placedOrder.id}`, 901, "lead_admin"),
+		);
+
+		expect(repliedMessages).toHaveLength(1);
+		expect(repliedMessages[0]).toContain("علت رد سفارش را از گزینه‌های زیر انتخاب کنید");
+
+		// Step 2: Admin selects preset category INVALID_CREDENTIALS
+		await bot.handleUpdate(
+			makeCallbackQueryUpdate(2, adminChatId1, "order_reject_cat:INVALID_CREDENTIALS", 901, "lead_admin"),
+		);
+
+		expect(repliedMessages).toHaveLength(2);
+		expect(repliedMessages[1]).toContain(ORDER_REJECTION_CATEGORIES.INVALID_CREDENTIALS.label);
+
+		// Step 3: Admin taps [⏩ رد کردن (بدون یادداشت)]
+		await bot.handleUpdate(makeCallbackQueryUpdate(3, adminChatId1, "order_reject_note:skip", 901, "lead_admin"));
+
+		// 1. Verify DB order state & credential redaction
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+
+		expect(dbOrder).toBeDefined();
+		expect(dbOrder?.status).toBe("REJECTED");
+		expect(dbOrder?.rejectionCategory).toBe("INVALID_CREDENTIALS");
+		expect(dbOrder?.rejectionNote).toBeNull();
+		expect(dbOrder?.rejectedAt).toBeInstanceOf(Date);
+		expect(dbOrder?.buyerInputs).toEqual({
+			email: "openai_user@example.com",
+			password: "[REDACTED]",
+			region: "us",
+		});
+
+		// 2. Verify Buyer balance is restored to 50.00
+		const [dbWallet] = await db.select().from(wallets).where(eq(wallets.id, wallet.id));
+		expect(dbWallet?.availableBalance).toBe("50.00");
+
+		// 3. Verify Buyer received push notification with 2FA/credential guidance
+		const buyerMsg = sentMessages.find((m) => Number(m.chat_id) === buyerChatId);
+		expect(buyerMsg).toBeDefined();
+		expect(buyerMsg?.text).toContain("سفارش شما رد شد");
+		expect(buyerMsg?.text).toContain("اطلاعات ورود نامعتبر / نیاز به تایید دو مرحله‌ای");
+		expect(buyerMsg?.text).toContain("Invalid Credentials / 2FA Blocked");
+		expect(buyerMsg?.text).toContain("راهنما:");
+		expect(buyerMsg?.text).toContain("تایید دو مرحله‌ای (2FA)");
+		expect(buyerMsg?.text).toContain("20.00");
+		expect(buyerMsg?.text).toContain("50.00");
+
+		// 4. Verify Admin notifications updated with REJECTED status
+		const admin1Edited = editedMessages.find((m) => Number(m.chat_id) === adminChatId1);
+		const admin2Edited = editedMessages.find((m) => Number(m.chat_id) === adminChatId2);
+
+		expect(admin1Edited).toBeDefined();
+		const admin1Buttons = admin1Edited?.reply_markup?.inline_keyboard?.flat() ?? [];
+		expect(admin1Buttons.some((b: any) => b.text.includes("رد شده توسط @lead_admin"))).toBe(true);
+
+		expect(admin2Edited).toBeDefined();
+		const admin2Buttons = admin2Edited?.reply_markup?.inline_keyboard?.flat() ?? [];
+		expect(admin2Buttons.some((b: any) => b.text.includes("رد شده توسط @lead_admin"))).toBe(true);
+
+		// 5. Admin received success confirmation
+		const adminConfirmation = repliedMessages.find((m) => m.includes("با موفقیت رد شد"));
+		expect(adminConfirmation).toBeDefined();
 	});
 });

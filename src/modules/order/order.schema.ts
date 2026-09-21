@@ -1,7 +1,7 @@
-import { pgTable, uuid, bigint, numeric, varchar, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, bigint, numeric, varchar, text, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "@/modules/buyer/buyer.schema";
-import { catalogItems } from "@/modules/catalog/catalog.schema";
+import { catalogItems, fulfillmentStrategyEnum } from "@/modules/catalog/catalog.schema";
 import { ledgerTransactions } from "@/modules/ledger/ledger.schema";
 
 export const orderStatusEnum = pgEnum("order_status", ["PLACED", "PROCESSING", "FULFILLED", "REJECTED", "CANCELLED"]);
@@ -19,6 +19,10 @@ export const orders = pgTable("orders", {
 		scale: 2,
 	}).notNull(),
 	status: orderStatusEnum("status").notNull(),
+	fulfillmentStrategySnapshot: fulfillmentStrategyEnum("fulfillment_strategy_snapshot")
+		.notNull()
+		.default("PAYLOAD_DELIVERY"),
+	buyerInputs: jsonb("buyer_inputs").$type<Record<string, unknown> | null>(),
 	deliveryContent: text("delivery_content"),
 	rejectionCategory: varchar("rejection_category", { length: 100 }),
 	rejectionNote: text("rejection_note"),

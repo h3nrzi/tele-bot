@@ -10,6 +10,7 @@ import { CatalogService } from "@/modules/catalog/catalog.service";
 import { OrderService } from "@/modules/order/order.service";
 import { ExchangeRateService } from "@/modules/exchange-rate/services/exchange-rate.service";
 import { ExchangeRateConfigService } from "@/modules/exchange-rate/services/exchange-rate-config.service";
+import { TOKENS } from "@/core/di/tokens";
 
 import { createSetCardConversation, SETCARD_CONVERSATION_ID } from "@/bot/admin/conversations/set-card.conversation";
 import { createSetRateConversation, SETRATE_CONVERSATION_ID } from "@/bot/admin/conversations/set-rate.conversation";
@@ -30,6 +31,12 @@ import {
 	createRejectOrderConversation,
 	REJECT_ORDER_CONVERSATION_ID,
 } from "@/bot/admin/conversations/order-reject.conversation";
+import { WalletService } from "@/modules/wallet/wallet.service";
+import { CredentialCryptoService } from "@/core/crypto/credential-crypto.service";
+import {
+	createCollectOrderRequirementsConversation,
+	COLLECT_ORDER_REQUIREMENTS_CONVERSATION_ID,
+} from "@/bot/buyer/conversations/order-requirements.conversation";
 
 interface ConversationDescriptor {
 	id: string;
@@ -79,6 +86,17 @@ const conversationDescriptors: readonly ConversationDescriptor[] = [
 	{
 		id: REJECT_ORDER_CONVERSATION_ID,
 		factory: (container) => createRejectOrderConversation(container.resolve(OrderService)),
+	},
+	{
+		id: COLLECT_ORDER_REQUIREMENTS_CONVERSATION_ID,
+		factory: (container) =>
+			createCollectOrderRequirementsConversation(
+				container.resolve(OrderService),
+				container.resolve(CatalogService),
+				container.resolve(BuyerService),
+				container.resolve(WalletService),
+				container.resolve(TOKENS.CredentialCryptoService),
+			),
 	},
 ];
 

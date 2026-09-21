@@ -67,4 +67,26 @@ describe("Dependency Injection Container", () => {
 
 		expect(container.resolve(TOKENS.WallexClient)).toBe(mockWallexClient);
 	});
+
+	it("resolves CredentialCryptoService from container", () => {
+		const container = createAppContainer({
+			child: true,
+		});
+
+		expect(container.resolve(TOKENS.CredentialCryptoService)).toBeDefined();
+	});
+
+	it("registers and resolves CredentialCryptoService with container override", () => {
+		const mockCrypto: any = {
+			encrypt: () => ({ ciphertext: "c", iv: "i", tag: "t" }),
+			decrypt: () => "plain",
+		};
+
+		const container = createAppContainer({
+			credentialCryptoService: mockCrypto,
+			child: true,
+		});
+
+		expect(container.resolve(TOKENS.CredentialCryptoService)).toBe(mockCrypto);
+	});
 });

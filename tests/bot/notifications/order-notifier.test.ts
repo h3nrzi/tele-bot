@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
 	TelegramOrderNotifier,
 	formatAdminOrderPlacedMessage,
+	formatAdminBuyerInputs,
 	formatBuyerOrderFulfilledMessage,
 	formatBuyerOrderRejectedMessage,
 	formatBuyerOrderCancelledMessage,
@@ -66,6 +67,137 @@ describe("TelegramOrderNotifier", () => {
 			expect(msg).toContain("$70.01");
 		});
 
+		it("formatAdminOrderPlacedMessage formats buyerInputs with masked password for initial broadcast", () => {
+			const orderWithInputs = new Order({
+				id: "order-uuid-account-1",
+				userId: "buyer-uuid-1",
+				catalogItemId: "item-uuid-1",
+				status: "PLACED",
+				usdPriceSnapshot: "15.00",
+				buyerInputs: {
+					email: "user@example.com",
+					password: {
+						ciphertext: "aabbcc",
+						iv: "112233",
+						tag: "445566",
+					},
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const msg = formatAdminOrderPlacedMessage({
+				order: orderWithInputs,
+				catalogItem: dummyItem,
+				buyer: dummyBuyer,
+				postDebitBalance: "35.00",
+			});
+
+			expect(msg).toContain("📧 ایمیل: user@example.com");
+			expect(msg).toContain("🔑 رمز عبور: 🔒 پس از شروع پردازش نمایش داده می‌شود");
+			expect(msg).not.toContain("aabbcc");
+		});
+
+		it("formatAdminOrderPlacedMessage formats buyerInputs with revealed password when decryptedPassword option is provided", () => {
+			const orderWithInputs = new Order({
+				id: "order-uuid-account-1",
+				userId: "buyer-uuid-1",
+				catalogItemId: "item-uuid-1",
+				status: "PROCESSING",
+				usdPriceSnapshot: "15.00",
+				buyerInputs: {
+					email: "user@example.com",
+					password: {
+						ciphertext: "aabbcc",
+						iv: "112233",
+						tag: "445566",
+					},
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const msg = formatAdminOrderPlacedMessage(
+				{
+					order: orderWithInputs,
+					catalogItem: dummyItem,
+					buyer: dummyBuyer,
+				},
+				{ decryptedPassword: "SuperSecretPassword123!" },
+			);
+
+			expect(msg).toContain("📧 ایمیل: user@example.com");
+			expect(msg).toContain("🔑 رمز عبور: SuperSecretPassword123!");
+			expect(msg).not.toContain("🔒 پس از شروع پردازش نمایش داده می‌شود");
+		});
+
+		it("formatAdminOrderPlacedMessage formats buyerInputs with [REDACTED] when password is redacted", () => {
+			const orderRedacted = new Order({
+				id: "order-uuid-account-redacted",
+				userId: "buyer-uuid-1",
+				catalogItemId: "item-uuid-1",
+				status: "FULFILLED",
+				usdPriceSnapshot: "15.00",
+				buyerInputs: {
+					email: "user@example.com",
+					password: "[REDACTED]",
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const msg = formatAdminOrderPlacedMessage({
+				order: orderRedacted,
+				catalogItem: dummyItem,
+				buyer: dummyBuyer,
+			});
+
+			expect(msg).toContain("📧 ایمیل: user@example.com");
+			expect(msg).toContain("🔑 رمز عبور: [REDACTED]");
+		});
+
+		it("formatAdminOrderPlacedMessage formats targetUsername and VPN region correctly", () => {
+			const orderHandle = new Order({
+				id: "order-uuid-handle-1",
+				userId: "buyer-uuid-1",
+				catalogItemId: "item-uuid-1",
+				status: "PLACED",
+				usdPriceSnapshot: "5.00",
+				buyerInputs: {
+					targetUsername: "@recipient_friend",
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const msgHandle = formatAdminOrderPlacedMessage({
+				order: orderHandle,
+				catalogItem: dummyItem,
+				buyer: dummyBuyer,
+			});
+			expect(msgHandle).toContain("👤 شناسه / نام کاربری مقصد: @recipient_friend");
+
+			const orderVpn = new Order({
+				id: "order-uuid-vpn-1",
+				userId: "buyer-uuid-1",
+				catalogItemId: "item-uuid-1",
+				status: "PLACED",
+				usdPriceSnapshot: "5.00",
+				buyerInputs: {
+					region: "de",
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const msgVpn = formatAdminOrderPlacedMessage({
+				order: orderVpn,
+				catalogItem: dummyItem,
+				buyer: dummyBuyer,
+			});
+			expect(msgVpn).toContain("🌐 منطقه سرور: 🇩🇪 آلمان (de)");
+		});
+
 		it("formatAdminOrderPlacedMessage handles buyer without username and item without description", () => {
 			const buyerWithoutUsername = new Buyer({
 				id: "buyer-uuid-2",
@@ -118,6 +250,25 @@ describe("TelegramOrderNotifier", () => {
 			expect(msg).toContain("Will restock tomorrow");
 			expect(msg).toContain("$29.99");
 			expect(msg).toContain("$100.00");
+		});
+
+		it("formatBuyerOrderRejectedMessage formats rejection notice with 2FA/credential guidance for INVALID_CREDENTIALS", () => {
+			const msg = formatBuyerOrderRejectedMessage({
+				orderId: "order-uuid-invalid-creds",
+				rejectionCategory: "INVALID_CREDENTIALS",
+				rejectionNote: null,
+				refundAmount: "19.99",
+				updatedBalance: "80.00",
+			});
+
+			expect(msg).toContain("❌ *سفارش شما رد شد*");
+			expect(msg).toContain("اطلاعات ورود نامعتبر / نیاز به تایید دو مرحله‌ای");
+			expect(msg).toContain("Invalid Credentials / 2FA Blocked");
+			expect(msg).toContain("راهنما:");
+			expect(msg).toContain("تایید دو مرحله‌ای (2FA)");
+			expect(msg).toContain("$19.99");
+			expect(msg).toContain("$80.00");
+			expect(msg).toContain("مبلغ سفارش به موجودی کیف پول شما بازگردانده شد.");
 		});
 
 		it("formatBuyerOrderCancelledMessage formats cancellation notice for buyer", () => {
@@ -279,6 +430,154 @@ describe("TelegramOrderNotifier", () => {
 			expect(edited[0].opts.reply_markup.inline_keyboard[0][0].text).toContain("@superadmin");
 			expect(edited[0].opts.reply_markup.inline_keyboard[1][0].callback_data).toBe(`order:fulfil:${dummyOrder.id}`);
 		});
+
+		it("decrypts password and edits message text for claiming admin while keeping other admins masked", async () => {
+			const editedMarkup: any[] = [];
+			const editedText: any[] = [];
+			const mockApi = {
+				sendMessage: vi.fn(),
+				editMessageReplyMarkup: vi.fn(async (chatId, messageId, opts) => {
+					editedMarkup.push({ chatId, messageId, opts });
+				}),
+				editMessageText: vi.fn(async (chatId, messageId, text, opts) => {
+					editedText.push({ chatId, messageId, text, opts });
+				}),
+			};
+
+			const mockCryptoService = {
+				encrypt: vi.fn(),
+				decrypt: vi.fn((_payload) => "DecryptedSecretPassword999!"),
+			};
+
+			const notifier = new TelegramOrderNotifier({
+				api: mockApi,
+				adminIds: "111222,333444",
+				cryptoService: mockCryptoService as any,
+			});
+
+			const orderWithEncryptedPw = new Order({
+				id: "order-uuid-pw-1",
+				userId: dummyBuyer.id,
+				catalogItemId: dummyItem.id,
+				status: "PROCESSING",
+				usdPriceSnapshot: "15.00",
+				buyerInputs: {
+					email: "vip@example.com",
+					password: {
+						ciphertext: "dummycipher",
+						iv: "dummyiv",
+						tag: "dummytag",
+					},
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const notif1 = new OrderAdminNotification({
+				id: "notif-1",
+				orderId: orderWithEncryptedPw.id,
+				adminTelegramId: 111222n,
+				chatId: 111222n,
+				messageId: 101n,
+				createdAt: new Date(),
+			});
+			const notif2 = new OrderAdminNotification({
+				id: "notif-2",
+				orderId: orderWithEncryptedPw.id,
+				adminTelegramId: 333444n,
+				chatId: 333444n,
+				messageId: 102n,
+				createdAt: new Date(),
+			});
+
+			await notifier.onOrderClaimed({
+				order: orderWithEncryptedPw,
+				catalogItem: dummyItem,
+				buyer: dummyBuyer,
+				notifications: [notif1, notif2],
+				claimedByAdminTelegramId: 111222n,
+				claimedByAdminUsername: "claiming_admin",
+			});
+
+			// Claiming admin (111222) gets editMessageText with decrypted credentials
+			expect(mockApi.editMessageText).toHaveBeenCalledTimes(1);
+			expect(editedText).toHaveLength(1);
+			expect(editedText[0].chatId).toBe(111222);
+			expect(editedText[0].messageId).toBe(101);
+			expect(editedText[0].text).toContain("🔑 رمز عبور: DecryptedSecretPassword999!");
+			expect(editedText[0].text).toContain("📧 ایمیل: vip@example.com");
+			expect(editedText[0].opts.reply_markup.inline_keyboard[0][0].text).toContain("@claiming_admin");
+
+			// Non-claiming admin (333444) gets editMessageReplyMarkup ONLY (no decrypted text sent)
+			expect(mockApi.editMessageReplyMarkup).toHaveBeenCalledTimes(1);
+			expect(editedMarkup).toHaveLength(1);
+			expect(editedMarkup[0].chatId).toBe(333444);
+			expect(editedMarkup[0].messageId).toBe(102);
+			expect(editedMarkup[0].opts.reply_markup.inline_keyboard[0][0].text).toContain("@claiming_admin");
+		});
+
+		it("falls back to editMessageReplyMarkup when decryption fails without crashing", async () => {
+			const editedMarkup: any[] = [];
+			const mockApi = {
+				sendMessage: vi.fn(),
+				editMessageReplyMarkup: vi.fn(async (chatId, messageId, opts) => {
+					editedMarkup.push({ chatId, messageId, opts });
+				}),
+				editMessageText: vi.fn(),
+			};
+
+			const mockCryptoService = {
+				encrypt: vi.fn(),
+				decrypt: vi.fn(() => {
+					throw new Error("Tampered ciphertext");
+				}),
+			};
+
+			const notifier = new TelegramOrderNotifier({
+				api: mockApi,
+				adminIds: "111222",
+				cryptoService: mockCryptoService as any,
+			});
+
+			const orderWithBadPw = new Order({
+				id: "order-uuid-pw-2",
+				userId: dummyBuyer.id,
+				catalogItemId: dummyItem.id,
+				status: "PROCESSING",
+				usdPriceSnapshot: "15.00",
+				buyerInputs: {
+					email: "bad@example.com",
+					password: {
+						ciphertext: "corrupt",
+						iv: "corrupt",
+						tag: "corrupt",
+					},
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const notif1 = new OrderAdminNotification({
+				id: "notif-1",
+				orderId: orderWithBadPw.id,
+				adminTelegramId: 111222n,
+				chatId: 111222n,
+				messageId: 101n,
+				createdAt: new Date(),
+			});
+
+			await notifier.onOrderClaimed({
+				order: orderWithBadPw,
+				catalogItem: dummyItem,
+				buyer: dummyBuyer,
+				notifications: [notif1],
+				claimedByAdminTelegramId: 111222n,
+			});
+
+			// When decryption fails, editMessageText is NOT called; falls back to editMessageReplyMarkup
+			expect(mockApi.editMessageText).not.toHaveBeenCalled();
+			expect(mockApi.editMessageReplyMarkup).toHaveBeenCalledTimes(1);
+		});
 	});
 
 	describe("onOrderFulfilled", () => {
@@ -360,6 +659,69 @@ describe("TelegramOrderNotifier", () => {
 
 			expect(mockApi.editMessageReplyMarkup).toHaveBeenCalledTimes(1);
 			expect(edited[0].opts.reply_markup.inline_keyboard[0][0].text).toContain("✅ تکمیل شده توسط @superadmin");
+		});
+
+		it("sends dedicated activation message to buyer without empty payload sections for ACTIVATION orders", async () => {
+			const sentMessages: any[] = [];
+			const edited: any[] = [];
+			const mockApi = {
+				sendMessage: vi.fn(async (chatId, text, opts) => {
+					sentMessages.push({ chatId, text, opts });
+				}),
+				editMessageReplyMarkup: vi.fn(async (chatId, messageId, opts) => {
+					edited.push({ chatId, messageId, opts });
+				}),
+			};
+
+			const notifier = new TelegramOrderNotifier({
+				api: mockApi,
+			});
+
+			const activationOrder = new Order({
+				id: "order-uuid-activation-1234",
+				userId: dummyBuyer.id,
+				catalogItemId: "item-uuid-spotify",
+				status: "PROCESSING",
+				fulfillmentStrategySnapshot: "ACTIVATION",
+				buyerInputs: { email: "buyer@example.com" },
+				usdPriceSnapshot: "15.00",
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const notif = new OrderAdminNotification({
+				id: "notif-activation-1",
+				orderId: activationOrder.id,
+				adminTelegramId: 111222n,
+				chatId: 111222n,
+				messageId: 201n,
+				createdAt: new Date(),
+			});
+
+			await notifier.onOrderFulfilled({
+				order: activationOrder,
+				buyer: dummyBuyer,
+				notifications: [notif],
+				adminTelegramId: 111222n,
+				adminUsername: "@support_admin",
+			});
+
+			// 1. Sent to buyer
+			expect(mockApi.sendMessage).toHaveBeenCalledTimes(1);
+			expect(sentMessages[0].chatId).toBe("987654321");
+			const buyerMsg = sentMessages[0].text;
+			// Dedicated Persian activation notice
+			expect(buyerMsg).toContain("فعال‌سازی");
+			expect(buyerMsg).toMatch(/ارتقا|فعال/);
+			expect(buyerMsg).toContain("با تشکر از خرید شما");
+			// Must NOT contain empty payload sections
+			expect(buyerMsg).not.toContain("اطلاعات تحویل سفارش");
+			expect(buyerMsg).not.toContain("undefined");
+			expect(buyerMsg).not.toContain("null");
+
+			// 2. Admin notification updated to fulfilled layout
+			expect(mockApi.editMessageReplyMarkup).toHaveBeenCalledTimes(1);
+			expect(edited[0].opts.reply_markup.inline_keyboard[0][0].text).toContain("✅ تکمیل شده توسط @support_admin");
 		});
 	});
 

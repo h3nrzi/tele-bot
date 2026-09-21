@@ -18,7 +18,11 @@ import {
 } from "@/bot/admin/handlers/catalog.handler";
 import { handleOrdersCommand } from "@/bot/admin/handlers/orders.handler";
 import { handleClaimOrderCallback } from "@/bot/admin/handlers/claim.handler";
-import { handleFulfilOrderCallback } from "@/bot/admin/handlers/fulfil.handler";
+import {
+	handleFulfilOrderCallback,
+	handleConfirmActivationCallback,
+	handleCancelActivationCallback,
+} from "@/bot/admin/handlers/fulfil.handler";
 import { handleRejectOrderCallback } from "@/bot/admin/handlers/order-reject.handler";
 import {
 	handleRateModeCommand,
@@ -315,6 +319,22 @@ export function createAdminComposer(options?: AdminComposerOptions): Composer<Bo
 		try {
 			await ctx.answerCallbackQuery();
 		} catch {}
+	});
+
+	composer.callbackQuery(/^order:activate:confirm:(.+)$/, adminAuth, async (ctx) => {
+		if (orderService) {
+			await handleConfirmActivationCallback(ctx, {
+				orderService,
+			});
+		}
+	});
+
+	composer.callbackQuery(/^order:activate:cancel:(.+)$/, adminAuth, async (ctx) => {
+		if (orderService) {
+			await handleCancelActivationCallback(ctx, {
+				orderService,
+			});
+		}
 	});
 
 	composer.callbackQuery(/^order:fulfil:(.+)$/, adminAuth, async (ctx) => {

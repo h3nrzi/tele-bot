@@ -1,4 +1,4 @@
-import type { CatalogItem } from "@/modules/catalog/catalog.entity";
+import type { CatalogItem, CatalogType, FulfillmentStrategy } from "@/modules/catalog/catalog.entity";
 
 /**
  * Domain Repository Interface for CatalogItem.
@@ -13,6 +13,9 @@ export interface ICatalogRepository<TExecutor = unknown> {
 			description: string | null;
 			usdPrice: string;
 			isActive: boolean;
+			catalogType?: CatalogType | undefined;
+			fulfillmentStrategy?: FulfillmentStrategy | undefined;
+			requirementConfig?: Record<string, unknown> | null | undefined;
 		},
 		executor?: TExecutor,
 	): Promise<CatalogItem>;
@@ -23,6 +26,9 @@ export interface ICatalogRepository<TExecutor = unknown> {
 			description: string | null;
 			usdPrice: string;
 			isActive: boolean;
+			catalogType: CatalogType;
+			fulfillmentStrategy: FulfillmentStrategy;
+			requirementConfig: Record<string, unknown> | null;
 			updatedAt: Date;
 		}>,
 		executor?: TExecutor,

@@ -3,7 +3,7 @@ import { eq, asc } from "drizzle-orm";
 import { catalogItems } from "@/modules/catalog/catalog.schema";
 import { getDefaultDb, type DbClient } from "@/core/database/client";
 import type { DbExecutor } from "@/core/database/types";
-import { CatalogItem } from "@/modules/catalog/catalog.entity";
+import { CatalogItem, type CatalogType, type FulfillmentStrategy } from "@/modules/catalog/catalog.entity";
 import type { ICatalogRepository } from "@/modules/catalog/catalog.repository.interface";
 import { TOKENS } from "@/core/di/tokens";
 
@@ -50,6 +50,9 @@ export class DrizzleCatalogRepository implements ICatalogRepository<DbExecutor> 
 			description: string | null;
 			usdPrice: string;
 			isActive: boolean;
+			catalogType?: CatalogType | undefined;
+			fulfillmentStrategy?: FulfillmentStrategy | undefined;
+			requirementConfig?: Record<string, unknown> | null | undefined;
 		},
 		executor?: DbExecutor,
 	): Promise<CatalogItem> {
@@ -61,6 +64,9 @@ export class DrizzleCatalogRepository implements ICatalogRepository<DbExecutor> 
 				description: data.description,
 				usdPrice: data.usdPrice,
 				isActive: data.isActive,
+				...(data.catalogType !== undefined ? { catalogType: data.catalogType } : {}),
+				...(data.fulfillmentStrategy !== undefined ? { fulfillmentStrategy: data.fulfillmentStrategy } : {}),
+				...(data.requirementConfig !== undefined ? { requirementConfig: data.requirementConfig } : {}),
 			})
 			.returning();
 
@@ -78,6 +84,9 @@ export class DrizzleCatalogRepository implements ICatalogRepository<DbExecutor> 
 			description: string | null;
 			usdPrice: string;
 			isActive: boolean;
+			catalogType: CatalogType;
+			fulfillmentStrategy: FulfillmentStrategy;
+			requirementConfig: Record<string, unknown> | null;
 			updatedAt: Date;
 		}>,
 		executor?: DbExecutor,
@@ -99,6 +108,15 @@ export class DrizzleCatalogRepository implements ICatalogRepository<DbExecutor> 
 		if (data.isActive !== undefined) {
 			updateValues.isActive = data.isActive;
 		}
+		if (data.catalogType !== undefined) {
+			updateValues.catalogType = data.catalogType;
+		}
+		if (data.fulfillmentStrategy !== undefined) {
+			updateValues.fulfillmentStrategy = data.fulfillmentStrategy;
+		}
+		if (data.requirementConfig !== undefined) {
+			updateValues.requirementConfig = data.requirementConfig;
+		}
 
 		const [row] = await db.update(catalogItems).set(updateValues).where(eq(catalogItems.id, id)).returning();
 
@@ -116,6 +134,9 @@ export class DrizzleCatalogRepository implements ICatalogRepository<DbExecutor> 
 			description: row.description,
 			usdPrice: row.usdPrice,
 			isActive: row.isActive,
+			catalogType: row.catalogType as CatalogType,
+			fulfillmentStrategy: row.fulfillmentStrategy as FulfillmentStrategy,
+			requirementConfig: row.requirementConfig as Record<string, unknown> | null,
 			createdAt: row.createdAt,
 			updatedAt: row.updatedAt,
 		});

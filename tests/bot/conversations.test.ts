@@ -24,6 +24,7 @@ import {
 } from "@/bot/admin/conversations/catalog.conversation";
 import { FULFIL_ORDER_CONVERSATION_ID } from "@/bot/admin/conversations/fulfil.conversation";
 import { REJECT_ORDER_CONVERSATION_ID } from "@/bot/admin/conversations/order-reject.conversation";
+import { COLLECT_ORDER_REQUIREMENTS_CONVERSATION_ID } from "@/bot/buyer/conversations/order-requirements.conversation";
 
 vi.mock("@grammyjs/conversations", () => ({
 	createConversation: vi.fn((_builder: unknown, options: { id: string } | string) => {
@@ -43,6 +44,7 @@ describe("registerConversations", () => {
 		EDIT_CATALOG_ITEM_CONVERSATION_ID,
 		FULFIL_ORDER_CONVERSATION_ID,
 		REJECT_ORDER_CONVERSATION_ID,
+		COLLECT_ORDER_REQUIREMENTS_CONVERSATION_ID,
 	];
 
 	let useSpy: ReturnType<typeof vi.fn>;
@@ -75,13 +77,13 @@ describe("registerConversations", () => {
 		mockLimits = new TopUpLimits("10.00", "1000.00", 30);
 	});
 
-	it("calls bot.use exactly nine times with handlers bearing expected conversation IDs", () => {
+	it("calls bot.use exactly ten times with handlers bearing expected conversation IDs", () => {
 		registerConversations(mockBot, mockContainer, mockLimits);
 
-		// 1. Assert bot.use was called exactly nine times
-		expect(useSpy).toHaveBeenCalledTimes(9);
+		// 1. Assert bot.use was called exactly ten times
+		expect(useSpy).toHaveBeenCalledTimes(10);
 
-		// 2. Assert each call received a handler whose conversation ID matches one of the nine expected IDs
+		// 2. Assert each call received a handler whose conversation ID matches one of the ten expected IDs
 		const registeredIds = useSpy.mock.calls.map(([handler]) => handler.id);
 		expect(registeredIds).toEqual(expectedConversationIds);
 

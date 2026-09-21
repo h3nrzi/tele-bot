@@ -72,6 +72,18 @@ _Avoid_: Locked price, Historical price
 The act of an Admin transitioning an Order from `PLACED` to `PROCESSING` by tapping `[▶ Start Processing]`. Claiming is instantaneous, requires no conversation, and locks Buyer cancellation. Only one Admin may claim a given Order.
 _Avoid_: Assignment, Pickup, Take
 
+**Buyer Requirement**:
+The specification configured on a Catalog Item defining what information the Buyer must provide during purchase (e.g. Account Credentials, Target Username, Server Region).
+_Avoid_: Input Schema, Custom Fields, Spec, Options
+
+**Buyer Input**:
+The data provided by a Buyer during the pre-placement conversation to satisfy the Buyer Requirements of a Catalog Item.
+_Avoid_: Buyer Payload, Customer Data, Account Credentials
+
+**Fulfillment Strategy**:
+The mechanism used to execute and complete an Order (`ACTIVATION`, `PAYLOAD_DELIVERY`, or `AUTOMATED_PANEL`).
+_Avoid_: Fulfillment Mode, Delivery Type, Service Mechanism
+
 **Delivery Content**:
 The plain-text credentials, keys, or access information typed by the claiming Admin during the fulfilment conversation and forwarded to the Buyer upon Order fulfilment. Stored permanently in `orders.delivery_content` for audit purposes.
 _Avoid_: Credentials, Payload, Fulfilment data

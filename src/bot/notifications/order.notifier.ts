@@ -13,6 +13,7 @@ import { resolveAdminIds } from "@/bot/middleware/admin.middleware";
 import type { DbExecutor } from "@/core/database/types";
 import { formatUsd } from "@/core/shared/currency.utils";
 import { escapeMarkdown } from "@/core/shared/telegram.utils";
+import type { ICredentialCryptoService, EncryptedCredential } from "@/core/crypto/credential-crypto.interface";
 import type {
 	IOrderNotifier,
 	OnOrderCancelledContext,
@@ -22,6 +23,7 @@ import type {
 	OnOrderRejectedContext,
 } from "@/modules/order/interfaces/order.notifier.interface";
 import type { IOrderRepository } from "@/modules/order/interfaces/order.repository.interface";
+import { REDACTED_PASSWORD_SENTINEL } from "@/modules/order/order.utils";
 import { InlineKeyboard, type Bot } from "grammy";
 
 // Module-local notification context shapes (previously *NotificationContext in order.dto.ts)
@@ -38,27 +40,100 @@ export interface TelegramApiLike {
 		messageId: number,
 		options: { reply_markup: InlineKeyboard },
 	) => Promise<unknown>;
+	editMessageText?: (
+		chatId: number,
+		messageId: number,
+		text: string,
+		other?: any,
+	) => Promise<unknown>;
 }
 
 export interface TelegramOrderNotifierOptions {
 	api: TelegramApiLike;
 	adminIds?: string | Set<bigint> | undefined;
 	orderRepo?: IOrderRepository<DbExecutor> | undefined;
+	cryptoService?: ICredentialCryptoService | undefined;
 }
 
-export function formatAdminOrderPlacedMessage(context: {
-	order: { id: string; usdPriceSnapshot: string };
-	catalogItem: { name: string; description?: string | null };
-	buyer: {
-		telegramUsername?: string | null;
-		telegramChatId: bigint | number | string;
-	};
-	postDebitBalance: string;
-}): string {
+const REGION_FLAG_MAP: Record<string, string> = {
+	de: "🇩🇪 آلمان (de)",
+	nl: "🇳🇱 هلند (nl)",
+	fi: "🇫🇮 فنلاند (fi)",
+	us: "🇺🇸 آمریکا (us)",
+	gb: "🇬🇧 انگلیس (gb)",
+	fr: "🇫🇷 فرانسه (fr)",
+	tr: "🇹🇷 ترکیه (tr)",
+};
+
+export function formatAdminBuyerInputs(
+	buyerInputs: Record<string, unknown> | null | undefined,
+	options?: { decryptedPassword?: string | undefined },
+): string {
+	if (!buyerInputs || typeof buyerInputs !== "object") {
+		return "";
+	}
+
+	const lines: string[] = [];
+
+	if (buyerInputs.email) {
+		lines.push(`📧 ایمیل: ${buyerInputs.email}`);
+	}
+
+	if (buyerInputs.password) {
+		if (buyerInputs.password === REDACTED_PASSWORD_SENTINEL) {
+			lines.push(`🔑 رمز عبور: ${REDACTED_PASSWORD_SENTINEL}`);
+		} else if (options?.decryptedPassword) {
+			lines.push(`🔑 رمز عبور: ${options.decryptedPassword}`);
+		} else {
+			lines.push(`🔑 رمز عبور: 🔒 پس از شروع پردازش نمایش داده می‌شود`);
+		}
+	}
+
+	if (buyerInputs.targetUsername) {
+		lines.push(`👤 شناسه / نام کاربری مقصد: ${buyerInputs.targetUsername}`);
+	}
+
+	if (buyerInputs.region) {
+		const regionKey = String(buyerInputs.region).toLowerCase();
+		const regionLabel = REGION_FLAG_MAP[regionKey] ?? String(buyerInputs.region).toUpperCase();
+		lines.push(`🌐 منطقه سرور: ${regionLabel}`);
+	}
+
+	for (const [key, value] of Object.entries(buyerInputs)) {
+		if (["email", "password", "targetUsername", "region"].includes(key)) {
+			continue;
+		}
+		if (value !== undefined && value !== null) {
+			lines.push(`${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`);
+		}
+	}
+
+	return lines.join("\n");
+}
+
+export function formatAdminOrderPlacedMessage(
+	context: {
+		order: { id: string; usdPriceSnapshot: string; buyerInputs?: Record<string, unknown> | null };
+		catalogItem: { name: string; description?: string | null };
+		buyer: {
+			telegramUsername?: string | null;
+			telegramChatId: bigint | number | string;
+		};
+		postDebitBalance?: string | null | undefined;
+	},
+	options?: { decryptedPassword?: string | undefined },
+): string {
 	const buyerDisplay = context.buyer.telegramUsername
 		? `@${context.buyer.telegramUsername} (شناسه: ${context.buyer.telegramChatId})`
 		: `شناسه: ${context.buyer.telegramChatId}`;
 	const descriptionLine = context.catalogItem.description ? `\n📝 توضیحات: ${context.catalogItem.description}` : "";
+	const balanceLine =
+		context.postDebitBalance !== undefined && context.postDebitBalance !== null
+			? `\n💰 موجودی باقی‌مانده خریدار: ${formatUsd(context.postDebitBalance)}`
+			: "";
+
+	const inputsText = formatAdminBuyerInputs(context.order.buyerInputs, options);
+	const inputsSection = inputsText ? `\n\n${inputsText}` : "";
 
 	return (
 		`📦 سفارش جدید ثبت شد\n\n` +
@@ -66,8 +141,9 @@ export function formatAdminOrderPlacedMessage(context: {
 		`👤 خریدار: ${buyerDisplay}\n` +
 		`🛍️ نام خدمت: ${context.catalogItem.name}` +
 		descriptionLine +
-		`\n💵 مبلغ سفارش: ${formatUsd(context.order.usdPriceSnapshot)}\n` +
-		`💰 موجودی باقی‌مانده خریدار: ${formatUsd(context.postDebitBalance)}`
+		`\n💵 مبلغ سفارش: ${formatUsd(context.order.usdPriceSnapshot)}` +
+		balanceLine +
+		inputsSection
 	);
 }
 
@@ -76,6 +152,14 @@ export function formatBuyerOrderFulfilledMessage(deliveryContent: string): strin
 		`📦 سفارش شما با موفقیت تحویل داده شد!\n\n` +
 		`اطلاعات تحویل سفارش:\n` +
 		`${deliveryContent}\n\n` +
+		`با تشکر از خرید شما.`
+	);
+}
+
+export function formatBuyerOrderActivatedMessage(): string {
+	return (
+		`🎉 سفارش شما با موفقیت فعال‌سازی شد!\n\n` +
+		`سرویس شما با موفقیت فعال‌سازی و ارتقا داده شد و اکنون آماده استفاده است.\n\n` +
 		`با تشکر از خرید شما.`
 	);
 }
@@ -97,13 +181,19 @@ export function formatBuyerOrderRejectedMessage(params: {
 
 	const noteLine = params.rejectionNote ? `💬 توضیحات: ${escapeMarkdown(params.rejectionNote)}\n` : "";
 
+	const guidanceLine =
+		categoryInfo && "buyerGuidance" in categoryInfo && categoryInfo.buyerGuidance
+			? `\n${categoryInfo.buyerGuidance}\n`
+			: "";
+
 	return (
 		`❌ *سفارش شما رد شد*\n\n` +
 		`📦 شناسه سفارش: #${shortOrderId}\n` +
 		`📋 علت رد: ${categoryLabel}\n` +
 		`${noteLine}` +
 		`💵 مبلغ برگشت داده شده به کیف پول: ${formatUsd(params.refundAmount)}\n` +
-		`💰 موجودی فعلی کیف پول شما: ${formatUsd(params.updatedBalance)}\n\n` +
+		`💰 موجودی فعلی کیف پول شما: ${formatUsd(params.updatedBalance)}\n` +
+		`${guidanceLine}\n` +
 		`مبلغ سفارش به موجودی کیف پول شما بازگردانده شد.`
 	);
 }
@@ -126,17 +216,20 @@ export class TelegramOrderNotifier implements IOrderNotifier {
 	private readonly api: TelegramApiLike;
 	private readonly adminIds?: string | Set<bigint> | undefined;
 	private readonly orderRepo?: IOrderRepository<DbExecutor> | undefined;
+	private readonly cryptoService?: ICredentialCryptoService | undefined;
 
 	constructor(options: TelegramOrderNotifierOptions);
 	constructor(
 		botOrApi: Bot<BotContext> | TelegramApiLike,
 		adminIds?: string | Set<bigint> | undefined,
 		orderRepo?: IOrderRepository<DbExecutor> | undefined,
+		cryptoService?: ICredentialCryptoService | undefined,
 	);
 	constructor(
 		optionsOrBotOrApi: TelegramOrderNotifierOptions | Bot<BotContext> | TelegramApiLike,
 		adminIds?: string | Set<bigint> | undefined,
 		orderRepo?: IOrderRepository<DbExecutor> | undefined,
+		cryptoService?: ICredentialCryptoService | undefined,
 	) {
 		if ("api" in optionsOrBotOrApi && (optionsOrBotOrApi as any).api) {
 			if ("use" in optionsOrBotOrApi) {
@@ -144,17 +237,20 @@ export class TelegramOrderNotifier implements IOrderNotifier {
 				this.api = (optionsOrBotOrApi as Bot<BotContext>).api;
 				this.adminIds = adminIds;
 				this.orderRepo = orderRepo;
+				this.cryptoService = cryptoService;
 			} else {
 				// TelegramOrderNotifierOptions
 				const opts = optionsOrBotOrApi as TelegramOrderNotifierOptions;
 				this.api = opts.api;
 				this.adminIds = opts.adminIds;
 				this.orderRepo = opts.orderRepo;
+				this.cryptoService = opts.cryptoService;
 			}
 		} else if (optionsOrBotOrApi && typeof (optionsOrBotOrApi as TelegramApiLike).sendMessage === "function") {
 			this.api = optionsOrBotOrApi as TelegramApiLike;
 			this.adminIds = adminIds;
 			this.orderRepo = orderRepo;
+			this.cryptoService = cryptoService;
 		} else {
 			throw new Error("Invalid arguments provided to TelegramOrderNotifier constructor");
 		}
@@ -205,12 +301,85 @@ export class TelegramOrderNotifier implements IOrderNotifier {
 		const displayHandle = context.claimedByAdminUsername || String(context.claimedByAdminTelegramId);
 		const processingKeyboard = getAdminOrderProcessingKeyboard(context.order.id, displayHandle);
 
-		await editAdminOrderNotificationMessages(this.api, context.notifications, processingKeyboard);
+		// Resolve revealed password: prefer context.revealedPassword from domain layer, fallback to this.cryptoService if present
+		let revealedPassword = context.revealedPassword;
+		if (!revealedPassword && this.cryptoService) {
+			const buyerInputs = context.order.buyerInputs as Record<string, any> | null;
+			if (
+				buyerInputs?.password &&
+				typeof buyerInputs.password === "object" &&
+				"ciphertext" in buyerInputs.password &&
+				"iv" in buyerInputs.password &&
+				"tag" in buyerInputs.password
+			) {
+				try {
+					revealedPassword = this.cryptoService.decrypt(buyerInputs.password as EncryptedCredential);
+				} catch {
+					console.error(`Failed to decrypt credentials for order ${context.order.id}`);
+				}
+			}
+		}
+
+		const claimingNotifs: typeof context.notifications = [];
+		const nonClaimingNotifs: typeof context.notifications = [];
+
+		for (const notif of context.notifications) {
+			if (BigInt(notif.adminTelegramId) === BigInt(context.claimedByAdminTelegramId)) {
+				claimingNotifs.push(notif);
+			} else {
+				nonClaimingNotifs.push(notif);
+			}
+		}
+
+		// 1. Edit claiming admin's message: if credentials revealed, edit message text and reply markup
+		for (const notif of claimingNotifs) {
+			if (
+				revealedPassword &&
+				context.catalogItem &&
+				context.buyer &&
+				typeof this.api.editMessageText === "function"
+			) {
+				const revealedMessage = formatAdminOrderPlacedMessage(
+					{
+						order: context.order,
+						catalogItem: context.catalogItem,
+						buyer: context.buyer,
+						postDebitBalance: context.buyerBalance,
+					},
+					{ decryptedPassword: revealedPassword },
+				);
+				try {
+					await this.api.editMessageText(Number(notif.chatId), Number(notif.messageId), revealedMessage, {
+						reply_markup: processingKeyboard,
+					});
+				} catch (editErr) {
+					console.error(`Failed to edit message text for claiming admin ${notif.adminTelegramId}:`, editErr);
+				}
+			} else {
+				try {
+					await this.api.editMessageReplyMarkup(Number(notif.chatId), Number(notif.messageId), {
+						reply_markup: processingKeyboard,
+					});
+				} catch (editErr) {
+					console.error(`Failed to edit notification for admin ${notif.adminTelegramId}:`, editErr);
+				}
+			}
+		}
+
+		// 2. Edit non-claiming admins' messages: reuse existing helper to edit reply markup only (passwords remain strictly masked)
+		if (nonClaimingNotifs.length > 0) {
+			await editAdminOrderNotificationMessages(this.api, nonClaimingNotifs, processingKeyboard);
+		}
 	}
 
 	public async onOrderFulfilled(context: OnOrderFulfilledContext): Promise<void> {
-		// 1. Send delivery content to buyer
-		const buyerMessage = formatBuyerOrderFulfilledMessage(context.deliveryContent);
+		// 1. Send delivery content or activation message to buyer
+		let buyerMessage: string;
+		if (context.order.fulfillmentStrategySnapshot === "ACTIVATION") {
+			buyerMessage = formatBuyerOrderActivatedMessage();
+		} else {
+			buyerMessage = formatBuyerOrderFulfilledMessage(context.deliveryContent ?? "");
+		}
 		try {
 			await this.api.sendMessage(context.buyer.telegramChatId.toString(), buyerMessage);
 		} catch (sendErr) {

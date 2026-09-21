@@ -412,4 +412,77 @@ describe("Order Rejection Service (Ticket 07)", () => {
 		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
 		expect(dbOrder?.status).toBe("REJECTED");
 	});
+
+	it("redacts sensitive password in buyerInputs at rest upon rejection with INVALID_CREDENTIALS and refunds balance", async () => {
+		const { buyer, wallet } = await createTestBuyer(container, {
+			telegramChatId: 88776655,
+			telegramUsername: "invalid_creds_buyer",
+		});
+
+		await db.update(wallets).set({ availableBalance: "60.00" }).where(eq(wallets.id, wallet.id));
+
+		const item = await createTestCatalogItem(container, {
+			name: "ChatGPT Plus",
+			usdPrice: "20.00",
+			isActive: true,
+			catalogType: "DIRECT_ACCOUNT",
+			fulfillmentStrategy: "ACTIVATION",
+		});
+
+		const encryptedPassword = {
+			ciphertext: "feedface1234",
+			iv: "112233445566",
+			tag: "998877665544",
+		};
+
+		const { order: placedOrder } = await placeTestOrder(container, {
+			userId: buyer.id,
+			catalogItemId: item.id,
+			buyerInputs: {
+				email: "chatgpt_buyer@example.com",
+				password: encryptedPassword,
+				region: "us",
+			},
+		});
+
+		// Balance debited to 40.00
+		const [preWallet] = await db.select().from(wallets).where(eq(wallets.id, wallet.id));
+		expect(preWallet?.availableBalance).toBe("40.00");
+
+		const result = await rejectTestOrder(container, {
+			orderId: placedOrder.id,
+			adminTelegramId: 9988n,
+			adminUsername: "support_lead",
+			rejectionCategory: "INVALID_CREDENTIALS",
+		});
+
+		// 1. Assert order status and redaction
+		expect(result.order.status).toBe("REJECTED");
+		expect(result.order.rejectionCategory).toBe("INVALID_CREDENTIALS");
+		expect(result.order.buyerInputs).toEqual({
+			email: "chatgpt_buyer@example.com",
+			password: "[REDACTED]",
+			region: "us",
+		});
+
+		// 2. Assert DB row redaction
+		const [dbOrder] = await db.select().from(orders).where(eq(orders.id, placedOrder.id));
+		expect(dbOrder?.status).toBe("REJECTED");
+		expect(dbOrder?.rejectionCategory).toBe("INVALID_CREDENTIALS");
+		expect(dbOrder?.buyerInputs).toEqual({
+			email: "chatgpt_buyer@example.com",
+			password: "[REDACTED]",
+			region: "us",
+		});
+
+		// 3. Assert wallet refund
+		expect(result.wallet.availableBalance).toBe("60.00");
+		const [postWallet] = await db.select().from(wallets).where(eq(wallets.id, wallet.id));
+		expect(postWallet?.availableBalance).toBe("60.00");
+
+		// 4. Assert ledger refund transaction
+		expect(result.refundLedgerTransaction).toBeDefined();
+		expect(result.refundLedgerTransaction.orderId).toBe(placedOrder.id);
+		expect(result.refundLedgerTransaction.narrative).toContain("Order rejection refund");
+	});
 });

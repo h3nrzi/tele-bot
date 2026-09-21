@@ -9,6 +9,7 @@ export interface PlaceOrderInput {
 	userId?: string | undefined;
 	telegramChatId?: bigint | number | undefined;
 	catalogItemId: string;
+	buyerInputs?: Record<string, unknown> | null | undefined;
 }
 
 export interface OrderAdminNotificationPayload {
@@ -42,7 +43,7 @@ export interface FulfilOrderInput {
 	orderId: string;
 	adminTelegramId: bigint | number | string;
 	adminUsername?: string | null | undefined;
-	deliveryContent: string;
+	deliveryContent?: string | null | undefined;
 }
 
 export interface FulfilOrderResult {

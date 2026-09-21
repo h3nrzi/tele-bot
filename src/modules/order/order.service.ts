@@ -29,6 +29,7 @@ import type {
 	RejectOrderResult,
 } from "@/modules/order/dtos/order.dto";
 import { Order } from "@/modules/order/order.entity";
+import { redactBuyerInputs } from "@/modules/order/order.utils";
 import {
 	CatalogItemUnavailableError,
 	InsufficientBalanceForOrderError,
@@ -39,6 +40,7 @@ import {
 	OrderNotOwnedByBuyerError,
 	OrderRejectionNoteRequiredError,
 } from "@/modules/order/order.errors";
+import type { ICredentialCryptoService, EncryptedCredential } from "@/core/crypto/credential-crypto.interface";
 import type { IOrderNotifier } from "@/modules/order/interfaces/order.notifier.interface";
 import type { IOrderRepository } from "@/modules/order/interfaces/order.repository.interface";
 import type { Wallet } from "@/modules/wallet/wallet.entity";
@@ -62,6 +64,8 @@ export class OrderService {
 		private readonly ledgerService: LedgerService,
 		@inject(TOKENS.OrderNotifier)
 		private readonly notifier?: IOrderNotifier,
+		@inject(TOKENS.CredentialCryptoService)
+		private readonly cryptoService?: ICredentialCryptoService,
 	) {}
 
 	private async resolveBuyer(
@@ -137,6 +141,8 @@ export class OrderService {
 					catalogItemId: catalogItem.id,
 					usdPriceSnapshot: priceSnapshot,
 					status: "PLACED",
+					fulfillmentStrategySnapshot: catalogItem.fulfillmentStrategy,
+					buyerInputs: input.buyerInputs ?? null,
 				},
 				tx,
 			);
@@ -257,17 +263,41 @@ export class OrderService {
 			claimedOrder = await executeClaim(client);
 		}
 
-		// 2. Fetch admin notifications for this order
+		// 2. Fetch admin notifications and order context
 		const notifications = await this.orderRepo.getAdminNotifications(claimedOrder.id, client);
+		const catalogItem = await this.catalogRepo.findById(claimedOrder.catalogItemId, client);
+		const buyer = await this.buyerRepo.findById(claimedOrder.userId, client);
+		const wallet = await this.walletRepo.findByUserId(claimedOrder.userId, client);
+
+		let revealedPassword: string | undefined;
+		const buyerInputs = claimedOrder.buyerInputs as Record<string, any> | null;
+		if (
+			this.cryptoService &&
+			buyerInputs?.password &&
+			typeof buyerInputs.password === "object" &&
+			"ciphertext" in buyerInputs.password &&
+			"iv" in buyerInputs.password &&
+			"tag" in buyerInputs.password
+		) {
+			try {
+				revealedPassword = this.cryptoService.decrypt(buyerInputs.password as EncryptedCredential);
+			} catch {
+				console.error(`Failed to decrypt credentials for order ${claimedOrder.id}`);
+			}
+		}
 
 		// 3. Dispatch admin notification updates (outside transaction, fire-and-forget)
 		if (this.notifier) {
 			try {
 				await this.notifier.onOrderClaimed({
 					order: claimedOrder,
+					catalogItem: catalogItem ?? undefined,
+					buyer: buyer ?? undefined,
 					notifications,
 					claimedByAdminTelegramId: BigInt(input.adminTelegramId),
 					claimedByAdminUsername: input.adminUsername,
+					revealedPassword,
+					buyerBalance: wallet?.availableBalance,
 				});
 			} catch (notifyErr) {
 				console.error(`Failed to update admin notifications for claimed order ${claimedOrder.id}:`, notifyErr);
@@ -297,7 +327,7 @@ export class OrderService {
 	public async fulfilOrder(input: FulfilOrderInput, executor?: DbExecutor): Promise<FulfilOrderResult> {
 		const client = (executor ?? this.db ?? getDefaultDb()) as DbClient;
 		const adminTelegramId = BigInt(input.adminTelegramId);
-		const trimmedDeliveryContent = input.deliveryContent.trim();
+		const trimmedDeliveryContent = input.deliveryContent?.trim() || null;
 
 		const executeFulfilment = async (tx: DbExecutor): Promise<{ order: Order; buyer: Buyer }> => {
 			// 1a. Lock order row
@@ -322,11 +352,15 @@ export class OrderService {
 
 			// 1d. Update to FULFILLED
 			const now = new Date();
+			const deliveryContentToPersist =
+				order.fulfillmentStrategySnapshot === "ACTIVATION" ? null : trimmedDeliveryContent;
+
 			const updatedOrder = await this.orderRepo.updateStatus(
 				order.id,
 				"FULFILLED",
 				{
-					deliveryContent: trimmedDeliveryContent,
+					deliveryContent: deliveryContentToPersist,
+					buyerInputs: redactBuyerInputs(order.buyerInputs),
 					fulfilledAt: now,
 					updatedAt: now,
 				},
@@ -364,7 +398,7 @@ export class OrderService {
 				await this.notifier.onOrderFulfilled({
 					order: txResult.order,
 					buyer: txResult.buyer,
-					deliveryContent: trimmedDeliveryContent,
+					deliveryContent: txResult.order.deliveryContent ?? undefined,
 					notifications,
 					adminTelegramId,
 					adminUsername: input.adminUsername,
@@ -460,6 +494,7 @@ export class OrderService {
 				{
 					rejectionCategory,
 					rejectionNote,
+					buyerInputs: redactBuyerInputs(order.buyerInputs),
 					rejectedAt: now,
 					updatedAt: now,
 				},
@@ -606,6 +641,7 @@ export class OrderService {
 				order.id,
 				"CANCELLED",
 				{
+					buyerInputs: redactBuyerInputs(order.buyerInputs),
 					cancelledAt: now,
 					updatedAt: now,
 				},

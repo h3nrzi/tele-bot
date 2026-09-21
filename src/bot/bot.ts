@@ -9,6 +9,7 @@ import type { DbClient } from "@/core/database/client";
 import { createAppContainer } from "@/core/di/container";
 import { TOKENS } from "@/core/di/tokens";
 import type { IOrderRepository } from "@/modules/order/interfaces/order.repository.interface";
+import type { ICredentialCryptoService } from "@/core/crypto/credential-crypto.interface";
 import { TopUpLimits } from "@/modules/top-up/top-up.limits.vo";
 import { conversations } from "@grammyjs/conversations";
 import { Bot, type BotConfig } from "grammy";
@@ -62,10 +63,18 @@ export function createBot(options?: CreateBotOptions): Bot<BotContext> {
 
 	const bot = new Bot<BotContext>(token, botConfig);
 
+	let cryptoService: ICredentialCryptoService | undefined;
+	try {
+		cryptoService = appContainer.resolve<ICredentialCryptoService>(TOKENS.CredentialCryptoService);
+	} catch {
+		// Optional fallback if not configured
+	}
+
 	const orderNotifier = new TelegramOrderNotifier({
 		api: bot.api,
 		adminIds: options?.adminIds ?? process.env.ADMIN_IDS,
 		orderRepo: appContainer.resolve<IOrderRepository>(TOKENS.OrderRepository),
+		cryptoService,
 	});
 	appContainer.register(TOKENS.OrderNotifier, { useValue: orderNotifier });
 

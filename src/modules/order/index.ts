@@ -6,4 +6,5 @@ export * from "@/modules/order/interfaces/order.repository.interface";
 export * from "@/modules/order/interfaces/order.notifier.interface";
 export * from "@/modules/order/order.repository";
 export * from "@/modules/order/order.service";
+export * from "@/modules/order/order.utils";
 export * from "@/modules/order/order.module";

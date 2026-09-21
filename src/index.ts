@@ -17,6 +17,10 @@ async function main(): Promise<void> {
 
 	const dbConnection = createDatabaseConnection();
 	const container = createAppContainer({ databaseConnection: dbConnection });
+
+	// Fail-fast validate critical security services
+	container.resolve(TOKENS.CredentialCryptoService);
+
 	const bot = createBot({ token, container });
 
 	const syncWorker = container.isRegistered(TOKENS.BaselineRateSyncWorker)

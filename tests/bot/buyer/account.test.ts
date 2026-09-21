@@ -474,6 +474,145 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			expect(flatButtons.some((b) => b.callback_data.startsWith("order:cancel:"))).toBe(false);
 			expect(flatButtons.some((b) => b.callback_data === ACCOUNT_CALLBACKS.ORDERS)).toBe(true);
 		});
+
+		it("renders submitted buyer inputs (email, handle, region) alongside item details", () => {
+			const order = new Order({
+				id: "order-inputs-1",
+				userId: "buyer-1",
+				catalogItemId: "cat-1",
+				usdPriceSnapshot: "20.00",
+				status: "PLACED",
+				buyerInputs: {
+					email: "target_buyer@example.com",
+					targetUsername: "@vip_channel",
+					region: "de",
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const { messageText } = buildOrderDetailView({ order, catalogItem: null });
+
+			expect(messageText).toContain("target\\_buyer@example.com");
+			expect(messageText).toContain("@vip\\_channel");
+			expect(messageText).toContain("🇩🇪 آلمان (de)");
+		});
+
+		it("never displays password values, ciphertexts, IVs, or tags for DIRECT_ACCOUNT in PLACED or PROCESSING status", () => {
+			const order = new Order({
+				id: "order-crypto-1",
+				userId: "buyer-1",
+				catalogItemId: "cat-1",
+				usdPriceSnapshot: "19.99",
+				status: "PLACED",
+				buyerInputs: {
+					email: "spotify_user@example.com",
+					password: {
+						ciphertext: "f7a3c89b02e4d567",
+						iv: "a1b2c3d4e5f60718",
+						tag: "9876543210abcdef",
+					},
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const { messageText } = buildOrderDetailView({ order, catalogItem: null });
+
+			expect(messageText).toContain("spotify\\_user@example.com");
+			expect(messageText).not.toContain("f7a3c89b02e4d567");
+			expect(messageText).not.toContain("a1b2c3d4e5f60718");
+			expect(messageText).not.toContain("9876543210abcdef");
+			expect(messageText).not.toContain("ciphertext");
+			expect(messageText).not.toContain("password");
+			expect(messageText).not.toContain("رمز عبور");
+		});
+
+		it("never displays password or [REDACTED] in terminal states (FULFILLED, REJECTED, CANCELLED)", () => {
+			const order = new Order({
+				id: "order-redacted-1",
+				userId: "buyer-1",
+				catalogItemId: "cat-1",
+				usdPriceSnapshot: "19.99",
+				status: "FULFILLED",
+				fulfillmentStrategySnapshot: "ACTIVATION",
+				buyerInputs: {
+					email: "chatgpt_user@example.com",
+					password: "[REDACTED]",
+				},
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const { messageText } = buildOrderDetailView({ order, catalogItem: null });
+
+			expect(messageText).toContain("chatgpt\\_user@example.com");
+			expect(messageText).not.toContain("[REDACTED]");
+			expect(messageText).not.toContain("REDACTED");
+			expect(messageText).not.toContain("password");
+			expect(messageText).not.toContain("رمز عبور");
+		});
+
+		it("renders activation confirmation banner for ACTIVATION order in FULFILLED status without delivery text", () => {
+			const order = new Order({
+				id: "order-act-1",
+				userId: "buyer-1",
+				catalogItemId: "cat-1",
+				usdPriceSnapshot: "15.00",
+				status: "FULFILLED",
+				fulfillmentStrategySnapshot: "ACTIVATION",
+				deliveryContent: null,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const { messageText } = buildOrderDetailView({ order, catalogItem: null });
+
+			expect(messageText).toContain("تایید فعال‌سازی");
+			expect(messageText).toContain("فعال‌سازی");
+			expect(messageText).not.toContain("مشخصات تحویل");
+		});
+
+		it("renders delivery content for PAYLOAD_DELIVERY order in FULFILLED status", () => {
+			const order = new Order({
+				id: "order-payload-1",
+				userId: "buyer-1",
+				catalogItemId: "cat-1",
+				usdPriceSnapshot: "15.00",
+				status: "FULFILLED",
+				fulfillmentStrategySnapshot: "PAYLOAD_DELIVERY",
+				deliveryContent: "KEY-12345-ABCDE",
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const { messageText } = buildOrderDetailView({ order, catalogItem: null });
+
+			expect(messageText).toContain("مشخصات تحویل");
+			expect(messageText).toContain("KEY-12345-ABCDE");
+			expect(messageText).not.toContain("تایید فعال‌سازی");
+		});
+
+		it("renders rejection category and guidance advice when order is rejected with INVALID_CREDENTIALS", () => {
+			const order = new Order({
+				id: "order-inv-cred-1",
+				userId: "buyer-1",
+				catalogItemId: "cat-1",
+				usdPriceSnapshot: "25.00",
+				status: "REJECTED",
+				rejectionCategory: "INVALID_CREDENTIALS",
+				rejectionNote: "2FA is turned on",
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			const { messageText } = buildOrderDetailView({ order, catalogItem: null });
+
+			expect(messageText).toContain("اطلاعات ورود نامعتبر / نیاز به تایید دو مرحله‌ای");
+			expect(messageText).toContain("2FA is turned on");
+			expect(messageText).toContain("صحت اطلاعات ورود");
+			expect(messageText).toContain("تایید دو مرحله‌ای (2FA)");
+		});
 	});
 
 	describe("Unit: buildTransactionHistoryView (Ticket 05)", () => {
@@ -1374,6 +1513,231 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			expect(answeredCallbackQueries).toHaveLength(2);
 			expect(answeredCallbackQueries[1].show_alert).toBe(true);
 			expect(answeredCallbackQueries[1].text).toContain("سفارش مورد نظر یافت نشد");
+		});
+
+		it("account:order:<orderId> displays buyer inputs and activation confirmation for fulfilled ACTIVATION order", async () => {
+			const { buyer, wallet } = await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "act_detail_user",
+			});
+
+			await db.update(wallets).set({ availableBalance: "100.00" }).where(eq(wallets.id, wallet.id));
+
+			const item = await createTestCatalogItem(container, {
+				name: "Spotify Premium",
+				usdPrice: "10.00",
+				isActive: true,
+				catalogType: "DIRECT_ACCOUNT",
+				fulfillmentStrategy: "ACTIVATION",
+			});
+
+			const { order } = await placeTestOrder(container, {
+				userId: buyer.id,
+				catalogItemId: item.id,
+				buyerInputs: {
+					email: "spotify_act@example.com",
+					password: {
+						ciphertext: "aabbccdd11223344",
+						iv: "1122334455667788",
+						tag: "9988776655443322",
+					},
+				},
+			});
+
+			await claimTestOrder(container, {
+				orderId: order.id,
+				adminTelegramId: BigInt(adminChatId),
+			});
+			await fulfilTestOrder(container, {
+				orderId: order.id,
+				adminTelegramId: BigInt(adminChatId),
+				deliveryContent: null,
+			});
+
+			const { bot, editedMessages } = createTestBot();
+
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					201,
+					buyerChatId,
+					`account:order:${order.id}`,
+					1,
+					"ActDetail",
+					"act_detail_user",
+				),
+			);
+
+			expect(editedMessages).toHaveLength(1);
+			const text = editedMessages[0].text;
+			expect(text).toContain("Spotify Premium");
+			expect(text).toContain("spotify\\_act@example.com");
+			expect(text).toContain("تایید فعال‌سازی");
+			expect(text).not.toContain("aabbccdd11223344");
+			expect(text).not.toContain("[REDACTED]");
+			expect(text).not.toContain("رمز عبور");
+			expect(text).not.toContain("مشخصات تحویل");
+		});
+
+		it("account:order:<orderId> displays handle for IDENTITY_HANDLE order in PROCESSING status", async () => {
+			const { buyer, wallet } = await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "handle_detail_user",
+			});
+
+			await db.update(wallets).set({ availableBalance: "100.00" }).where(eq(wallets.id, wallet.id));
+
+			const item = await createTestCatalogItem(container, {
+				name: "Telegram Stars 100",
+				usdPrice: "5.00",
+				isActive: true,
+				catalogType: "IDENTITY_HANDLE",
+				fulfillmentStrategy: "PAYLOAD_DELIVERY",
+			});
+
+			const { order } = await placeTestOrder(container, {
+				userId: buyer.id,
+				catalogItemId: item.id,
+				buyerInputs: {
+					targetUsername: "@target_friend",
+				},
+			});
+
+			await claimTestOrder(container, {
+				orderId: order.id,
+				adminTelegramId: BigInt(adminChatId),
+			});
+
+			const { bot, editedMessages } = createTestBot();
+
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					202,
+					buyerChatId,
+					`account:order:${order.id}`,
+					1,
+					"HandleDetail",
+					"handle_detail_user",
+				),
+			);
+
+			expect(editedMessages).toHaveLength(1);
+			const text = editedMessages[0].text;
+			expect(text).toContain("Telegram Stars 100");
+			expect(text).toContain("@target\\_friend");
+			expect(text).toContain("در حال پردازش");
+
+			const flatButtons = editedMessages[0].reply_markup.inline_keyboard.flat() as any[];
+			expect(flatButtons.some((b) => b.callback_data.startsWith("order:cancel:"))).toBe(false);
+		});
+
+		it("account:order:<orderId> displays server region and cancel button for CONFIG_VPN order in PLACED status", async () => {
+			const { buyer, wallet } = await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "vpn_detail_user",
+			});
+
+			await db.update(wallets).set({ availableBalance: "100.00" }).where(eq(wallets.id, wallet.id));
+
+			const item = await createTestCatalogItem(container, {
+				name: "WireGuard VPN 1 Month",
+				usdPrice: "8.00",
+				isActive: true,
+				catalogType: "CONFIG_VPN",
+				fulfillmentStrategy: "PAYLOAD_DELIVERY",
+			});
+
+			const { order } = await placeTestOrder(container, {
+				userId: buyer.id,
+				catalogItemId: item.id,
+				buyerInputs: {
+					region: "nl",
+				},
+			});
+
+			const { bot, editedMessages } = createTestBot();
+
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					203,
+					buyerChatId,
+					`account:order:${order.id}`,
+					1,
+					"VpnDetail",
+					"vpn_detail_user",
+				),
+			);
+
+			expect(editedMessages).toHaveLength(1);
+			const text = editedMessages[0].text;
+			expect(text).toContain("WireGuard VPN 1 Month");
+			expect(text).toContain("🇳🇱 هلند (nl)");
+			expect(text).toContain("ثبت شده");
+
+			const flatButtons = editedMessages[0].reply_markup.inline_keyboard.flat() as any[];
+			const cancelBtn = flatButtons.find((b) => b.callback_data === `order:cancel:${order.id}`);
+			expect(cancelBtn).toBeDefined();
+		});
+
+		it("account:order:<orderId> displays INVALID_CREDENTIALS rejection category and guidance advice", async () => {
+			const { buyer, wallet } = await createTestBuyer(container, {
+				telegramChatId: buyerChatId,
+				telegramUsername: "inv_cred_user",
+			});
+
+			await db.update(wallets).set({ availableBalance: "100.00" }).where(eq(wallets.id, wallet.id));
+
+			const item = await createTestCatalogItem(container, {
+				name: "ChatGPT Plus",
+				usdPrice: "20.00",
+				isActive: true,
+				catalogType: "DIRECT_ACCOUNT",
+				fulfillmentStrategy: "ACTIVATION",
+			});
+
+			const { order } = await placeTestOrder(container, {
+				userId: buyer.id,
+				catalogItemId: item.id,
+				buyerInputs: {
+					email: "chatgpt_error@example.com",
+					password: { ciphertext: "cc11", iv: "iv22", tag: "tag33" },
+				},
+			});
+
+			await rejectTestOrder(container, {
+				orderId: order.id,
+				adminTelegramId: BigInt(adminChatId),
+				rejectionCategory: "INVALID_CREDENTIALS",
+				rejectionNote: "Wrong credentials entered",
+			});
+
+			const { bot, editedMessages } = createTestBot();
+
+			await bot.handleUpdate(
+				makeCallbackQueryUpdate(
+					204,
+					buyerChatId,
+					`account:order:${order.id}`,
+					1,
+					"InvCred",
+					"inv_cred_user",
+				),
+			);
+
+			expect(editedMessages).toHaveLength(1);
+			const text = editedMessages[0].text;
+			expect(text).toContain("ChatGPT Plus");
+			expect(text).toContain("chatgpt\\_error@example.com");
+			expect(text).toContain("اطلاعات ورود نامعتبر / نیاز به تایید دو مرحله‌ای");
+			expect(text).toContain("Wrong credentials entered");
+			expect(text).toContain("صحت اطلاعات ورود");
+			expect(text).toContain("تایید دو مرحله‌ای (2FA)");
+			expect(text).not.toContain("[REDACTED]");
+			expect(text).not.toContain("cc11");
+			expect(text).not.toContain("iv22");
+			expect(text).not.toContain("tag33");
+			expect(text).not.toContain("ciphertext");
+			expect(text).not.toContain("password");
+			expect(text).not.toContain("🔑");
 		});
 
 		it("account:profile callback edits message back to Profile Card", async () => {
