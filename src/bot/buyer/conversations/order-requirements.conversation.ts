@@ -155,11 +155,7 @@ export function createCollectOrderRequirementsConversation(
 		const confirmText = confirmCtx.message?.text?.trim() ?? "";
 		const confirmCallback = confirmCtx.callbackQuery?.data;
 
-		if (
-			confirmCallback === "flow:cancel" ||
-			confirmCallback === "shop:cancel" ||
-			isCancelCommand(confirmText)
-		) {
+		if (confirmCallback === "flow:cancel" || confirmCallback === "shop:cancel" || isCancelCommand(confirmText)) {
 			if (confirmCtx.callbackQuery) {
 				try {
 					await confirmCtx.answerCallbackQuery();

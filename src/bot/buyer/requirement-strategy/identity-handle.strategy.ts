@@ -17,8 +17,7 @@ export class IdentityHandleRequirementStrategy implements IBuyerRequirementStrat
 		const { conversation, ctx } = context;
 
 		await ctx.reply(
-			"🆔 لطفاً نام کاربری (با @) یا شناسه عددی تلگرام مقصد را وارد کنید:\n\n" +
-				"مثال: @username یا 123456789",
+			"🆔 لطفاً نام کاربری (با @) یا شناسه عددی تلگرام مقصد را وارد کنید:\n\n" + "مثال: @username یا 123456789",
 			{
 				reply_markup: new InlineKeyboard().text("❌ انصراف", "flow:cancel"),
 			},

@@ -1,7 +1,11 @@
 import type { Order, OrderAdminNotification, OrderStatus } from "@/modules/order/order.entity";
 import type { FulfillmentStrategy } from "@/modules/catalog/catalog.entity";
 import type { UsdAmount } from "@/core/shared/money.vo";
-import type { AdminOrderQueueItem, RecentOrderWithCatalogItem, OrderCountBreakdownResult } from "@/modules/order/dtos/order.dto";
+import type {
+	AdminOrderQueueItem,
+	RecentOrderWithCatalogItem,
+	OrderCountBreakdownResult,
+} from "@/modules/order/dtos/order.dto";
 
 export interface CreateOrderParams {
 	userId: string;

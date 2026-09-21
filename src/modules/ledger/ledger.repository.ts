@@ -146,12 +146,7 @@ export class DrizzleLedgerRepository implements ILedgerRepository<DbExecutor> {
 			})
 			.from(ledgerEntries)
 			.innerJoin(ledgerTransactions, eq(ledgerEntries.ledgerTransactionId, ledgerTransactions.id))
-			.where(
-				and(
-					eq(ledgerEntries.walletId, walletId),
-					eq(ledgerEntries.accountType, "BUYER_WALLET"),
-				),
-			)
+			.where(and(eq(ledgerEntries.walletId, walletId), eq(ledgerEntries.accountType, "BUYER_WALLET")))
 			.orderBy(desc(ledgerEntries.createdAt), desc(ledgerEntries.id))
 			.limit(limit);
 

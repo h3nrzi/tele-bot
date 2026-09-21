@@ -40,12 +40,7 @@ export interface TelegramApiLike {
 		messageId: number,
 		options: { reply_markup: InlineKeyboard },
 	) => Promise<unknown>;
-	editMessageText?: (
-		chatId: number,
-		messageId: number,
-		text: string,
-		other?: any,
-	) => Promise<unknown>;
+	editMessageText?: (chatId: number, messageId: number, text: string, other?: any) => Promise<unknown>;
 }
 
 export interface TelegramOrderNotifierOptions {
@@ -333,12 +328,7 @@ export class TelegramOrderNotifier implements IOrderNotifier {
 
 		// 1. Edit claiming admin's message: if credentials revealed, edit message text and reply markup
 		for (const notif of claimingNotifs) {
-			if (
-				revealedPassword &&
-				context.catalogItem &&
-				context.buyer &&
-				typeof this.api.editMessageText === "function"
-			) {
+			if (revealedPassword && context.catalogItem && context.buyer && typeof this.api.editMessageText === "function") {
 				const revealedMessage = formatAdminOrderPlacedMessage(
 					{
 						order: context.order,

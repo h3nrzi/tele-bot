@@ -79,10 +79,7 @@ export async function handleAccountCommand(ctx: Context, deps: AccountHandlerDep
  * Handles the [❌ لغو درخواست] callback query on the Profile Card (account:topup:cancel).
  * Reuses the existing top-up cancel path.
  */
-export async function handleBuyerCancelTopUpCallback(
-	ctx: Context,
-	deps: BuyerCancelTopUpDependencies,
-): Promise<void> {
+export async function handleBuyerCancelTopUpCallback(ctx: Context, deps: BuyerCancelTopUpDependencies): Promise<void> {
 	const sender = ctx.from;
 	if (!sender) {
 		return;
@@ -168,10 +165,7 @@ async function safeEditMessageText(ctx: Context, messageText: string, keyboard: 
  * Handles the [📦 تاریخچه سفارش‌ها] callback query (account:orders).
  * Edits the message in place to show the 5-order history list or empty-state message.
  */
-export async function handleAccountOrdersCallback(
-	ctx: Context,
-	deps: AccountOrdersDependencies,
-): Promise<void> {
+export async function handleAccountOrdersCallback(ctx: Context, deps: AccountOrdersDependencies): Promise<void> {
 	const sender = ctx.from;
 	if (!sender) {
 		return;
@@ -271,10 +265,7 @@ export async function handleAccountOrderDetailCallback(
  * Handles the [🔙 بازگشت به پروفایل] callback query (account:profile).
  * Edits the message in place to re-render the Profile Card.
  */
-export async function handleProfileCardCallback(
-	ctx: Context,
-	deps: AccountHandlerDependencies,
-): Promise<void> {
+export async function handleProfileCardCallback(ctx: Context, deps: AccountHandlerDependencies): Promise<void> {
 	const sender = ctx.from;
 	if (!sender) {
 		return;

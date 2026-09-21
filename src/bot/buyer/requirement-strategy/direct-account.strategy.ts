@@ -47,8 +47,7 @@ export class DirectAccountRequirementStrategy implements IBuyerRequirementStrate
 			}
 
 			await emailCtx.reply(
-				"❌ فرمت ایمیل وارد شده نامعتبر است.\n\n" +
-					"لطفاً یک آدرس ایمیل معتبر (مانند user@example.com) ارسال کنید:",
+				"❌ فرمت ایمیل وارد شده نامعتبر است.\n\n" + "لطفاً یک آدرس ایمیل معتبر (مانند user@example.com) ارسال کنید:",
 				{
 					reply_markup: new InlineKeyboard().text("❌ انصراف", "flow:cancel"),
 				},

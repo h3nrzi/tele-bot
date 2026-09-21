@@ -3,6 +3,7 @@
 **What to build:** Wire the Account Hub entry point. A Buyer who types `/account` or taps `👤 حساب کاربری` receives a single Telegram message — the Profile Card — that aggregates all their account data in one place.
 
 The Profile Card message shows:
+
 - Telegram ID and username (via `Buyer.getDisplayName()` and the raw ID).
 - Registration date.
 - Available Balance.

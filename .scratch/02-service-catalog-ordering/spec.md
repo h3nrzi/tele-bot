@@ -107,61 +107,65 @@ Four additions to the schema: two new tables, one join table, and two column ame
 ---
 
 **`catalog_items`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `name` | `VARCHAR(255)` NOT NULL | Displayed in /shop and /catalog |
-| `description` | `TEXT` nullable | Displayed in confirmation prompt |
-| `usd_price` | `NUMERIC(18,2)` NOT NULL | Current list price |
-| `is_active` | `BOOLEAN` NOT NULL DEFAULT `true` | Toggled independently of edit flow |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
-| `updated_at` | `TIMESTAMPTZ` NOT NULL | |
+
+| Column        | Type                              | Notes                              |
+| ------------- | --------------------------------- | ---------------------------------- |
+| `id`          | `UUID` PK                         |                                    |
+| `name`        | `VARCHAR(255)` NOT NULL           | Displayed in /shop and /catalog    |
+| `description` | `TEXT` nullable                   | Displayed in confirmation prompt   |
+| `usd_price`   | `NUMERIC(18,2)` NOT NULL          | Current list price                 |
+| `is_active`   | `BOOLEAN` NOT NULL DEFAULT `true` | Toggled independently of edit flow |
+| `created_at`  | `TIMESTAMPTZ` NOT NULL            |                                    |
+| `updated_at`  | `TIMESTAMPTZ` NOT NULL            |                                    |
 
 No partial unique index on `name` — Admin may create similarly named SKUs for different variants.
 
 ---
 
 **`orders`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `user_id` | `UUID` FK → `users` NOT NULL | |
-| `catalog_item_id` | `UUID` FK → `catalog_items` NOT NULL | |
-| `usd_price_snapshot` | `NUMERIC(18,2)` NOT NULL | Price locked at placement; never updated |
-| `status` | `ENUM` NOT NULL | `PLACED \| PROCESSING \| FULFILLED \| REJECTED \| CANCELLED` |
-| `delivery_content` | `TEXT` nullable | Populated on `FULFILLED`; sent to Buyer |
-| `rejection_category` | `VARCHAR(100)` nullable | Populated on `REJECTED` |
-| `rejection_note` | `TEXT` nullable | Optional Admin free-text, populated on `REJECTED` |
-| `claimed_by_admin_telegram_id` | `BIGINT` nullable | Set when transitioning to `PROCESSING` |
-| `claimed_at` | `TIMESTAMPTZ` nullable | |
-| `fulfilled_at` | `TIMESTAMPTZ` nullable | |
-| `rejected_at` | `TIMESTAMPTZ` nullable | |
-| `cancelled_at` | `TIMESTAMPTZ` nullable | |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
-| `updated_at` | `TIMESTAMPTZ` NOT NULL | |
+
+| Column                         | Type                                 | Notes                                                        |
+| ------------------------------ | ------------------------------------ | ------------------------------------------------------------ |
+| `id`                           | `UUID` PK                            |                                                              |
+| `user_id`                      | `UUID` FK → `users` NOT NULL         |                                                              |
+| `catalog_item_id`              | `UUID` FK → `catalog_items` NOT NULL |                                                              |
+| `usd_price_snapshot`           | `NUMERIC(18,2)` NOT NULL             | Price locked at placement; never updated                     |
+| `status`                       | `ENUM` NOT NULL                      | `PLACED \| PROCESSING \| FULFILLED \| REJECTED \| CANCELLED` |
+| `delivery_content`             | `TEXT` nullable                      | Populated on `FULFILLED`; sent to Buyer                      |
+| `rejection_category`           | `VARCHAR(100)` nullable              | Populated on `REJECTED`                                      |
+| `rejection_note`               | `TEXT` nullable                      | Optional Admin free-text, populated on `REJECTED`            |
+| `claimed_by_admin_telegram_id` | `BIGINT` nullable                    | Set when transitioning to `PROCESSING`                       |
+| `claimed_at`                   | `TIMESTAMPTZ` nullable               |                                                              |
+| `fulfilled_at`                 | `TIMESTAMPTZ` nullable               |                                                              |
+| `rejected_at`                  | `TIMESTAMPTZ` nullable               |                                                              |
+| `cancelled_at`                 | `TIMESTAMPTZ` nullable               |                                                              |
+| `created_at`                   | `TIMESTAMPTZ` NOT NULL               |                                                              |
+| `updated_at`                   | `TIMESTAMPTZ` NOT NULL               |                                                              |
 
 Order status enum values: `PLACED`, `PROCESSING`, `FULFILLED`, `REJECTED`, `CANCELLED`.
 
 ---
 
 **`order_admin_notifications`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `order_id` | `UUID` FK → `orders` NOT NULL | |
-| `admin_telegram_id` | `BIGINT` NOT NULL | Which Admin received the push |
-| `chat_id` | `BIGINT` NOT NULL | Used for `editMessageReplyMarkup` |
-| `message_id` | `BIGINT` NOT NULL | Used for `editMessageReplyMarkup` |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+
+| Column              | Type                          | Notes                             |
+| ------------------- | ----------------------------- | --------------------------------- |
+| `id`                | `UUID` PK                     |                                   |
+| `order_id`          | `UUID` FK → `orders` NOT NULL |                                   |
+| `admin_telegram_id` | `BIGINT` NOT NULL             | Which Admin received the push     |
+| `chat_id`           | `BIGINT` NOT NULL             | Used for `editMessageReplyMarkup` |
+| `message_id`        | `BIGINT` NOT NULL             | Used for `editMessageReplyMarkup` |
+| `created_at`        | `TIMESTAMPTZ` NOT NULL        |                                   |
 
 One row per Admin per Order. Written atomically with the Order placement. Read by the claim, rejection, cancellation, and fulfilment services to edit stale notifications.
 
 ---
 
 **`ledger_transactions` — amended columns**
-| New Column | Type | Notes |
-|---|---|---|
-| `order_id` | `UUID` nullable FK → `orders` | Source event for order spend and refund entries |
+
+| New Column                          | Type                                       | Notes                                                                              |
+| ----------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `order_id`                          | `UUID` nullable FK → `orders`              | Source event for order spend and refund entries                                    |
 | `reversed_by_ledger_transaction_id` | `UUID` nullable FK → `ledger_transactions` | Self-referential; set on the _original_ debit transaction when a refund is written |
 
 `CHECK ((top_up_request_id IS NULL) != (order_id IS NULL))` — exactly one source event FK must be non-null per Ledger Transaction.

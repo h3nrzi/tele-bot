@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { setupTestDatabase } from "@tests/helpers/test-db";
-import {
-	createTestBuyer,
-	createTestCatalogItem,
-	placeTestOrder,
-	claimTestOrder,
-} from "@tests/helpers/fixtures";
+import { createTestBuyer, createTestCatalogItem, placeTestOrder, claimTestOrder } from "@tests/helpers/fixtures";
 import { OrderService } from "@/modules/order/order.service";
 import { LedgerService } from "@/modules/ledger/ledger.service";
 import { orders } from "@/modules/order/order.schema";
@@ -64,10 +59,7 @@ describe("Account Hub Service Queries (Ticket 01)", () => {
 				.update(orders)
 				.set({ createdAt: new Date(Date.now() - 10000) })
 				.where(eq(orders.id, order1.id));
-			await db
-				.update(orders)
-				.set({ createdAt: new Date() })
-				.where(eq(orders.id, order2.id));
+			await db.update(orders).set({ createdAt: new Date() }).where(eq(orders.id, order2.id));
 
 			const orderService = container.resolve(OrderService);
 			const recentOrders = await orderService.getRecentOrdersForBuyer(buyer.telegramChatId);

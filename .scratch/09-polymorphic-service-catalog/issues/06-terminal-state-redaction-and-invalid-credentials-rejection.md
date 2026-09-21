@@ -1,6 +1,7 @@
 # 06: Terminal State Credential Redaction & Invalid Credentials Rejection
 
 **What to build:** Automate at-rest credential scrubbing upon terminal order states, and provide an explicit rejection flow for invalid credentials.
+
 - When an order transitions to any terminal state (`FULFILLED`, `REJECTED`, `CANCELLED`), sensitive password fields in `orders.buyer_inputs` are mutated to `"[REDACTED]"`.
 - Non-sensitive operational metadata (`email`, `targetUsername`, `region`) is preserved for audit history and dispute resolution.
 - Adds `INVALID_CREDENTIALS` ("اطلاعات ورود نامعتبر / نیاز به تایید دو مرحله‌ای") to `ORDER_REJECTION_CATEGORIES`.

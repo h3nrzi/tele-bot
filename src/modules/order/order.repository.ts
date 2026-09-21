@@ -13,7 +13,11 @@ import type {
 	CreateOrderAdminNotificationParams,
 	UpdateOrderStatusFields,
 } from "@/modules/order/interfaces/order.repository.interface";
-import type { AdminOrderQueueItem, RecentOrderWithCatalogItem, OrderCountBreakdownResult } from "@/modules/order/dtos/order.dto";
+import type {
+	AdminOrderQueueItem,
+	RecentOrderWithCatalogItem,
+	OrderCountBreakdownResult,
+} from "@/modules/order/dtos/order.dto";
 import { UsdAmount } from "@/core/shared/money.vo";
 import { TOKENS } from "@/core/di/tokens";
 
@@ -111,10 +115,7 @@ export class DrizzleOrderRepository implements IOrderRepository<DbExecutor> {
 		}));
 	}
 
-	public async getCountBreakdownByBuyerId(
-		buyerId: string,
-		executor?: DbExecutor,
-	): Promise<OrderCountBreakdownResult> {
+	public async getCountBreakdownByBuyerId(buyerId: string, executor?: DbExecutor): Promise<OrderCountBreakdownResult> {
 		const db = this.getDb(executor);
 		const rows = await db
 			.select({

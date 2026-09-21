@@ -19,8 +19,7 @@ describe("Claim-Gated Admin Notifications & Decrypted Credential Reveal (Ticket 
 
 	beforeEach(() => {
 		process.env.ADMIN_IDS = `${adminChatId1},${adminChatId2}`;
-		process.env.CREDENTIALS_ENCRYPTION_KEY =
-			"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+		process.env.CREDENTIALS_ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 	});
 
 	afterEach(() => {
@@ -55,13 +54,7 @@ describe("Claim-Gated Admin Notifications & Decrypted Credential Reveal (Ticket 
 		} as any;
 	}
 
-	function makeMessageUpdate(
-		updateId: number,
-		chatId: number,
-		text: string,
-		messageId = 1,
-		username = "testbuyer",
-	) {
+	function makeMessageUpdate(updateId: number, chatId: number, text: string, messageId = 1, username = "testbuyer") {
 		return {
 			update_id: updateId,
 			message: {

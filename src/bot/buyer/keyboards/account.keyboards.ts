@@ -152,9 +152,7 @@ export const REGION_FLAG_MAP: Record<string, string> = {
  * Strictly allowlists operational metadata (email, targetUsername, region) per ADR-0012,
  * ensuring passwords and cryptographic payloads are never rendered in the view.
  */
-export function formatBuyerInputsForOrderDetail(
-	buyerInputs: Record<string, unknown> | null | undefined,
-): string {
+export function formatBuyerInputsForOrderDetail(buyerInputs: Record<string, unknown> | null | undefined): string {
 	if (!buyerInputs || typeof buyerInputs !== "object") {
 		return "";
 	}
@@ -165,7 +163,10 @@ export function formatBuyerInputsForOrderDetail(
 		lines.push(`📧 ایمیل: ${escapeMarkdown(buyerInputs.email)}`);
 	}
 
-	if (buyerInputs.targetUsername && (typeof buyerInputs.targetUsername === "string" || typeof buyerInputs.targetUsername === "number")) {
+	if (
+		buyerInputs.targetUsername &&
+		(typeof buyerInputs.targetUsername === "string" || typeof buyerInputs.targetUsername === "number")
+	) {
 		lines.push(`👤 شناسه / نام کاربری مقصد: ${escapeMarkdown(String(buyerInputs.targetUsername))}`);
 	}
 
@@ -285,9 +286,7 @@ export interface ParsedTransactionNarrative {
 /**
  * Parses and translates English ledger narratives into clean Persian titles and reference codes.
  */
-export function parseTransactionNarrative(
-	narrative: string | null | undefined,
-): ParsedTransactionNarrative {
+export function parseTransactionNarrative(narrative: string | null | undefined): ParsedTransactionNarrative {
 	if (!narrative || !narrative.trim()) {
 		return { title: "تراکنش" };
 	}
@@ -365,16 +364,12 @@ export function parseTransactionNarrative(
 /**
  * Builds the text and inline keyboard for the 5-transaction history list view.
  */
-export function buildTransactionHistoryView(
-	entries: RecentWalletTransactionEntry[],
-): TransactionHistoryViewResult {
+export function buildTransactionHistoryView(entries: RecentWalletTransactionEntry[]): TransactionHistoryViewResult {
 	const keyboard = new InlineKeyboard();
 	keyboard.text("🔙 بازگشت به پروفایل", ACCOUNT_CALLBACKS.PROFILE);
 
 	if (!entries || entries.length === 0) {
-		const messageText =
-			`💳 *تاریخچه تراکنش‌ها*\n\n` +
-			`شما تاکنون هیچ تراکنشی نداشته‌اید.`;
+		const messageText = `💳 *تاریخچه تراکنش‌ها*\n\n` + `شما تاکنون هیچ تراکنشی نداشته‌اید.`;
 
 		return {
 			messageText,
@@ -395,10 +390,7 @@ export function buildTransactionHistoryView(
 		const escapedTitle = escapeMarkdown(title);
 		const formattedTitle = title.includes("*") ? escapedTitle : `*${escapedTitle}*`;
 
-		let card =
-			`${indicator} ${formattedTitle}\n` +
-			`▫️ مبلغ: \`${formattedAmount}\`\n` +
-			`▫️ تاریخ: ${date}`;
+		let card = `${indicator} ${formattedTitle}\n` + `▫️ مبلغ: \`${formattedAmount}\`\n` + `▫️ تاریخ: ${date}`;
 
 		if (referenceCode) {
 			const label = referenceLabel || "کد پیگیری";
@@ -409,9 +401,7 @@ export function buildTransactionHistoryView(
 	});
 
 	const messageText =
-		`💳 *تاریخچه تراکنش‌های شما:*\n` +
-		`━━━━━━━━━━━━━━━━━━━━\n\n` +
-		cards.join("\n\n────────────────────\n\n");
+		`💳 *تاریخچه تراکنش‌های شما:*\n` + `━━━━━━━━━━━━━━━━━━━━\n\n` + cards.join("\n\n────────────────────\n\n");
 
 	return {
 		messageText,

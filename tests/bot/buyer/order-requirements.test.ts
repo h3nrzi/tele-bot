@@ -394,9 +394,7 @@ describe("Buyer Pre-Placement Requirement Flow & Atomic Order Placement (Ticket 
 			// Step 1: Select item
 			await bot.handleUpdate(makeCallbackQueryUpdate(1, buyerChatId, `shop:item:${item.id}`));
 
-			expect(repliedMessages.some((m) => m.includes("منطقه سرور مورد نظر خود را برای اتصال انتخاب کنید"))).toBe(
-				true,
-			);
+			expect(repliedMessages.some((m) => m.includes("منطقه سرور مورد نظر خود را برای اتصال انتخاب کنید"))).toBe(true);
 
 			// Step 2: Buyer taps Netherlands region button
 			await bot.handleUpdate(makeCallbackQueryUpdate(2, buyerChatId, "req:vpn:nl"));

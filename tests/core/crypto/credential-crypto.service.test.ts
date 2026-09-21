@@ -39,9 +39,7 @@ describe("CredentialCryptoService", () => {
 		});
 
 		it("throws InvalidCredentialsEncryptionKeyError for a raw 32-character string that is not valid 64-char hex or base64", () => {
-			expect(() => new CredentialCryptoService(invalidRawString)).toThrow(
-				InvalidCredentialsEncryptionKeyError,
-			);
+			expect(() => new CredentialCryptoService(invalidRawString)).toThrow(InvalidCredentialsEncryptionKeyError);
 		});
 
 		it("initializes successfully with a 32-byte Buffer", () => {

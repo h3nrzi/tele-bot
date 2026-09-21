@@ -131,4 +131,3 @@ export interface BuyerOrderDetailResult {
 	catalogItem: CatalogItem | null;
 	buyer: Buyer;
 }
-

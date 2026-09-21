@@ -65,6 +65,7 @@ The PM2 process configuration is codified in a committed `ecosystem.config.cjs` 
 **What makes a good test for this feature**: Infrastructure correctness cannot be verified by unit tests. The correct seam is the GitHub Actions workflow run itself — a real run either passes all steps or it doesn't. There is no application-layer seam to stub or mock.
 
 **Verification approach**:
+
 - Push a feature branch and open a PR: observe `ci` job runs and passes (typecheck, prettier, Vitest against postgres service).
 - Observe `cd` job does **not** trigger on the PR branch.
 - Merge the PR to `main`: observe both `ci` and `cd` jobs run, the Deployment entry appears in GitHub's `production` environment sidebar, and `pm2 status` on the VPS shows `voltix-bot` as `online`.

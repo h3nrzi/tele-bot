@@ -1,6 +1,7 @@
 # 05: Strategy-Driven Fulfillment
 
 **What to build:** Implement strategy-driven fulfillment execution based on `order.fulfillment_strategy_snapshot`.
+
 - When an Admin fulfills an `ACTIVATION` order (`[📦 تحویل سفارش]`), the bot displays a one-click confirmation prompt (`[✓ تایید فعال‌سازی]` / `[❌ انصراف]`) without requiring the Admin to type text into a conversation.
 - Confirming activation marks the order `FULFILLED` without `delivery_content` and sends a tailored Persian activation notification to the Buyer confirming their account upgrade.
 - When an Admin fulfills a `PAYLOAD_DELIVERY` order, retains the existing 3-step conversation to capture `Delivery Content` and sends the credentials or configuration text to the Buyer.

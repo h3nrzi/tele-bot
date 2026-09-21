@@ -1,6 +1,7 @@
 # 04: Claim-Gated Admin Push Notifications & Decrypted Credential Reveal
 
 **What to build:** Ensure buyer credentials submitted during order placement remain masked in broadcast Admin notifications and are revealed exclusively to the Admin who claims the order.
+
 - Initial broadcast push notifications dispatched to Admins display non-sensitive buyer inputs (email, handle, server region) with passwords masked (`🔒 پس از شروع پردازش نمایش داده می‌شود` / `🔒 Claim order to reveal`).
 - When an Admin taps `[▶ شروع پردازش]` (Claim), the claiming Admin's notification message is edited to reveal the decrypted credentials.
 - All other Admins' notification messages update to `🔒 در حال پردازش توسط @adminX` with passwords remaining masked.

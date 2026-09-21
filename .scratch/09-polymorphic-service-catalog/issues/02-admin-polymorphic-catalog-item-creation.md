@@ -1,6 +1,7 @@
 # 02: Admin Polymorphic Catalog Item Creation Flow
 
 **What to build:** Enhance the Admin catalog creation flow in `/admin` to support polymorphic items.
+
 - In the item creation conversation, prompt the Admin to select a `CatalogType` from an inline keyboard (`STATIC_DELIVERY`, `DIRECT_ACCOUNT`, `IDENTITY_HANDLE`, `CONFIG_VPN`).
 - Automatically pre-select the appropriate default `FulfillmentStrategy` based on the chosen catalog type (e.g. `DIRECT_ACCOUNT` defaults to `ACTIVATION`, `STATIC_DELIVERY` and `CONFIG_VPN` default to `PAYLOAD_DELIVERY`), while offering an option to customize or override it.
 - When `CONFIG_VPN` is chosen, prompt the Admin to select or configure allowed server region presets (stored in `requirement_config`).

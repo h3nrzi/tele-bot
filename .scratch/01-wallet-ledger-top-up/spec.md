@@ -111,80 +111,87 @@ The following application service modules will be built. Each module is a set of
 Seven tables form the complete schema for this RFP. All IDs are UUIDs. All timestamps are `TIMESTAMPTZ`.
 
 **`users`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | Surrogate identity |
-| `telegram_chat_id` | `BIGINT` UNIQUE NOT NULL | Telegram-assigned, used for push notifications |
-| `telegram_username` | `VARCHAR` nullable | Display only |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+
+| Column              | Type                     | Notes                                          |
+| ------------------- | ------------------------ | ---------------------------------------------- |
+| `id`                | `UUID` PK                | Surrogate identity                             |
+| `telegram_chat_id`  | `BIGINT` UNIQUE NOT NULL | Telegram-assigned, used for push notifications |
+| `telegram_username` | `VARCHAR` nullable       | Display only                                   |
+| `created_at`        | `TIMESTAMPTZ` NOT NULL   |                                                |
 
 **`wallets`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `user_id` | `UUID` FK → `users` UNIQUE NOT NULL | One wallet per Buyer |
+
+| Column              | Type                                    | Notes                                          |
+| ------------------- | --------------------------------------- | ---------------------------------------------- |
+| `id`                | `UUID` PK                               |                                                |
+| `user_id`           | `UUID` FK → `users` UNIQUE NOT NULL     | One wallet per Buyer                           |
 | `available_balance` | `NUMERIC(18,2)` NOT NULL DEFAULT `0.00` | Materialized; protected by `SELECT FOR UPDATE` |
-| `updated_at` | `TIMESTAMPTZ` NOT NULL | |
+| `updated_at`        | `TIMESTAMPTZ` NOT NULL                  |                                                |
 
 **`exchange_rates`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `irr_per_usd` | `BIGINT` NOT NULL | Integer IRR units per 1 USD |
-| `created_by_admin_telegram_id` | `BIGINT` NOT NULL | Audit: which Admin set it |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | Most recent row = active rate |
+
+| Column                         | Type                   | Notes                         |
+| ------------------------------ | ---------------------- | ----------------------------- |
+| `id`                           | `UUID` PK              |                               |
+| `irr_per_usd`                  | `BIGINT` NOT NULL      | Integer IRR units per 1 USD   |
+| `created_by_admin_telegram_id` | `BIGINT` NOT NULL      | Audit: which Admin set it     |
+| `created_at`                   | `TIMESTAMPTZ` NOT NULL | Most recent row = active rate |
 
 Append-only: no updates or deletes permitted.
 
 **`bank_accounts`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `card_number` | `VARCHAR(16)` NOT NULL | |
-| `card_holder_name` | `VARCHAR` NOT NULL | |
-| `bank_name` | `VARCHAR` NOT NULL | |
-| `additional_notes` | `TEXT` nullable | Optional transfer instructions |
-| `is_active` | `BOOLEAN` NOT NULL DEFAULT `false` | Exactly one row `true` at any time |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+
+| Column             | Type                               | Notes                              |
+| ------------------ | ---------------------------------- | ---------------------------------- |
+| `id`               | `UUID` PK                          |                                    |
+| `card_number`      | `VARCHAR(16)` NOT NULL             |                                    |
+| `card_holder_name` | `VARCHAR` NOT NULL                 |                                    |
+| `bank_name`        | `VARCHAR` NOT NULL                 |                                    |
+| `additional_notes` | `TEXT` nullable                    | Optional transfer instructions     |
+| `is_active`        | `BOOLEAN` NOT NULL DEFAULT `false` | Exactly one row `true` at any time |
+| `created_at`       | `TIMESTAMPTZ` NOT NULL             |                                    |
 
 **`top_up_requests`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `user_id` | `UUID` FK → `users` NOT NULL | |
-| `exchange_rate_id` | `UUID` FK → `exchange_rates` NOT NULL | Rate locked at initiation |
-| `usd_amount` | `NUMERIC(18,2)` NOT NULL | Buyer-requested amount |
-| `irr_amount` | `BIGINT` NOT NULL | `usd_amount × irr_per_usd` at initiation |
-| `status` | `ENUM` NOT NULL | `INITIATED \| PENDING \| APPROVED \| REJECTED \| EXPIRED \| CANCELLED` |
-| `receipt_file_id` | `VARCHAR` nullable | Telegram photo `file_id` |
-| `receipt_caption` | `TEXT` nullable | Optional Buyer text alongside photo |
-| `rejection_reason` | `TEXT` nullable | Populated on `REJECTED` |
-| `expires_at` | `TIMESTAMPTZ` NOT NULL | `INITIATED` window deadline |
-| `processed_by_admin_telegram_id` | `BIGINT` nullable | Audit: which Admin acted |
-| `processed_at` | `TIMESTAMPTZ` nullable | When Admin acted |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
-| `updated_at` | `TIMESTAMPTZ` NOT NULL | |
+
+| Column                           | Type                                  | Notes                                                                  |
+| -------------------------------- | ------------------------------------- | ---------------------------------------------------------------------- |
+| `id`                             | `UUID` PK                             |                                                                        |
+| `user_id`                        | `UUID` FK → `users` NOT NULL          |                                                                        |
+| `exchange_rate_id`               | `UUID` FK → `exchange_rates` NOT NULL | Rate locked at initiation                                              |
+| `usd_amount`                     | `NUMERIC(18,2)` NOT NULL              | Buyer-requested amount                                                 |
+| `irr_amount`                     | `BIGINT` NOT NULL                     | `usd_amount × irr_per_usd` at initiation                               |
+| `status`                         | `ENUM` NOT NULL                       | `INITIATED \| PENDING \| APPROVED \| REJECTED \| EXPIRED \| CANCELLED` |
+| `receipt_file_id`                | `VARCHAR` nullable                    | Telegram photo `file_id`                                               |
+| `receipt_caption`                | `TEXT` nullable                       | Optional Buyer text alongside photo                                    |
+| `rejection_reason`               | `TEXT` nullable                       | Populated on `REJECTED`                                                |
+| `expires_at`                     | `TIMESTAMPTZ` NOT NULL                | `INITIATED` window deadline                                            |
+| `processed_by_admin_telegram_id` | `BIGINT` nullable                     | Audit: which Admin acted                                               |
+| `processed_at`                   | `TIMESTAMPTZ` nullable                | When Admin acted                                                       |
+| `created_at`                     | `TIMESTAMPTZ` NOT NULL                |                                                                        |
+| `updated_at`                     | `TIMESTAMPTZ` NOT NULL                |                                                                        |
 
 **Partial unique index** on `top_up_requests(user_id) WHERE status IN ('INITIATED', 'PENDING')` — enforces the one-active-request-per-Buyer rule at the database level.
 
 **`ledger_transactions`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | Groups a paired debit + credit |
-| `top_up_request_id` | `UUID` FK → `top_up_requests` nullable | Source event |
-| `narrative` | `TEXT` NOT NULL | Human-readable description |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+
+| Column              | Type                                   | Notes                          |
+| ------------------- | -------------------------------------- | ------------------------------ |
+| `id`                | `UUID` PK                              | Groups a paired debit + credit |
+| `top_up_request_id` | `UUID` FK → `top_up_requests` nullable | Source event                   |
+| `narrative`         | `TEXT` NOT NULL                        | Human-readable description     |
+| `created_at`        | `TIMESTAMPTZ` NOT NULL                 |                                |
 
 **`ledger_entries`**
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `UUID` PK | |
-| `ledger_transaction_id` | `UUID` FK → `ledger_transactions` NOT NULL | |
-| `account_type` | `ENUM` NOT NULL | `BUYER_WALLET \| SYSTEM_CASH` |
-| `direction` | `ENUM` NOT NULL | `DEBIT \| CREDIT` |
-| `usd_amount` | `NUMERIC(18,2)` NOT NULL | Always positive |
-| `wallet_id` | `UUID` FK → `wallets` nullable | Non-null for `BUYER_WALLET` entries |
-| `created_at` | `TIMESTAMPTZ` NOT NULL | |
+
+| Column                  | Type                                       | Notes                               |
+| ----------------------- | ------------------------------------------ | ----------------------------------- |
+| `id`                    | `UUID` PK                                  |                                     |
+| `ledger_transaction_id` | `UUID` FK → `ledger_transactions` NOT NULL |                                     |
+| `account_type`          | `ENUM` NOT NULL                            | `BUYER_WALLET \| SYSTEM_CASH`       |
+| `direction`             | `ENUM` NOT NULL                            | `DEBIT \| CREDIT`                   |
+| `usd_amount`            | `NUMERIC(18,2)` NOT NULL                   | Always positive                     |
+| `wallet_id`             | `UUID` FK → `wallets` nullable             | Non-null for `BUYER_WALLET` entries |
+| `created_at`            | `TIMESTAMPTZ` NOT NULL                     |                                     |
 
 Both ledger tables: **no UPDATE or DELETE permitted**. This constraint is enforced at the application layer; a database-level trigger may be added for defence-in-depth.
 

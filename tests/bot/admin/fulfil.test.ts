@@ -715,5 +715,3 @@ describe("Admin Order Fulfilment Handler & Conversation (Ticket 06)", () => {
 		expect(repliedMessages).toHaveLength(0);
 	});
 });
-
-

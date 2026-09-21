@@ -41,10 +41,5 @@ export interface ILedgerRepository<TExecutor = unknown> {
 	): Promise<CreateLedgerTransactionResult>;
 	findOriginalByOrderId(orderId: string, executor: TExecutor): Promise<LedgerTransaction | null>;
 	updateReversedBy(transactionId: string, reversedByLedgerTransactionId: string, executor: TExecutor): Promise<void>;
-	findRecentByWalletId(
-		walletId: string,
-		limit: number,
-		executor: TExecutor,
-	): Promise<RecentWalletTransactionEntry[]>;
+	findRecentByWalletId(walletId: string, limit: number, executor: TExecutor): Promise<RecentWalletTransactionEntry[]>;
 }
-

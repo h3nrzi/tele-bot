@@ -164,4 +164,3 @@ export class LedgerService {
 		return await this.ledgerRepo.findRecentByWalletId(walletId, limit, client);
 	}
 }
-

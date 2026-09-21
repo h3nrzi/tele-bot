@@ -4,9 +4,10 @@ Status: ready-for-agent
 
 ## Problem Statement
 
-The bot's service catalog currently assumes all purchasable items operate under a single uniform model: instantaneous order confirmation without buyer inputs, and manual fulfillment requiring an Admin to type plain-text delivery credentials (`Delivery Content`). 
+The bot's service catalog currently assumes all purchasable items operate under a single uniform model: instantaneous order confirmation without buyer inputs, and manual fulfillment requiring an Admin to type plain-text delivery credentials (`Delivery Content`).
 
 This model breaks down when expanding the catalog to modern digital services:
+
 1. **Direct Account Upgrades** (e.g. ChatGPT Plus, Spotify Family): Require sensitive buyer inputs (email, password) prior to placement, and fulfillment is activation-based (admin upgrades the account externally; no outbound credentials delivered to buyer). Storing buyer passwords in plaintext is an extreme security liability.
 2. **Identity & Handle-based Services** (e.g. Telegram Premium Gift): Require user handles (target `@username` or Telegram ID) to direct the transfer/gift.
 3. **Configuration-based Services** (e.g. VPN): Require technical parameters (server location, protocol) during purchase. In MVP, fulfillment involves manual config delivery; post-MVP requires background automation via provider panel APIs (e.g. Marzban, Sanaei) without breaking existing orders.
@@ -57,10 +58,12 @@ Introduce a **Polymorphic Service Catalog** with decoupled **Buyer Requirements*
 ## Implementation Decisions
 
 ### Domain Glossary & Invariants
+
 - Incorporates `Buyer Requirement`, `Buyer Input`, and `Fulfillment Strategy` into the domain model per ADR-0011, preserving `Buyer`, `Catalog Item`, `Order`, `Price Snapshot`, and `Delivery Content`.
 - Placement remains strictly atomic: wallet row lock `FOR UPDATE`, available balance verification, double-entry ledger entries, and `Order` creation at `PLACED` all occur in a single database transaction.
 
 ### Schema Modifications (Drizzle ORM & PostgreSQL)
+
 - **`catalog_type` Enum**: `['STATIC_DELIVERY', 'DIRECT_ACCOUNT', 'IDENTITY_HANDLE', 'CONFIG_VPN']`.
 - **`fulfillment_strategy` Enum**: `['PAYLOAD_DELIVERY', 'ACTIVATION', 'AUTOMATED_PANEL']`.
 - **`catalog_items` Table Additions**:
@@ -72,12 +75,14 @@ Introduce a **Polymorphic Service Catalog** with decoupled **Buyer Requirements*
   - `buyer_inputs`: `jsonb` nullable (structured JSON holding submitted inputs and encrypted credential ciphertext/iv/tag).
 
 ### Cryptographic Service (`CredentialCryptoService`)
+
 - A dedicated service responsible for AES-256-GCM encryption and decryption of sensitive string values.
 - Reads a 32-byte key from `CREDENTIALS_ENCRYPTION_KEY` environment variable. Throws on startup or invocation if the key is invalid or missing.
 - Returns a structured cipher object `{ ciphertext: string, iv: string, tag: string }`.
 - Decryption occurs strictly in-memory during authorized Admin inspection or claim-reveal routines; decrypted text is never logged.
 
 ### Buyer Requirement Strategies (`IBuyerRequirementStrategy`)
+
 - Implements a strategy pattern for collecting, validating, and sanitizing buyer inputs:
   - `DirectAccountRequirementStrategy`: Prompts for email (regex validation) and password. Deletes the raw Telegram password message using `ctx.deleteMessage()`. Encrypts password via `CredentialCryptoService`.
   - `IdentityHandleRequirementStrategy`: Prompts for target `@username` (regex) or Telegram numeric ID.
@@ -85,6 +90,7 @@ Introduce a **Polymorphic Service Catalog** with decoupled **Buyer Requirements*
   - `StaticDeliveryRequirementStrategy`: No-op; returns empty inputs immediately.
 
 ### Buyer Requirement Conversation (`collect_order_requirements`)
+
 - Registered in grammY conversations router.
 - Triggered when a Buyer selects a non-`STATIC_DELIVERY` Catalog Item from `/shop` (after passing the pre-conversation balance check).
 - Step-by-step interactive prompts respecting `isCancelCommand` and `flow:cancel` inline callbacks.
@@ -92,6 +98,7 @@ Introduce a **Polymorphic Service Catalog** with decoupled **Buyer Requirements*
 - On confirmation, calls `orderService.placeOrder({ ...buyerInputs })`.
 
 ### Admin Notification & Claim-Gated Reveal (ADR-0013)
+
 - Initial broadcast push messages sent to all Admins via `orderAdminNotifications` display sanitized inputs:
   - For `DIRECT_ACCOUNT`: `📧 ایمیل: buyer@example.com`, `🔑 رمز عبور: 🔒 پس از شروع پردازش نمایش داده می‌شود`.
 - When an Admin claims the order (`order:process:<orderId>`):
@@ -99,23 +106,27 @@ Introduce a **Polymorphic Service Catalog** with decoupled **Buyer Requirements*
   - Other Admins' copies update to `🔒 در حال پردازش توسط @adminX` with the password remaining masked.
 
 ### Admin Strategy-Driven Fulfillment (ADR-0011)
+
 - In `fulfil.handler.ts` / `fulfil.conversation.ts`:
   - When `fulfillment_strategy_snapshot === 'ACTIVATION'`: Tapping `[📦 تحویل سفارش]` renders a direct confirmation prompt (`"آیا فعال‌سازی حساب برای ایمیل X انجام شده است؟ [✓ تایید فعال‌سازی] [❌ انصراف]"`). Fulfilling marks status `FULFILLED` without prompting for delivery text, and notifier dispatches a tailored activation message to the Buyer.
   - When `fulfillment_strategy_snapshot === 'PAYLOAD_DELIVERY'`: Launches the existing 3-step conversation prompting for `Delivery Content`.
   - When `fulfillment_strategy_snapshot === 'AUTOMATED_PANEL'`: Handled by background panel job (with manual admin override).
 
 ### Terminal State Redaction (ADR-0012)
+
 - In `orderService.fulfilOrder()`, `rejectOrder()`, and `cancelOrder()`:
   - If `order.buyerInputs` contains encrypted credential fields, the sensitive fields are mutated to `"[REDACTED]"` in the update payload.
   - Non-sensitive metadata (`email`, `targetUsername`, `region`) remains intact.
 
 ### Order Rejection Updates
+
 - Adds `INVALID_CREDENTIALS` code to `ORDER_REJECTION_CATEGORIES` in `order.keyboards.ts`:
   - Label: `"اطلاعات ورود نامعتبر / نیاز به تایید دو مرحله‌ای"`
   - English: `"Invalid Credentials / 2FA Blocked"`
 - When selected, triggers automatic wallet refund and notifies the Buyer with specific guidance to check credentials or disable 2FA.
 
 ### Admin Catalog Conversation Updates
+
 - `add_catalog_item` conversation updated to:
   1. Prompt `Name`
   2. Prompt `Description` (optional, skip-enabled)
@@ -128,9 +139,11 @@ Introduce a **Polymorphic Service Catalog** with decoupled **Buyer Requirements*
 ## Testing Decisions
 
 ### What makes a good test
+
 Tests must verify observable external behavior and state transitions against a real database, not internal implementation mechanics. Tests should verify that Telegram messages sent, keyboards rendered, and database rows written (including ledger entries, wallet balances, and encrypted payloads) adhere strictly to our business rules.
 
 ### Seams to Test
+
 1. **End-to-End Bot Seam (Primary)**:
    - Uses `createBot({ dbClient, client: { fetch: mockFetch } })` with `setupTestDatabase()`.
    - Tests updates dispatched via `bot.handleUpdate(update)` simulating Buyer and Admin interactions.
@@ -146,6 +159,7 @@ Tests must verify observable external behavior and state transitions against a r
    - `OrderService` integration tests verifying atomic placement with `buyerInputs`, selective redaction of passwords upon `fulfilOrder` and `rejectOrder`, and retention of audit metadata.
 
 ### Prior Art
+
 - `tests/bot/buyer/shop.test.ts` (buyer shop flow, order placement, and wallet balance verification).
 - `tests/bot/admin/fulfil.test.ts` (admin claim and fulfilment conversation tests).
 - `tests/bot/admin/reject-order.test.ts` (admin rejection categories and ledger refund verification).

@@ -1,6 +1,7 @@
 # 01: Credential Crypto Service & Polymorphic Catalog Data Model
 
 **What to build:** Establish the schema and cryptographic foundations for polymorphic service catalog items and encrypted buyer input handling.
+
 - Define `catalog_type` enum (`STATIC_DELIVERY`, `DIRECT_ACCOUNT`, `IDENTITY_HANDLE`, `CONFIG_VPN`) with default `'STATIC_DELIVERY'`.
 - Define `fulfillment_strategy` enum (`PAYLOAD_DELIVERY`, `ACTIVATION`, `AUTOMATED_PANEL`) with default `'PAYLOAD_DELIVERY'`.
 - Add `catalog_type`, `fulfillment_strategy`, and nullable `requirement_config` JSONB to `catalog_items`.

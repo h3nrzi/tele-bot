@@ -3,10 +3,12 @@
 **What to build:** When a Buyer taps `[📦 تاریخچه سفارش‌ها]` on the Profile Card, the message is edited in place to show their recent order history, and they can drill into any order for full detail or cancel a PLACED order without leaving the hub.
 
 The Order History list:
+
 - Shows up to 5 most recent orders, each as an inline button: `<status emoji> <service name> — <date>` with callback data `account:order:<orderId>`.
 - Shows an empty-state message prompting the Buyer to visit the shop if they have no orders.
 
 The Order Detail view (reached via `account:order:<orderId>`):
+
 - Edits the message to show full order detail: service name, price, status, date, and any rejection/delivery notes.
 - If the order is `PLACED`, shows `[❌ لغو سفارش]` (reusing the existing `order:cancel:<orderId>` callback).
 - Orders in `PROCESSING`, `FULFILLED`, `REJECTED`, or `CANCELLED` are read-only (no cancel button).

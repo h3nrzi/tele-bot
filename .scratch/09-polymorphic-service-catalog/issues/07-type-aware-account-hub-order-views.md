@@ -1,6 +1,7 @@
 # 07: Type-Aware Account Hub & Order Detail Views
 
 **What to build:** Update the Buyer Account Hub (`/account` and `👤 حساب کاربری`) to display polymorphic order details accurately and securely.
+
 - In the Order Detail view, display submitted Buyer Inputs (e.g. target email, username/ID, server region) alongside the item details.
 - Ensure passwords and cryptographic payloads are never rendered in the Account Hub view under any status.
 - For `ACTIVATION` orders in `FULFILLED` status, display an account activation confirmation indicator instead of empty or missing delivery content.

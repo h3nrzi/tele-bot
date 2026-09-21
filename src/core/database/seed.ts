@@ -61,7 +61,9 @@ export async function seedDatabase(options?: SeedDatabaseOptions): Promise<SeedR
 		}
 
 		// 3. Admin identifier from environment or fallback
-		const envAdminIds = process.env.ADMIN_IDS?.split(",").map((s) => s.trim()).filter(Boolean);
+		const envAdminIds = process.env.ADMIN_IDS?.split(",")
+			.map((s) => s.trim())
+			.filter(Boolean);
 		const defaultAdminId = envAdminIds && envAdminIds.length > 0 ? BigInt(envAdminIds[0]!) : 123456789n;
 
 		// 4. Seed Bank Accounts (1 active, 1 inactive)
@@ -143,12 +145,7 @@ export async function seedDatabase(options?: SeedDatabaseOptions): Promise<SeedR
 					catalogType: "CONFIG_VPN",
 					fulfillmentStrategy: "PAYLOAD_DELIVERY",
 					requirementConfig: {
-						allowedRegions: [
-							"🇩🇪 آلمان (Germany)",
-							"🇳🇱 هلند (Netherlands)",
-							"🇫🇮 فنلاند (Finland)",
-							"🇺🇸 آمریکا (USA)",
-						],
+						allowedRegions: ["🇩🇪 آلمان (Germany)", "🇳🇱 هلند (Netherlands)", "🇫🇮 فنلاند (Finland)", "🇺🇸 آمریکا (USA)"],
 					},
 				},
 				{

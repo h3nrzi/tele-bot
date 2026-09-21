@@ -1,6 +1,7 @@
 # 03: Buyer Pre-Placement Requirement Flow & Atomic Order Placement
 
 **What to build:** Guide Buyers purchasing items with dynamic requirements through an interactive step-by-step collection flow, protecting credentials and preserving atomic placement.
+
 - When a Buyer selects a catalog item from `/shop`, a fail-fast Available Balance check verifies they can afford the item; if underfunded, the bot immediately warns them and does not enter the conversation.
 - For items requiring inputs (`DIRECT_ACCOUNT`, `IDENTITY_HANDLE`, `CONFIG_VPN`), an interactive conversation collects and validates inputs:
   - `DIRECT_ACCOUNT`: Prompts for email (format validated) and password. Raw password messages sent by the Buyer are deleted immediately from the chat, and the password is encrypted using the crypto service.

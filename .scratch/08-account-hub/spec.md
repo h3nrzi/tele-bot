@@ -41,18 +41,22 @@ Introduce an **Account Hub** — a centralized buyer view accessible via a new `
 ## Implementation Decisions
 
 ### Main Menu Keyboard Reorganization
+
 - The `getBuyerMainMenuKeyboard` function is updated to replace `📦 آخرین سفارش` with `👤 حساب کاربری`. The button count stays at 3.
 - The wallet button label changes from `💰 مدیریت کیف پول` to `💳 مدیریت کیف پول` (icon update only; all existing hears patterns remain).
 
 ### New `/account` Bot Command
+
 - `/account` is added to `BUYER_BOT_COMMANDS` with a description matching its purpose.
 - The `BuyerComposer` gains a `composer.command("account", ...)` handler and a `composer.hears(["👤 حساب کاربری", ...], ...)` handler, both routing to the Profile Card handler.
 
 ### `/myorder` Redirect
+
 - The `/myorder` command and its associated `hears` patterns are redirected to the new Order History view (last 5 orders) instead of `handleMyOrderCommand`'s current single-order behavior.
 - `/myorder` remains in `BUYER_BOT_COMMANDS`.
 
 ### Profile Card Handler
+
 - A new handler function renders the Profile Card message. It fetches: Buyer record (Telegram ID, username, `createdAt`), Available Balance from the Wallet, and an order-status breakdown.
 - The order-status breakdown groups statuses into three buckets: ✅ `FULFILLED`, ⏳ `PLACED` + `PROCESSING`, ❌ `CANCELLED` + `REJECTED`.
 - If an active Top-Up Request exists (`INITIATED` or `PENDING`), an alert section is appended to the message with state-specific copy:
@@ -61,6 +65,7 @@ Introduce an **Account Hub** — a centralized buyer view accessible via a new `
 - Two inline buttons are always present on the Profile Card: `[📦 تاریخچه سفارش‌ها]` and `[💳 تاریخچه تراکنش‌ها]`.
 
 ### Order History View
+
 - A new callback query handler (e.g. `account:orders`) renders the order history by editing the Profile Card message.
 - It fetches the last 5 Orders for the Buyer, joined with their Catalog Item name.
 - Each order renders as an inline button: `[<status emoji> <service name> — <date>]` with callback data `account:order:<orderId>`.
@@ -69,6 +74,7 @@ Introduce an **Account Hub** — a centralized buyer view accessible via a new `
 - Empty state: if no orders exist, the message states so with a prompt to visit the shop.
 
 ### Transaction History View
+
 - A new callback query handler (`account:transactions`) renders transaction history by editing the Profile Card message.
 - It fetches the last 5 `BUYER_WALLET` Ledger Entries for the Buyer's Wallet, joined with the parent `ledger_transaction` to access the `narrative` field.
 - Each entry renders as: `➕/➖ <narrative>: +/-$<amount> | <date>` (CREDIT = `➕`, DEBIT = `➖`).
@@ -76,23 +82,29 @@ Introduce an **Account Hub** — a centralized buyer view accessible via a new `
 - Empty state: if no ledger history exists, the message states so.
 
 ### New Service Methods
+
 Three new read-only query methods are required — no schema changes are needed:
+
 - **On OrderService** (or a dedicated query service): `getRecentOrdersForBuyer(telegramChatId, limit)` — returns the last N orders for the Buyer, each with the associated Catalog Item name.
 - **On OrderService**: `getOrderCountBreakdown(telegramChatId)` — returns a count of orders grouped into the three display buckets (fulfilled, in-progress, cancelled).
 - **On WalletService or LedgerService**: `getRecentWalletTransactions(walletId, limit)` — returns the last N `BUYER_WALLET` Ledger Entries for a given wallet, joined with their parent Ledger Transaction's `narrative`.
 
 ### Callback Query Namespace
+
 All new Account Hub callbacks use the `account:` prefix to avoid collisions with existing `shop:`, `order:`, and `topup:` namespaces.
 
 ### No Schema Changes
+
 All data required by the Account Hub (Buyer fields, Wallet balance, Ledger Entries + narrative, Order + Catalog Item join) exists in the current schema. No migrations are needed.
 
 ## Testing Decisions
 
 ### What makes a good test
+
 Test observable bot behavior — the Telegram messages sent and inline keyboards returned — not internal handler implementation details. Service-layer tests verify query correctness against a real test DB; bot-layer tests verify the full round-trip through `createBot()` and a mock Telegram fetch.
 
 ### Seam 1 — Bot integration (primary, new): `tests/bot/buyer/account.test.ts`
+
 - Pattern: mirrors `tests/bot/buyer/myorder.test.ts` — uses `setupTestDatabase()`, `createBot()`, `createMockFetch()`, and fixture helpers (`createTestBuyer`, `placeTestOrder`, etc.).
 - Covers:
   - `/account` command and `👤 حساب کاربری` hears both render the Profile Card.
@@ -106,10 +118,12 @@ Test observable bot behavior — the Telegram messages sent and inline keyboards
   - `[🔙 بازگشت]` buttons correctly re-render the parent view.
 
 ### Seam 2 — Bot integration (update): `tests/bot/buyer/myorder.test.ts`
+
 - Update existing tests so that `/myorder` is expected to render the 5-order history list rather than a single last-order message.
 - Existing cancel-callback tests remain valid (the callback data format is unchanged).
 
 ### Seam 3 — Module/service (optional): `tests/modules/order/order-hub-queries.service.test.ts`
+
 - Add only if `getRecentOrdersForBuyer` or `getOrderCountBreakdown` contain non-trivial grouping or join logic that is not adequately exercised by the integration tests.
 - Pattern: mirrors `tests/modules/order/order-queue.service.test.ts`.
 

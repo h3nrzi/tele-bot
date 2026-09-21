@@ -25,7 +25,11 @@ export async function cleanDatabase(options?: CleanDatabaseOptions): Promise<Cle
 
 	if (options?.pool) {
 		pool = options.pool;
-	} else if (options?.db && "session" in options.db && (options.db as unknown as { session: { client: pg.Pool } }).session?.client) {
+	} else if (
+		options?.db &&
+		"session" in options.db &&
+		(options.db as unknown as { session: { client: pg.Pool } }).session?.client
+	) {
 		pool = (options.db as unknown as { session: { client: pg.Pool } }).session.client;
 	} else {
 		const conn = createDatabaseConnection(options?.connectionString);

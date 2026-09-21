@@ -98,10 +98,7 @@ export async function handleFulfilOrderCallback(ctx: BotContext, deps: FulfilHan
  * Enforces that only the claiming Admin can confirm fulfillment and order is an ACTIVATION order.
  * Marks the order FULFILLED without delivery_content and notifies the Buyer.
  */
-export async function handleConfirmActivationCallback(
-	ctx: BotContext,
-	deps: FulfilHandlerDependencies,
-): Promise<void> {
+export async function handleConfirmActivationCallback(ctx: BotContext, deps: FulfilHandlerDependencies): Promise<void> {
 	const sender = ctx.from;
 	if (!sender) {
 		return;
@@ -166,10 +163,7 @@ export async function handleConfirmActivationCallback(
  * Handles the cancellation callback for ACTIVATION fulfillment (`order:activate:cancel:<orderId>`).
  * Cancels the confirmation prompt and leaves the order in PROCESSING state.
  */
-export async function handleCancelActivationCallback(
-	ctx: BotContext,
-	deps: FulfilHandlerDependencies,
-): Promise<void> {
+export async function handleCancelActivationCallback(ctx: BotContext, deps: FulfilHandlerDependencies): Promise<void> {
 	const sender = ctx.from;
 	if (!sender) {
 		return;

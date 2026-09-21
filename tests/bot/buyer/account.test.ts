@@ -667,9 +667,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 				createdAt: new Date("2026-06-16T12:00:00Z"),
 			});
 
-			const { messageText, isEmpty } = buildTransactionHistoryView([
-				{ entry: debitEntry, narrative: "خرید اشتراک" },
-			]);
+			const { messageText, isEmpty } = buildTransactionHistoryView([{ entry: debitEntry, narrative: "خرید اشتراک" }]);
 
 			expect(isEmpty).toBe(false);
 			expect(messageText).toContain("➖ *خرید اشتراک*");
@@ -773,9 +771,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 				createdAt: new Date(),
 			});
 
-			const { messageText } = buildTransactionHistoryView([
-				{ entry, narrative: "Order_special [test] *bold*" },
-			]);
+			const { messageText } = buildTransactionHistoryView([{ entry, narrative: "Order_special [test] *bold*" }]);
 
 			expect(messageText).toContain("Order\\_special \\[test] \\*bold\\*");
 		});
@@ -1112,14 +1108,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					13,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"Detail",
-					"placed_detail_user",
-				),
+				makeCallbackQueryUpdate(13, buyerChatId, `account:order:${order.id}`, 1, "Detail", "placed_detail_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(1);
@@ -1169,14 +1158,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					14,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"Proc",
-					"proc_detail_user",
-				),
+				makeCallbackQueryUpdate(14, buyerChatId, `account:order:${order.id}`, 1, "Proc", "proc_detail_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1221,14 +1203,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					15,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"Fulfil",
-					"ful_detail_user",
-				),
+				makeCallbackQueryUpdate(15, buyerChatId, `account:order:${order.id}`, 1, "Fulfil", "ful_detail_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1270,14 +1245,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					16,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"Rej",
-					"rej_detail_user",
-				),
+				makeCallbackQueryUpdate(16, buyerChatId, `account:order:${order.id}`, 1, "Rej", "rej_detail_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1318,14 +1286,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					161,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"Canc",
-					"canc_detail_user",
-				),
+				makeCallbackQueryUpdate(161, buyerChatId, `account:order:${order.id}`, 1, "Canc", "canc_detail_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1360,14 +1321,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 
 			// User taps [🔙 بازگشت به لیست]
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					17,
-					buyerChatId,
-					ACCOUNT_CALLBACKS.ORDERS,
-					1,
-					"NavBack",
-					"nav_back_user",
-				),
+				makeCallbackQueryUpdate(17, buyerChatId, ACCOUNT_CALLBACKS.ORDERS, 1, "NavBack", "nav_back_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1403,14 +1357,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 
 			// Buyer taps [❌ لغو سفارش] from detail view
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					18,
-					buyerChatId,
-					`order:cancel:${order.id}`,
-					1,
-					"CancelUser",
-					"cancel_detail_user",
-				),
+				makeCallbackQueryUpdate(18, buyerChatId, `order:cancel:${order.id}`, 1, "CancelUser", "cancel_detail_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(1);
@@ -1459,14 +1406,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 
 			// Other buyer attempts to drill into owner's order
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					19,
-					otherChatId,
-					`account:order:${order.id}`,
-					1,
-					"Other",
-					"other_user",
-				),
+				makeCallbackQueryUpdate(19, otherChatId, `account:order:${order.id}`, 1, "Other", "other_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(1);
@@ -1500,14 +1440,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 
 			// Invalid UUID format
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					21,
-					buyerChatId,
-					"account:order:not-a-valid-uuid",
-					1,
-					"User",
-					"invalid_order_user",
-				),
+				makeCallbackQueryUpdate(21, buyerChatId, "account:order:not-a-valid-uuid", 1, "User", "invalid_order_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(2);
@@ -1557,14 +1490,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					201,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"ActDetail",
-					"act_detail_user",
-				),
+				makeCallbackQueryUpdate(201, buyerChatId, `account:order:${order.id}`, 1, "ActDetail", "act_detail_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1610,14 +1536,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					202,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"HandleDetail",
-					"handle_detail_user",
-				),
+				makeCallbackQueryUpdate(202, buyerChatId, `account:order:${order.id}`, 1, "HandleDetail", "handle_detail_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1657,14 +1576,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					203,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"VpnDetail",
-					"vpn_detail_user",
-				),
+				makeCallbackQueryUpdate(203, buyerChatId, `account:order:${order.id}`, 1, "VpnDetail", "vpn_detail_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1713,14 +1625,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					204,
-					buyerChatId,
-					`account:order:${order.id}`,
-					1,
-					"InvCred",
-					"inv_cred_user",
-				),
+				makeCallbackQueryUpdate(204, buyerChatId, `account:order:${order.id}`, 1, "InvCred", "inv_cred_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1749,14 +1654,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					22,
-					buyerChatId,
-					ACCOUNT_CALLBACKS.PROFILE,
-					1,
-					"User",
-					"profile_back_user",
-				),
+				makeCallbackQueryUpdate(22, buyerChatId, ACCOUNT_CALLBACKS.PROFILE, 1, "User", "profile_back_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(1);
@@ -1776,14 +1674,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					30,
-					buyerChatId,
-					ACCOUNT_CALLBACKS.TRANSACTIONS,
-					1,
-					"Empty",
-					"empty_tx_user",
-				),
+				makeCallbackQueryUpdate(30, buyerChatId, ACCOUNT_CALLBACKS.TRANSACTIONS, 1, "Empty", "empty_tx_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(1);
@@ -1862,14 +1753,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages, answeredCallbackQueries } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					31,
-					buyerChatId,
-					ACCOUNT_CALLBACKS.TRANSACTIONS,
-					1,
-					"TxUser",
-					"tx_history_user",
-				),
+				makeCallbackQueryUpdate(31, buyerChatId, ACCOUNT_CALLBACKS.TRANSACTIONS, 1, "TxUser", "tx_history_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(1);
@@ -1930,14 +1814,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					32,
-					buyerChatId,
-					ACCOUNT_CALLBACKS.TRANSACTIONS,
-					1,
-					"ManyTx",
-					"many_tx_user",
-				),
+				makeCallbackQueryUpdate(32, buyerChatId, ACCOUNT_CALLBACKS.TRANSACTIONS, 1, "ManyTx", "many_tx_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1962,14 +1839,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 
 			// First open transaction history
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					33,
-					buyerChatId,
-					ACCOUNT_CALLBACKS.TRANSACTIONS,
-					1,
-					"BackUser",
-					"back_from_tx_user",
-				),
+				makeCallbackQueryUpdate(33, buyerChatId, ACCOUNT_CALLBACKS.TRANSACTIONS, 1, "BackUser", "back_from_tx_user"),
 			);
 
 			expect(editedMessages).toHaveLength(1);
@@ -1977,14 +1847,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 
 			// Then tap back button
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					34,
-					buyerChatId,
-					ACCOUNT_CALLBACKS.PROFILE,
-					1,
-					"BackUser",
-					"back_from_tx_user",
-				),
+				makeCallbackQueryUpdate(34, buyerChatId, ACCOUNT_CALLBACKS.PROFILE, 1, "BackUser", "back_from_tx_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(2);
@@ -1997,14 +1860,7 @@ describe("Buyer Account Hub — Profile Card (Ticket 03)", () => {
 			const { bot, answeredCallbackQueries, editedMessages } = createTestBot();
 
 			await bot.handleUpdate(
-				makeCallbackQueryUpdate(
-					35,
-					999888777,
-					ACCOUNT_CALLBACKS.TRANSACTIONS,
-					1,
-					"Unknown",
-					"unknown_user",
-				),
+				makeCallbackQueryUpdate(35, 999888777, ACCOUNT_CALLBACKS.TRANSACTIONS, 1, "Unknown", "unknown_user"),
 			);
 
 			expect(answeredCallbackQueries).toHaveLength(1);
