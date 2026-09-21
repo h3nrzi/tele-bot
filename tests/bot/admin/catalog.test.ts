@@ -313,8 +313,8 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 			expect(repliedMessages[5]).toContain("تایید");
 			expect(repliedMessages[5]).toContain("Telegram Stars 500");
 			expect(repliedMessages[5]).toContain("$9.99");
-			expect(repliedMessages[5]).toContain("STATIC_DELIVERY");
-			expect(repliedMessages[5]).toContain("PAYLOAD_DELIVERY");
+			expect(repliedMessages[5]).toContain("تحویل محتوا / لایسنس");
+			expect(repliedMessages[5]).toContain("تحویل متن / لایسنس");
 
 			// Step 7: Confirm
 			await bot.handleUpdate(makeMessageUpdate(7, adminChatId, "بله"));
@@ -431,8 +431,8 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 			// 7. Preview check
 			expect(repliedMessages[5]).toContain("پیش‌نمایش خدمت جدید");
 			expect(repliedMessages[5]).toContain("ChatGPT Plus 1 Month");
-			expect(repliedMessages[5]).toContain("DIRECT_ACCOUNT");
-			expect(repliedMessages[5]).toContain("ACTIVATION");
+			expect(repliedMessages[5]).toContain("ارتقای مستقیم اکانت");
+			expect(repliedMessages[5]).toContain("فعال‌سازی مستقیم");
 			expect(repliedMessages[5]).toContain("$20.00");
 
 			// 8. Confirm
@@ -500,8 +500,8 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 			// Preview prompt
 			expect(repliedMessages[6]).toContain("پیش‌نمایش خدمت جدید");
 			expect(repliedMessages[6]).toContain("Fast VPN EU");
-			expect(repliedMessages[6]).toContain("CONFIG_VPN");
-			expect(repliedMessages[6]).toContain("PAYLOAD_DELIVERY");
+			expect(repliedMessages[6]).toContain("کانفیگ VPN");
+			expect(repliedMessages[6]).toContain("تحویل متن / لایسنس");
 			expect(repliedMessages[6]).toContain("de, nl, fi");
 			expect(repliedMessages[6]).toContain("$5.99");
 
@@ -564,7 +564,6 @@ describe("/catalog Admin Command, Dashboard & Conversations", () => {
 			await bot.handleUpdate(makeMessageUpdate(7, adminChatId, "10.00"));
 
 			// Verify preview shows AUTOMATED_PANEL
-			expect(repliedMessages[6]).toContain("AUTOMATED_PANEL");
 			expect(repliedMessages[6]).toContain("پنل خودکار");
 
 			// Confirm

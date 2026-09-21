@@ -14,7 +14,11 @@
 		"dev": "tsx watch src/index.ts",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
-		"db:push": "drizzle-kit push"
+		"db:push": "drizzle-kit push",
+		"db:clean": "tsx src/scripts/clean.ts",
+		"db:destroy": "tsx src/scripts/clean.ts",
+		"db:seed": "tsx src/scripts/seed.ts",
+		"db:reset": "tsx src/scripts/reset.ts"
 	},
 	"dependencies": {
 		"@grammyjs/conversations": "^2.1.1",

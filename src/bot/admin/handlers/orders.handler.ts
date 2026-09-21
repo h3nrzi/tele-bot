@@ -31,9 +31,9 @@ export function formatAdminOrderQueueItemMessage(
 	let claimDisplay = "";
 
 	if (item.status === "PLACED") {
-		statusDisplay = "⏳ در انتظار شروع پردازش (PLACED)";
+		statusDisplay = "⏳ در انتظار شروع پردازش";
 	} else if (item.status === "PROCESSING") {
-		statusDisplay = "🔄 در حال پردازش (PROCESSING)";
+		statusDisplay = "🔄 در حال پردازش";
 		const isClaimedByMe =
 			item.claimedByAdminTelegramId !== null &&
 			item.claimedByAdminTelegramId !== undefined &&

@@ -21,16 +21,16 @@ export interface CatalogItemViewData {
 }
 
 export const CATALOG_TYPE_LABELS: Record<CatalogType, string> = {
-	STATIC_DELIVERY: "تحویل محتوا / لایسنس (STATIC_DELIVERY)",
-	DIRECT_ACCOUNT: "ارتقای مستقیم اکانت (DIRECT_ACCOUNT)",
-	IDENTITY_HANDLE: "شناسه کاربری / تلگرام (IDENTITY_HANDLE)",
-	CONFIG_VPN: "کانفیگ VPN (CONFIG_VPN)",
+	STATIC_DELIVERY: "تحویل محتوا / لایسنس",
+	DIRECT_ACCOUNT: "ارتقای مستقیم اکانت",
+	IDENTITY_HANDLE: "شناسه کاربری / تلگرام",
+	CONFIG_VPN: "کانفیگ VPN",
 };
 
 export const FULFILLMENT_STRATEGY_LABELS: Record<FulfillmentStrategy, string> = {
-	PAYLOAD_DELIVERY: "تحویل متن / لایسنس (PAYLOAD_DELIVERY)",
-	ACTIVATION: "فعال‌سازی مستقیم (ACTIVATION)",
-	AUTOMATED_PANEL: "پنل خودکار (AUTOMATED_PANEL)",
+	PAYLOAD_DELIVERY: "تحویل متن / لایسنس",
+	ACTIVATION: "فعال‌سازی مستقیم",
+	AUTOMATED_PANEL: "پنل خودکار",
 };
 
 /**
