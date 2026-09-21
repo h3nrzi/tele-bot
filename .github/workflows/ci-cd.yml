@@ -57,3 +57,59 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+  cd:
+    name: CD
+    needs: [ci]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 60s
+          command_timeout: 10m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+            git fetch && git reset --hard origin/main
+            pnpm install --frozen-lockfile
+            sudo -u h3nrzi pm2 stop voltix-bot
+            pnpm db:migrate
+            sudo -u h3nrzi pm2 start /home/h3nrzi/tele-bot/ecosystem.config.cjs --env production
+
+      - name: Verify bot health
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 60s
+          command_timeout: 2m
+          script_stop: true
+          script: |
+            sleep 10
+            export PM2_HOME="${PM2_HOME:-/home/h3nrzi/.pm2}"
+            pm2 list | grep "voltix-bot" | grep -q "online"
+
+      - name: Send Telegram failure alert
+        if: failure()
+        run: |
+          MSG="🚨 <b>Deployment to production failed!</b>"
+          MSG="${MSG}"$'\n\n'"<b>Repository:</b> ${{ github.repository }}"
+          MSG="${MSG}"$'\n'"<b>Commit:</b> <code>${{ github.sha }}</code>"
+          MSG="${MSG}"$'\n'"<b>Triggered by:</b> ${{ github.actor }}"
+          MSG="${MSG}"$'\n'"<b>Run:</b> <a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">#${{ github.run_id }}</a>"
+
+          curl -sS --fail -X POST "https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_OPS_GROUP_ID }}" \
+            -d parse_mode="HTML" \
+            --data-urlencode "text=${MSG}"
