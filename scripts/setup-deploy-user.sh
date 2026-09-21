@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# =============================================================================
+# setup-deploy-user.sh — VPS least-privilege provisioning wizard
+#
+# Run once as root on the VPS:
+#   sudo bash scripts/setup-deploy-user.sh
+#
+# Safe to re-run after key rotation (idempotent).
+# =============================================================================
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Configuration — edit these before running if your setup differs
+# ---------------------------------------------------------------------------
+DEPLOY_USER="deploy"
+OWNER_USER="h3nrzi"
+# Absolute path to the repo directory on the VPS (same as DEPLOY_PATH secret)
+REPO_DIR="/home/${OWNER_USER}/tele-bot"
+# Absolute path to the PM2 ecosystem file inside the repo
+ECOSYSTEM_PATH="${REPO_DIR}/ecosystem.config.cjs"
+PM2_APP_NAME="voltix-bot"
+
+# ---------------------------------------------------------------------------
+# Guards
+# ---------------------------------------------------------------------------
+if [[ "$(id -u)" -ne 0 ]]; then
+  echo "ERROR: This script must be run as root (use: sudo bash $0)" >&2
+  exit 1
+fi
+
+if ! id "${OWNER_USER}" &>/dev/null; then
+  echo "ERROR: Owner user '${OWNER_USER}' does not exist on this system." >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 1. Create the deploy OS user (idempotent)
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> [1/5] Ensuring OS user '${DEPLOY_USER}' exists..."
+
+if id "${DEPLOY_USER}" &>/dev/null; then
+  echo "    User '${DEPLOY_USER}' already exists — skipping creation."
+else
+  adduser \
+    --disabled-password \
+    --gecos "CI/CD deploy account" \
+    "${DEPLOY_USER}"
+  echo "    User '${DEPLOY_USER}' created."
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Group membership + repo write access
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> [2/5] Granting '${DEPLOY_USER}' write access to the repo directory..."
+
+# Add deploy user to the owner's primary group
+OWNER_GROUP="${OWNER_USER}"
+usermod -aG "${OWNER_GROUP}" "${DEPLOY_USER}"
+echo "    Added '${DEPLOY_USER}' to group '${OWNER_GROUP}'."
+
+# Ensure the repo directory exists and is group-writable
+if [[ -d "${REPO_DIR}" ]]; then
+  chgrp -R "${OWNER_GROUP}" "${REPO_DIR}"
+  chmod -R g+w "${REPO_DIR}"
+  echo "    Set g+w on '${REPO_DIR}' (group: ${OWNER_GROUP})."
+else
+  echo "    WARNING: Repo directory '${REPO_DIR}' does not exist yet." \
+       "Run this script again after cloning the repo, or set REPO_DIR at the top of the script."
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Sudoers rule — PM2 stop/start only
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> [3/5] Writing sudoers rule at /etc/sudoers.d/deploy-pm2..."
+
+SUDOERS_FILE="/etc/sudoers.d/deploy-pm2"
+
+cat > "${SUDOERS_FILE}" <<EOF
+# Managed by setup-deploy-user.sh — do not edit manually.
+# Grants '${DEPLOY_USER}' passwordless sudo for exactly two PM2 commands.
+${DEPLOY_USER} ALL=(root) NOPASSWD: /usr/bin/sudo -u ${OWNER_USER} pm2 stop ${PM2_APP_NAME}
+${DEPLOY_USER} ALL=(root) NOPASSWD: /usr/bin/sudo -u ${OWNER_USER} pm2 start ${ECOSYSTEM_PATH} --env production
+EOF
+
+# Lock permissions as required by sudo
+chmod 0440 "${SUDOERS_FILE}"
+
+# Validate the file before we leave it in place
+if visudo -cf "${SUDOERS_FILE}"; then
+  echo "    Sudoers rule written and validated."
+else
+  echo "ERROR: sudoers validation failed — removing broken file." >&2
+  rm -f "${SUDOERS_FILE}"
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 4. SSH keypair (ed25519) — regenerated on re-run (key rotation)
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> [4/5] Generating ed25519 SSH keypair for '${DEPLOY_USER}'..."
+
+SSH_DIR="/home/${DEPLOY_USER}/.ssh"
+PRIVATE_KEY="${SSH_DIR}/id_ed25519"
+PUBLIC_KEY="${SSH_DIR}/id_ed25519.pub"
+AUTH_KEYS="${SSH_DIR}/authorized_keys"
+
+mkdir -p "${SSH_DIR}"
+chown "${DEPLOY_USER}:${DEPLOY_USER}" "${SSH_DIR}"
+chmod 700 "${SSH_DIR}"
+
+# Remove old keypair so re-runs rotate the key cleanly
+rm -f "${PRIVATE_KEY}" "${PUBLIC_KEY}"
+
+ssh-keygen \
+  -t ed25519 \
+  -f "${PRIVATE_KEY}" \
+  -N "" \
+  -C "${DEPLOY_USER}@$(hostname)-$(date +%Y%m%d)"
+
+chown "${DEPLOY_USER}:${DEPLOY_USER}" "${PRIVATE_KEY}" "${PUBLIC_KEY}"
+chmod 600 "${PRIVATE_KEY}"
+chmod 644 "${PUBLIC_KEY}"
+
+# Register public key in authorized_keys (idempotent)
+touch "${AUTH_KEYS}"
+chown "${DEPLOY_USER}:${DEPLOY_USER}" "${AUTH_KEYS}"
+chmod 600 "${AUTH_KEYS}"
+
+PUB_KEY_CONTENT="$(cat "${PUBLIC_KEY}")"
+
+# Remove any previous key generated by this script (comment-based dedup)
+grep -v "deploy@" "${AUTH_KEYS}" > "${AUTH_KEYS}.tmp" 2>/dev/null || true
+mv "${AUTH_KEYS}.tmp" "${AUTH_KEYS}"
+
+echo "${PUB_KEY_CONTENT}" >> "${AUTH_KEYS}"
+echo "    Keypair generated and public key added to authorized_keys."
+
+# ---------------------------------------------------------------------------
+# 5. Print private key + operator checklist
+# ---------------------------------------------------------------------------
+echo ""
+echo "======================================================================="
+echo "  OPERATOR ACTION REQUIRED — copy the private key below into GitHub"
+echo "======================================================================="
+echo ""
+echo "Paste the following block (including the BEGIN/END lines) as the value"
+echo "of the GitHub Actions secret  SSH_PRIVATE_KEY  in the 'production'"
+echo "environment (Settings → Environments → production → Secrets):"
+echo ""
+echo "─────────────────────────── PRIVATE KEY START ───────────────────────"
+cat "${PRIVATE_KEY}"
+echo "────────────────────────────── PRIVATE KEY END ──────────────────────"
+echo ""
+echo "======================================================================="
+echo "  GitHub 'production' environment secrets checklist"
+echo "======================================================================="
+echo ""
+echo "  Set ALL of the following secrets in:"
+echo "  GitHub → Settings → Environments → production → Environment secrets"
+echo ""
+echo "  [ ] SSH_HOST          — Public IP or hostname of the VPS"
+echo "  [ ] SSH_PORT          — SSH port (usually 22)"
+echo "  [ ] SSH_USER          — ${DEPLOY_USER}"
+echo "  [ ] SSH_PRIVATE_KEY   — (pasted above)"
+echo "  [ ] DEPLOY_PATH       — ${REPO_DIR}"
+echo "  [ ] BOT_TOKEN         — Telegram bot token from @BotFather"
+echo "  [ ] TELEGRAM_OPS_GROUP_ID — Telegram group/channel ID for ops alerts"
+echo ""
+echo "======================================================================="
+echo "  Setup complete. The '${DEPLOY_USER}' user is ready."
+echo "======================================================================="
+echo ""
