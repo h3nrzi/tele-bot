@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `ecosystem.config.cjs` is committed in CommonJS format (required by PM2)
-- [ ] The process entry is named `voltix-bot`, invokes `tsx src/index.ts` in `fork` mode
-- [ ] `max_restarts: 5` and `min_uptime: "10s"` are set so crash loops surface as an errored process rather than spinning indefinitely
-- [ ] `watch: false` is set (file-watching is not appropriate for production)
-- [ ] No environment variables are inlined — the app loads them from the VPS `.env` file via its existing dotenv call
-- [ ] The file is listed in `.gitignore`'s opposite (i.e., it is NOT gitignored) and commits cleanly
+- [x] `ecosystem.config.cjs` is committed in CommonJS format (required by PM2)
+- [x] The process entry is named `voltix-bot`, invokes `tsx src/index.ts` in `fork` mode
+- [x] `max_restarts: 5` and `min_uptime: "10s"` are set so crash loops surface as an errored process rather than spinning indefinitely
+- [x] `watch: false` is set (file-watching is not appropriate for production)
+- [x] No environment variables are inlined — the app loads them from the VPS `.env` file via its existing dotenv call
+- [x] The file is listed in `.gitignore`'s opposite (i.e., it is NOT gitignored) and commits cleanly

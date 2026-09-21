@@ -61,21 +61,49 @@ OWNER_GROUP="${OWNER_USER}"
 usermod -aG "${OWNER_GROUP}" "${DEPLOY_USER}"
 echo "    Added '${DEPLOY_USER}' to group '${OWNER_GROUP}'."
 
+# Ensure owner home directory allows group traversal
+chmod g+rx "/home/${OWNER_USER}"
+echo "    Ensured group traversal on '/home/${OWNER_USER}'."
+
 # Ensure the repo directory exists and is group-writable
 if [[ -d "${REPO_DIR}" ]]; then
   chgrp -R "${OWNER_GROUP}" "${REPO_DIR}"
   chmod -R g+w "${REPO_DIR}"
   echo "    Set g+w on '${REPO_DIR}' (group: ${OWNER_GROUP})."
+
+  # Ensure .env is readable by the group (for migrations and bot runs)
+  if [[ -f "${REPO_DIR}/.env" ]]; then
+    chmod 640 "${REPO_DIR}/.env"
+    echo "    Ensured group read on '${REPO_DIR}/.env'."
+  fi
 else
   echo "    WARNING: Repo directory '${REPO_DIR}' does not exist yet." \
        "Run this script again after cloning the repo, or set REPO_DIR at the top of the script."
 fi
+
+# Ensure git safe.directory is configured so deploy user can run git commands in owner's repo
+git config --system --add safe.directory "${REPO_DIR}" 2>/dev/null || true
+echo "    Configured git safe.directory for '${REPO_DIR}'."
 
 # ---------------------------------------------------------------------------
 # 3. Sudoers rule — PM2 stop/start only
 # ---------------------------------------------------------------------------
 echo ""
 echo "==> [3/5] Writing sudoers rule at /etc/sudoers.d/deploy-pm2..."
+
+# Ensure /usr/bin/pm2 exists if pm2 is in another location (e.g. /usr/local/bin/pm2)
+PM2_LOC="$(command -v pm2 || which pm2 || true)"
+if [[ -n "${PM2_LOC}" && "${PM2_LOC}" != "/usr/bin/pm2" && ! -e "/usr/bin/pm2" ]]; then
+  ln -sf "${PM2_LOC}" /usr/bin/pm2
+  echo "    Symlinked ${PM2_LOC} -> /usr/bin/pm2"
+fi
+
+# Ensure /home/owner/.pm2 permissions allow group read/write for health checks
+OWNER_PM2="/home/${OWNER_USER}/.pm2"
+if [[ -d "${OWNER_PM2}" ]]; then
+  chgrp -R "${OWNER_GROUP}" "${OWNER_PM2}"
+  chmod -R g+rwX "${OWNER_PM2}"
+fi
 
 SUDOERS_FILE="/etc/sudoers.d/deploy-pm2"
 

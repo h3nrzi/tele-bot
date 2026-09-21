@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Script lives at `scripts/setup-deploy-user.sh` and is executable (`chmod +x`)
-- [ ] Creates the `deploy` OS user idempotently (`adduser` is safe to re-run)
-- [ ] Adds `deploy` to the `h3nrzi` group and sets `g+w` on the repo directory so the deploy user can write to it
-- [ ] Writes `/etc/sudoers.d/deploy-pm2` granting `deploy` passwordless `sudo` for exactly two commands: `sudo -u h3nrzi pm2 stop voltix-bot` and `sudo -u h3nrzi pm2 start <ecosystem-path> --env production` — nothing else
-- [ ] Generates an `ed25519` keypair under `/home/deploy/.ssh/` and adds the public key to `authorized_keys`
-- [ ] Prints the private key to stdout with clear instructions for the operator to copy it into GitHub Secrets as `SSH_PRIVATE_KEY`
-- [ ] Prints a checklist of the GitHub `production` environment secrets the operator must set: `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY`, `DEPLOY_PATH`, `BOT_TOKEN`, `TELEGRAM_OPS_GROUP_ID`
-- [ ] Script is safe to re-run after key rotation
+- [x] Script lives at `scripts/setup-deploy-user.sh` and is executable (`chmod +x`)
+- [x] Creates the `deploy` OS user idempotently (`adduser` is safe to re-run)
+- [x] Adds `deploy` to the `h3nrzi` group and sets `g+w` on the repo directory so the deploy user can write to it
+- [x] Writes `/etc/sudoers.d/deploy-pm2` granting `deploy` passwordless `sudo` for exactly two commands: `sudo -u h3nrzi pm2 stop voltix-bot` and `sudo -u h3nrzi pm2 start <ecosystem-path> --env production` — nothing else
+- [x] Generates an `ed25519` keypair under `/home/deploy/.ssh/` and adds the public key to `authorized_keys`
+- [x] Prints the private key to stdout with clear instructions for the operator to copy it into GitHub Secrets as `SSH_PRIVATE_KEY`
+- [x] Prints a checklist of the GitHub `production` environment secrets the operator must set: `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY`, `DEPLOY_PATH`, `BOT_TOKEN`, `TELEGRAM_OPS_GROUP_ID`
+- [x] Script is safe to re-run after key rotation
