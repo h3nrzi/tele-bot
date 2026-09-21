@@ -1,4 +1,10 @@
 node_modules/
+
+# Lockfiles from other package managers (this project uses pnpm exclusively)
+package-lock.json
+yarn.lock
+
+
 dist/
 .env
 .env.*

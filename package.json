@@ -6,6 +6,7 @@
 	"type": "module",
 	"main": "src/index.ts",
 	"scripts": {
+		"preinstall": "node -e \"const pm=(process.env.npm_config_user_agent||'').split('/')[0];if(pm&&pm!=='pnpm'){console.error('\\nERROR: This repo uses pnpm. Please run: pnpm install\\n');process.exit(1)}\"",
 		"build": "tsc",
 		"start": "tsx src/index.ts",
 		"typecheck": "tsc --noEmit",
@@ -39,6 +40,9 @@
 		"vitest": "^3.0.4"
 	},
 	"engines": {
-		"node": ">=20.0.0"
-	}
+		"node": ">=20.0.0",
+		"npm": "please-use-pnpm",
+		"pnpm": ">=11.0.0"
+	},
+	"packageManager": "pnpm@11.3.0"
 }
