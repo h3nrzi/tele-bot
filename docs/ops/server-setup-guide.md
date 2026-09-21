@@ -58,17 +58,20 @@ ssh root@2.28.234.187
 
 ## Step 2: Install and Verify System Prerequisites
 
-The deployment pipeline requires **Node.js (>=20)**, **pnpm (>=11.3.0)**, **PM2**, **tsx**, **Git**, and **PostgreSQL client**.
+The deployment pipeline requires **Node.js (>=22.13)**, **pnpm (>=11.3.0)**, **PM2**, **tsx**, **Git**, and **PostgreSQL client**.
 
-### 1. Ensure Node.js 20.x & Git are installed:
+> [!NOTE]
+> `pnpm@11.3.0` requires Node.js >= 22.13 because it uses the built-in `node:sqlite` module. Running it on Node 20 will cause an `ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: node:sqlite` error.
+
+### 1. Ensure Node.js 22.x & Git are installed:
 
 ```bash
 # Check existing versions
 node -v
 git --version
 
-# If Node.js is missing or < 20:
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+# If Node.js is missing or < 22.13:
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get update && apt-get install -y nodejs git postgresql-client
 ```
 
