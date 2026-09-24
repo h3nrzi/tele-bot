@@ -76,9 +76,9 @@ jobs:
             cd ${{ secrets.DEPLOY_PATH }}
             git fetch && git reset --hard origin/main
             npm ci --omit=dev
-            sudo -u h3nrzi pm2 stop voltix-bot
+            pm2 stop voltix-bot
             npm run db:migrate
-            sudo -u h3nrzi pm2 start /home/h3nrzi/tele-bot/ecosystem.config.cjs --env production
+            pm2 start /home/h3nrzi/tele-bot/ecosystem.config.cjs --env production
 
       - name: Verify bot health
         uses: appleboy/ssh-action@v1.2.0
