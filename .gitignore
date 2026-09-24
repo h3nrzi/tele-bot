@@ -1,7 +1,7 @@
 node_modules/
 
-# Lockfiles from other package managers (this project uses pnpm exclusively)
-package-lock.json
+# Lockfiles from package managers other than npm
+pnpm-lock.yaml
 yarn.lock
 
 

@@ -35,29 +35,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11.15.0
-          run_install: false
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "pnpm"
+          cache: "npm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Type check
-        run: pnpm typecheck
+        run: npm run typecheck
 
       - name: Format check
-        run: pnpm exec prettier --check .
+        run: npm exec prettier -- --check .
 
       - name: Run tests
-        run: pnpm test
+        run: npm test
 
   cd:
     name: CD
@@ -81,9 +75,9 @@ jobs:
             set -euo pipefail
             cd ${{ secrets.DEPLOY_PATH }}
             git fetch && git reset --hard origin/main
-            pnpm install --frozen-lockfile
+            npm ci --omit=dev
             sudo -u h3nrzi pm2 stop voltix-bot
-            pnpm db:migrate
+            npm run db:migrate
             sudo -u h3nrzi pm2 start /home/h3nrzi/tele-bot/ecosystem.config.cjs --env production
 
       - name: Verify bot health

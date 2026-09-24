@@ -17,9 +17,9 @@ flowchart TD
     subgraph VPS["Production VPS (2.28.234.187)"]
         C -->|SSH as deploy user| D["cd /home/h3nrzi/tele-bot"]
         D --> E["git fetch && git reset --hard origin/main"]
-        E --> F["pnpm install --frozen-lockfile\n(Old bot still live)"]
+        E --> F["npm ci --omit=dev\n(Old bot still live)"]
         F --> G["sudo -u h3nrzi pm2 stop voltix-bot\n(Downtime window begins ~3s)"]
-        G --> H["pnpm db:migrate\n(Apply Drizzle schema migrations)"]
+        G --> H["npm run db:migrate\n(Apply Drizzle schema migrations)"]
         H --> I["sudo -u h3nrzi pm2 start ecosystem.config.cjs --env production\n(Downtime window ends)"]
         I --> J["PM2 Health Check\n(Verify online state)"]
     end
@@ -58,10 +58,7 @@ ssh root@2.28.234.187
 
 ## Step 2: Install and Verify System Prerequisites
 
-The deployment pipeline requires **Node.js (>=22.13)**, **pnpm (>=11.3.0)**, **PM2**, **tsx**, **Git**, and **PostgreSQL client**.
-
-> [!NOTE]
-> `pnpm@11.3.0` requires Node.js >= 22.13 because it uses the built-in `node:sqlite` module. Running it on Node 20 will cause an `ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: node:sqlite` error.
+The deployment pipeline requires **Node.js (>=22.13)**, **npm (>=10)**, **PM2**, **tsx**, **Git**, and **PostgreSQL client**.
 
 ### 1. Ensure Node.js 22.x & Git are installed:
 
@@ -75,10 +72,10 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get update && apt-get install -y nodejs git postgresql-client
 ```
 
-### 2. Install global tools (pnpm, pm2, tsx):
+### 2. Install global tools (pm2, tsx):
 
 ```bash
-npm install -g pnpm@11.3.0 pm2 tsx
+npm install -g pm2 tsx
 ```
 
 ### 3. Ensure global binaries are symlinked to `/usr/bin`:
@@ -88,7 +85,6 @@ npm install -g pnpm@11.3.0 pm2 tsx
 
 ```bash
 ln -sf "$(which node)" /usr/bin/node
-ln -sf "$(which pnpm)" /usr/bin/pnpm
 ln -sf "$(which pm2)" /usr/bin/pm2
 ln -sf "$(which tsx)" /usr/bin/tsx
 ```
@@ -199,8 +195,8 @@ su - h3nrzi
 cd /home/h3nrzi/tele-bot
 
 # Install dependencies and apply initial database migrations
-pnpm install --frozen-lockfile
-pnpm db:migrate
+npm ci --omit=dev
+npm run db:migrate
 
 # Start the bot with the committed PM2 ecosystem file
 pm2 start ecosystem.config.cjs --env production
@@ -276,16 +272,16 @@ git push origin main
 Now open the **Actions** tab on GitHub:
 
 1. The **`ci`** job will run:
-   - Sets up Node.js 20 and pnpm
-   - Runs `pnpm typecheck`
+   - Sets up Node.js 22 and npm
+   - Runs `npm run typecheck`
    - Runs `prettier --check`
    - Boots an ephemeral PostgreSQL service container and runs the full Vitest suite
 2. Once `ci` passes, the **`cd`** job runs:
    - Connects to `2.28.234.187` via SSH as `deploy`
    - Fast-forwards the repo: `git fetch && git reset --hard origin/main`
-   - Runs `pnpm install --frozen-lockfile`
+   - Runs `npm ci --omit=dev`
    - Stops the bot: `sudo -u h3nrzi pm2 stop voltix-bot`
-   - Runs database migrations: `pnpm db:migrate`
+   - Runs database migrations: `npm run db:migrate`
    - Starts the bot: `sudo -u h3nrzi pm2 start /home/h3nrzi/tele-bot/ecosystem.config.cjs --env production`
    - Runs health verification: checks `pm2 list` for `voltix-bot` in `online` state
    - Deployment registers in the GitHub repository's **production** environment sidebar!
