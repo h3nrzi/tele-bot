@@ -45,5 +45,10 @@
 		"npm": "please-use-pnpm",
 		"pnpm": ">=11.0.0"
 	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild"
+		]
+	},
 	"packageManager": "pnpm@11.3.0"
 }
